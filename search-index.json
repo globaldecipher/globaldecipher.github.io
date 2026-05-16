@@ -1,0 +1,182 @@
+[
+  {
+    "title": "South Asia Security Watch: Militant Messaging and Operational Claims",
+    "summary": "A concise public briefing on how militant actors use claims, media releases, and local grievances to shape attention after security incidents.",
+    "type": "news",
+    "region": "South Asia",
+    "category": "Digital Propaganda",
+    "tags": [
+      "South Asia",
+      "Militant Messaging",
+      "Public Sources"
+    ],
+    "url": "/news/2026-05-16-south-asia-security-watch/",
+    "date": "2026-05-16",
+    "access": "free"
+  },
+  {
+    "title": "Counterterrorism Reporting Needs a Clearer Claim-versus-Confirmation Standard",
+    "summary": "A newsroom-style note on why terrorism coverage should distinguish public claims, official confirmation, and independent verification.",
+    "type": "news",
+    "region": "Global",
+    "category": "Research",
+    "tags": [
+      "Reporting Standards",
+      "Verification",
+      "Counterterrorism"
+    ],
+    "url": "/news/2026-05-15-counterterrorism-reporting-standards/",
+    "date": "2026-05-15",
+    "access": "free"
+  },
+  {
+    "title": "How Extremist Media Cycles Turn Local Incidents into Regional Narratives",
+    "summary": "A public analysis of how propaganda ecosystems package local events for regional influence without reproducing harmful material.",
+    "type": "news",
+    "region": "Middle East",
+    "category": "Digital Propaganda",
+    "tags": [
+      "Digital Propaganda",
+      "Narratives",
+      "Influence"
+    ],
+    "url": "/news/2026-05-14-digital-propaganda-cycle/",
+    "date": "2026-05-14",
+    "access": "free"
+  },
+  {
+    "title": "Why Public-Source Discipline Matters in Terrorism Research",
+    "summary": "An editorial argument for restraint, verification, and transparent sourcing in public-facing terrorism analysis.",
+    "type": "opinion",
+    "region": "Global",
+    "category": "Research",
+    "tags": [
+      "OSINT",
+      "Ethics",
+      "Research"
+    ],
+    "url": "/opinion/2026-05-13-why-public-source-discipline-matters/",
+    "date": "2026-05-13",
+    "access": "free"
+  },
+  {
+    "title": "Journalists and Security Institutions Need a Shared Language on Threat Reporting",
+    "summary": "A short perspective on improving the quality of terrorism coverage without reducing public accountability.",
+    "type": "opinion",
+    "region": "South Asia",
+    "category": "Media",
+    "tags": [
+      "Journalism",
+      "Security Policy",
+      "Public Interest"
+    ],
+    "url": "/opinion/2026-05-12-journalists-and-security-institutions/",
+    "date": "2026-05-12",
+    "access": "free"
+  },
+  {
+    "title": "Monitoring Desk Preview: Narrative Shifts in Militant Media Releases",
+    "summary": "A premium preview of how militant media themes shift after pressure, losses, or high-visibility incidents.",
+    "type": "monitoring",
+    "region": "South Asia",
+    "category": "Narratives",
+    "tags": [
+      "Monitoring Desk",
+      "Narratives",
+      "Premium"
+    ],
+    "url": "/monitoring/2026-05-16-monitoring-desk-narrative-shifts/",
+    "date": "2026-05-16",
+    "access": "premium-preview"
+  },
+  {
+    "title": "Monitoring Desk Preview: Platform Migration and Audience Retention",
+    "summary": "A premium preview on how extremist supporters adapt when channels are removed or disrupted.",
+    "type": "monitoring",
+    "region": "Global",
+    "category": "Digital Propaganda",
+    "tags": [
+      "Platform Migration",
+      "Digital Propaganda",
+      "Premium"
+    ],
+    "url": "/monitoring/2026-05-10-monitoring-desk-platform-migration/",
+    "date": "2026-05-10",
+    "access": "premium-preview"
+  },
+  {
+    "title": "Monitoring Desk Preview: Media Product Types and Influence Goals",
+    "summary": "A premium preview explaining how different media product types serve different influence goals.",
+    "type": "monitoring",
+    "region": "Middle East",
+    "category": "Digital Propaganda",
+    "tags": [
+      "Media Analysis",
+      "Influence",
+      "Premium"
+    ],
+    "url": "/monitoring/2026-05-03-monitoring-desk-media-product-types/",
+    "date": "2026-05-03",
+    "access": "premium-preview"
+  },
+  {
+    "title": "Monthly Threat Review: Public-Source Security Trends",
+    "summary": "A sample monthly public report format for regional security trends, claim patterns, and terrorism-related incidents.",
+    "type": "reports",
+    "region": "Global",
+    "category": "Monthly",
+    "tags": [
+      "Monthly Report",
+      "Threat Trends",
+      "Public Sources"
+    ],
+    "url": "/reports/2026-05-monthly-threat-review/",
+    "date": "2026-05-01",
+    "access": "free"
+  },
+  {
+    "title": "Premium Report Preview: District-Wise Threat Assessment",
+    "summary": "A premium report preview for district-level risk assessment designed for institutional and professional readers.",
+    "type": "reports",
+    "region": "South Asia",
+    "category": "Threat Assessment",
+    "tags": [
+      "Threat Assessment",
+      "Premium",
+      "South Asia"
+    ],
+    "url": "/reports/2026-04-district-risk-assessment-preview/",
+    "date": "2026-04-27",
+    "access": "premium-preview"
+  },
+  {
+    "title": "Profile Framework: Militant Organization Research Template",
+    "summary": "A safe public template for building terrorist organization profiles without amplifying propaganda or tactical material.",
+    "type": "profiles",
+    "region": "Global",
+    "category": "Group",
+    "tags": [
+      "Profiles",
+      "Actor Database",
+      "Research Template"
+    ],
+    "url": "/profiles/sample-group-profile/",
+    "date": "2026-04-20",
+    "access": "free"
+  },
+  {
+    "title": "Profile Framework: Individual Actor Research Template",
+    "summary": "A safe framework for individual profiles that emphasizes verification, relevance, and public-interest limits.",
+    "type": "profiles",
+    "region": "South Asia",
+    "category": "Individual",
+    "tags": [
+      "Profiles",
+      "Individuals",
+      "Verification"
+    ],
+    "url": "/profiles/sample-individual-profile/",
+    "date": "2026-04-18",
+    "access": "free"
+  }
+]

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://globaldecipher.github.io/sitemap.xml

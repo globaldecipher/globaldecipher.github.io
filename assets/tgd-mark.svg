@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">The Global Decipher mark</title>
+  <desc id="desc">A circular mark with TGD initials and a compass grid.</desc>
+  <rect width="96" height="96" rx="8" fill="#171715"/>
+  <circle cx="48" cy="48" r="31" fill="none" stroke="#b4232a" stroke-width="4"/>
+  <path d="M48 13v70M13 48h70M25 25l46 46M71 25 25 71" stroke="#d7d1c3" stroke-width="1.5" opacity=".55"/>
+  <path d="M48 24 57 49 48 72 39 49z" fill="#b88730"/>
+  <text x="48" y="54" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#ffffff">TGD</text>
+</svg>

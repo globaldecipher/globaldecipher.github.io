@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" role="img" aria-labelledby="title desc">
+  <title id="title">TGD intelligence desk visual</title>
+  <desc id="desc">A stylized public-source intelligence dashboard with regional markers, trend lines, and document panels.</desc>
+  <rect width="720" height="480" rx="8" fill="#20201d"/>
+  <g opacity=".28" stroke="#d7d1c3" stroke-width="1">
+    <path d="M40 80h640M40 140h640M40 200h640M40 260h640M40 320h640M40 380h640"/>
+    <path d="M100 40v400M180 40v400M260 40v400M340 40v400M420 40v400M500 40v400M580 40v400"/>
+  </g>
+  <path d="M111 210c29-50 75-76 137-80 55-3 99 12 133 46 31-36 72-50 123-42 44 7 75 31 94 72-21 17-48 26-81 26-45 1-82-15-111-48-29 41-71 63-126 66-64 4-120-10-169-40z" fill="#2b3d35" stroke="#6d8f7d" stroke-width="2"/>
+  <path d="M85 286c39-18 76-22 112-12 33 9 61 31 84 65 44-26 91-32 141-18 47 14 84 44 111 91-81 17-158 18-231 2-84-19-156-61-217-128z" fill="#343333" stroke="#8c846e" stroke-width="2"/>
+  <g>
+    <circle cx="248" cy="173" r="8" fill="#b4232a"/>
+    <circle cx="407" cy="184" r="8" fill="#b4232a"/>
+    <circle cx="525" cy="206" r="8" fill="#b88730"/>
+    <circle cx="318" cy="345" r="8" fill="#27705b"/>
+    <circle cx="468" cy="365" r="8" fill="#b4232a"/>
+  </g>
+  <g stroke="#b4232a" stroke-width="2" fill="none" opacity=".85">
+    <path d="M248 173c42 3 80 7 159 11"/>
+    <path d="M407 184c38 6 74 13 118 22"/>
+    <path d="M318 345c49 3 92 9 150 20"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#f7f7f4">
+    <text x="230" y="154">South Asia</text>
+    <text x="389" y="164">Narrative shift</text>
+    <text x="499" y="190">Claim review</text>
+    <text x="292" y="331">Source log</text>
+    <text x="438" y="349">Monitoring</text>
+  </g>
+  <g transform="translate(490 48)">
+    <rect width="174" height="92" rx="6" fill="#f7f7f4"/>
+    <rect x="16" y="18" width="82" height="8" fill="#171715"/>
+    <rect x="16" y="38" width="139" height="7" fill="#8c846e"/>
+    <rect x="16" y="56" width="112" height="7" fill="#8c846e"/>
+    <rect x="16" y="74" width="62" height="7" fill="#b4232a"/>
+  </g>
+  <g transform="translate(56 48)">
+    <rect width="178" height="92" rx="6" fill="#f7f7f4"/>
+    <rect x="16" y="18" width="70" height="8" fill="#171715"/>
+    <rect x="16" y="40" width="144" height="8" fill="#27705b"/>
+    <rect x="16" y="60" width="118" height="8" fill="#8c846e"/>
+    <rect x="16" y="78" width="88" height="7" fill="#b88730"/>
+  </g>
+  <g transform="translate(510 328)">
+    <rect width="154" height="94" rx="6" fill="#171715" stroke="#8c846e"/>
+    <path d="M20 72 47 50 77 59 108 28 134 39" stroke="#b88730" stroke-width="4" fill="none"/>
+    <rect x="20" y="18" width="76" height="8" fill="#f7f7f4"/>
+  </g>
+</svg>
