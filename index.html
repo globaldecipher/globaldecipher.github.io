@@ -18,24 +18,31 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <section class="dateline-strip">
-    <div class="container dateline-row">
-      <span><span class="dot"></span> Desk live</span>
-      <span><span class="sep">/</span>2026-05-16<span class="sep">/</span><span data-utc-clock>00:00:00 UTC</span></span>
-      <span>Vol. I · Issue 03</span>
-    </div>
-  </section>
   <header class="site-header">
     <div class="container header-grid">
       <a class="brand" href="index.html" aria-label="The Global Decipher home">
         <span class="brand-mark" aria-hidden="true">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="22" r="17" stroke="currentColor" stroke-width="1.4"/>
-            <ellipse cx="22" cy="22" rx="7" ry="17" stroke="currentColor" stroke-width="1.1"/>
-            <path d="M5 22h34" stroke="currentColor" stroke-width="1.1"/>
-            <path d="M22 1v42" stroke="currentColor" stroke-width="0.9" stroke-dasharray="1.5 3"/>
-            <circle cx="22" cy="22" r="2.8" fill="currentColor"/>
-            <circle cx="22" cy="22" r="6" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- outer circuit ring with breaks -->
+            <circle cx="26" cy="26" r="24" stroke="currentColor" stroke-width="0.8" stroke-dasharray="14 6 4 6 18 6" opacity="0.55"/>
+            <circle cx="26" cy="26" r="20" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2 5" opacity="0.4"/>
+            <!-- data nodes on outer ring -->
+            <circle cx="50" cy="26" r="1.4" fill="currentColor" opacity="0.7"/>
+            <circle cx="2" cy="26" r="1.4" fill="currentColor" opacity="0.7"/>
+            <circle cx="26" cy="2" r="1.4" fill="#1a6e3a" opacity="0.9"/>
+            <circle cx="26" cy="50" r="1.4" fill="currentColor" opacity="0.7"/>
+            <!-- globe -->
+            <circle cx="26" cy="26" r="15" fill="#0d1b2a"/>
+            <circle cx="26" cy="26" r="15" stroke="currentColor" stroke-width="1"/>
+            <!-- meridians + equator -->
+            <ellipse cx="26" cy="26" rx="6" ry="15" stroke="#fafaf7" stroke-width="0.7" fill="none" opacity="0.6"/>
+            <ellipse cx="26" cy="26" rx="12" ry="15" stroke="#fafaf7" stroke-width="0.5" fill="none" opacity="0.35"/>
+            <path d="M11 26h30" stroke="#fafaf7" stroke-width="0.7" opacity="0.6"/>
+            <path d="M14 18h24M14 34h24" stroke="#fafaf7" stroke-width="0.5" opacity="0.35"/>
+            <!-- Pakistan accent dot (green from PK flag) -->
+            <circle cx="32" cy="20" r="1.5" fill="#1a6e3a"/>
+            <!-- decipher center red dot -->
+            <circle cx="26" cy="26" r="2.4" fill="currentColor"/>
           </svg>
         </span>
         <span class="brand-text">
@@ -43,7 +50,7 @@
           <span class="b2">Decipher</span>
         </span>
       </a>
-      <nav class="site-nav" id="site-nav" aria-label="Primary navigation"><a href="news/index.html">News & Analysis</a><a href="opinion/index.html">Opinion</a><a href="monitoring/index.html">Monitoring Desk</a><a href="reports/index.html">Reports</a><a href="profiles/index.html">Profiles</a><a href="methodology/index.html">Methodology</a><a href="contact/index.html">Contact</a></nav>
+      <nav class="site-nav" id="site-nav" aria-label="Primary navigation"><a href="news/index.html">News</a><a href="opinion/index.html">Opinion</a><a href="monitoring/index.html">Monitoring</a><a href="reports/index.html">Reports</a><a href="profiles/index.html">Profiles</a><a href="contact/index.html">Contact</a></nav>
       <div class="header-cta">
         <button class="search-btn" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
         <a class="pitch-cta" href="mailto:globaldecipher@gmail.com?subject=TGD%20pitch">Pitch us</a>
@@ -106,45 +113,12 @@
     </div>
   </section>
 
-  <section class="pillar-strip">
-    <div class="container"><div class="pillar-grid"><a class="pillar" href="https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31" rel="noopener">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 14.4c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7 0-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4 0 1.4 1 2.8 1.2 3 .2.2 2.1 3.2 5.1 4.4.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.2-1.3C8.6 21.5 10.2 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2z"/></svg></span>
-      <span>
-        <span class="num">1,770+</span>
-        <span class="label">WhatsApp subscribers</span>
-      </span>
-      <span class="go">→</span>
-    </a><a class="pillar" href="https://x.com/Global_Decipher" rel="noopener">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
-      <span>
-        <span class="num">533</span>
-        <span class="label">Followers on X</span>
-      </span>
-      <span class="go">→</span>
-    </a><a class="pillar" href="https://substack.com/@theglobaldecipher?utm_source=user-menu" rel="noopener">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h11a4 4 0 014 4v12H8a4 4 0 01-4-4V4z"/><path d="M4 16a4 4 0 014-4h11"/></svg></span>
-      <span>
-        <span class="num">Substack</span>
-        <span class="label">Long-form analysis</span>
-      </span>
-      <span class="go">→</span>
-    </a><a class="pillar" href="mailto:globaldecipher@gmail.com?subject=TGD%20pitch" rel="noopener">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 6l9 7 9-7"/></svg></span>
-      <span>
-        <span class="num">Pitch us</span>
-        <span class="label">globaldecipher@gmail.com</span>
-      </span>
-      <span class="go">→</span>
-    </a></div></div>
-  </section>
-
   <section class="band">
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Latest analysis</p>
-        <h2>Verified before <em>viral.</em></h2>
       </div>
-      <a href="news/index.html">View all analysis</a>
+      <a href="news/index.html">View all</a>
     </div>
     <div class="container card-grid"><article class="content-card" data-search="pakistan security watch: militant messaging and operational claims a public briefing on how militant actors in pakistan use claims, media releases, and local grievances to shape attention after security incidents — and how to separate signal from amplification. pakistan pakistan pakistan militant messaging public sources" data-type="news" data-region="Pakistan">
     <div class="card-kicker">
@@ -189,8 +163,7 @@
     <div class="container">
       <div class="split-heading">
         <div>
-          <p class="band-eyebrow">Regional pulse</p>
-          <h2>Where the <em>signal</em> is concentrating</h2>
+          <p class="band-eyebrow">Regional desk</p>
         </div>
         <a href="news/index.html">All regional analysis</a>
       </div>
@@ -222,8 +195,8 @@
     <div class="container desk-grid-pro">
       <div>
         <p class="band-eyebrow">Monitoring desk</p>
-        <h2>Premium monitoring <em>without</em> propaganda amplification.</h2>
-        <p>The desk tracks militant media themes, narrative shifts, and influence patterns through source logs, confidence labels, and public-interest boundaries — never reproducing recruitment content or tactical material.</p>
+        <h2>Tracking militant media — <em>not amplifying it.</em></h2>
+        <p>Source logs, confidence labels, and public-interest boundaries. We never reproduce recruitment content or tactical material.</p>
         <a class="button primary" href="monitoring/index.html">Request access <span class="arrow">→</span></a>
       </div>
       <div class="desk-list"><a href="monitoring/2026-05-16-monitoring-desk-narrative-shifts/index.html">
@@ -254,10 +227,9 @@
   <section class="band muted">
     <div class="container split-heading">
       <div>
-        <p class="band-eyebrow">Research library</p>
-        <h2>Reports &amp; actor profiles</h2>
+        <p class="band-eyebrow">Reports &amp; profiles</p>
       </div>
-      <a href="reports/index.html">Open reports</a>
+      <a href="profiles/index.html">View profiles</a>
     </div>
     <div class="container feature-grid">
       <article class="content-card" data-search="monthly threat review: public-source security trends a sample monthly public report format for regional security trends, claim patterns, and terrorism-related incidents. monthly global monthly report threat trends public sources" data-type="reports" data-region="Global">
@@ -285,65 +257,62 @@
     </div>
     <div class="tag-row"><span>Threat Assessment</span><span>Premium</span><span>South Asia</span></div>
   </article>
-      <article class="content-card" data-search="profile framework: militant organization research template a safe public template for building terrorist organization profiles without amplifying propaganda or tactical material. group global profiles actor database research template" data-type="profiles" data-region="Global">
-    <div class="card-kicker">
-      <span>Profile</span>
-      <span class="badge badge-free">Free</span>
-    </div>
-    <h2><a href="profiles/sample-group-profile/index.html">Profile Framework: Militant Organization Research Template</a></h2>
-    <p>A safe public template for building terrorist organization profiles without amplifying propaganda or tactical material.</p>
-    <div class="card-meta">
-      <span>Apr 20, 2026</span>
-      <span>Global</span>
-    </div>
-    <div class="tag-row"><span>Profiles</span><span>Actor Database</span><span>Research Template</span></div>
-  </article><article class="content-card" data-search="profile framework: individual actor research template a safe framework for individual profiles that emphasizes verification, relevance, and public-interest limits. individual south asia profiles individuals verification" data-type="profiles" data-region="South Asia">
+      <article class="content-card" data-search="osama bin laden founder and first emir of al-qaeda. architect of the september 11, 2001 attacks. killed in a u.s. navy seal raid in abbottabad, pakistan, on may 2, 2011. individual global al-qaeda founder deceased" data-type="profiles" data-region="Global">
     <div class="card-kicker">
       <span>Profile</span>
       <span class="badge badge-research">Research sensitive</span>
     </div>
-    <h2><a href="profiles/sample-individual-profile/index.html">Profile Framework: Individual Actor Research Template</a></h2>
-    <p>A safe framework for individual profiles that emphasizes verification, relevance, and public-interest limits.</p>
+    <h2><a href="profiles/osama-bin-laden/index.html">Osama bin Laden</a></h2>
+    <p>Founder and first emir of al-Qaeda. Architect of the September 11, 2001 attacks. Killed in a U.S. Navy SEAL raid in Abbottabad, Pakistan, on May 2, 2011.</p>
     <div class="card-meta">
-      <span>Apr 18, 2026</span>
-      <span>South Asia</span>
+      <span>May 10, 2026</span>
+      <span>Global</span>
     </div>
-    <div class="tag-row"><span>Profiles</span><span>Individuals</span><span>Verification</span></div>
+    <div class="tag-row"><span>al-Qaeda</span><span>Founder</span><span>Deceased</span></div>
+  </article><article class="content-card" data-search="ayman al-zawahiri egyptian physician, egyptian islamic jihad leader, and second emir of al-qaeda. killed by a u.s. drone strike in kabul on july 31, 2022. individual global al-qaeda egyptian islamic jihad deceased" data-type="profiles" data-region="Global">
+    <div class="card-kicker">
+      <span>Profile</span>
+      <span class="badge badge-research">Research sensitive</span>
+    </div>
+    <h2><a href="profiles/ayman-al-zawahiri/index.html">Ayman al-Zawahiri</a></h2>
+    <p>Egyptian physician, Egyptian Islamic Jihad leader, and second emir of al-Qaeda. Killed by a U.S. drone strike in Kabul on July 31, 2022.</p>
+    <div class="card-meta">
+      <span>May 9, 2026</span>
+      <span>Global</span>
+    </div>
+    <div class="tag-row"><span>al-Qaeda</span><span>Egyptian Islamic Jihad</span><span>Deceased</span></div>
+  </article><article class="content-card" data-search="abu musab al-zarqawi jordanian militant who founded jama&#39;at al-tawhid wal-jihad, later al-qaeda in iraq. his campaign of mass-casualty attacks against iraqi shia laid the doctrinal foundation for what became the islamic state. individual middle east al-qaeda in iraq isis predecessor deceased" data-type="profiles" data-region="Middle East">
+    <div class="card-kicker">
+      <span>Profile</span>
+      <span class="badge badge-research">Research sensitive</span>
+    </div>
+    <h2><a href="profiles/abu-musab-al-zarqawi/index.html">Abu Musab al-Zarqawi</a></h2>
+    <p>Jordanian militant who founded Jama&#39;at al-Tawhid wal-Jihad, later al-Qaeda in Iraq. His campaign of mass-casualty attacks against Iraqi Shia laid the doctrinal foundation for what became the Islamic State.</p>
+    <div class="card-meta">
+      <span>May 8, 2026</span>
+      <span>Middle East</span>
+    </div>
+    <div class="tag-row"><span>al-Qaeda in Iraq</span><span>ISIS predecessor</span><span>Deceased</span></div>
   </article>
-    </div>
-  </section>
-
-  <section class="method-band">
-    <div class="container method-grid">
-      <div>
-        <p class="band-eyebrow">Editorial safeguards</p>
-        <h2>Neutral language. <em>Source discipline.</em> Public-interest framing.</h2>
-      </div>
-      <div class="method-steps">
-        <span>Collect public sources</span>
-        <span>Label confidence</span>
-        <span>Separate claim from confirmation</span>
-        <span>Publish corrections openly</span>
-      </div>
     </div>
   </section>
 
   <section class="pitch-band">
     <div class="container pitch-grid">
       <div>
-        <p class="band-eyebrow">Pitch &amp; sources</p>
-        <h2>Got a <em>tip</em>, a document, or a story we should be on?</h2>
-        <p>The Global Decipher works with researchers, journalists, and on-the-ground sources covering militant networks and security risk. We protect source identities, publish with strict verification standards, and never reproduce propaganda content.</p>
+        <p class="band-eyebrow">Pitch the desk</p>
+        <h2>Got a <em>tip</em>, document, or story?</h2>
+        <p>We work with researchers, journalists, and on-the-ground sources. Source identities are protected. We verify before we publish.</p>
         <a class="button primary" href="mailto:globaldecipher@gmail.com?subject=TGD%20pitch">Email the desk <span class="arrow">→</span></a>
       </div>
       <aside class="pitch-card">
-        <p class="label">Pitch desk</p>
+        <p class="label">Pitch &amp; contact</p>
         <a class="email" href="mailto:globaldecipher@gmail.com">globaldecipher@gmail.com</a>
         <ul>
-          <li>Tips, leaks, and documents — securely</li>
-          <li>Story pitches from researchers &amp; journalists</li>
-          <li>Premium subscription and institutional access</li>
-          <li>Press inquiries &amp; speaking requests</li>
+          <li>Tips, leaks, and documents</li>
+          <li>Researcher &amp; journalist pitches</li>
+          <li>Institutional access requests</li>
+          <li>Press &amp; speaking inquiries</li>
         </ul>
         <p style="margin:0;color:var(--muted);font-family:var(--mono);font-size:0.74rem;letter-spacing:0.08em;text-transform:uppercase;">Response within 48 hours</p>
       </aside>
@@ -411,13 +380,27 @@
     <div class="container footer-grid">
       <div>
         <a class="footer-brand" href="index.html"><span class="brand-mark" aria-hidden="true">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="22" r="17" stroke="currentColor" stroke-width="1.4"/>
-            <ellipse cx="22" cy="22" rx="7" ry="17" stroke="currentColor" stroke-width="1.1"/>
-            <path d="M5 22h34" stroke="currentColor" stroke-width="1.1"/>
-            <path d="M22 1v42" stroke="currentColor" stroke-width="0.9" stroke-dasharray="1.5 3"/>
-            <circle cx="22" cy="22" r="2.8" fill="currentColor"/>
-            <circle cx="22" cy="22" r="6" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- outer circuit ring with breaks -->
+            <circle cx="26" cy="26" r="24" stroke="currentColor" stroke-width="0.8" stroke-dasharray="14 6 4 6 18 6" opacity="0.55"/>
+            <circle cx="26" cy="26" r="20" stroke="currentColor" stroke-width="0.7" stroke-dasharray="2 5" opacity="0.4"/>
+            <!-- data nodes on outer ring -->
+            <circle cx="50" cy="26" r="1.4" fill="currentColor" opacity="0.7"/>
+            <circle cx="2" cy="26" r="1.4" fill="currentColor" opacity="0.7"/>
+            <circle cx="26" cy="2" r="1.4" fill="#1a6e3a" opacity="0.9"/>
+            <circle cx="26" cy="50" r="1.4" fill="currentColor" opacity="0.7"/>
+            <!-- globe -->
+            <circle cx="26" cy="26" r="15" fill="#0d1b2a"/>
+            <circle cx="26" cy="26" r="15" stroke="currentColor" stroke-width="1"/>
+            <!-- meridians + equator -->
+            <ellipse cx="26" cy="26" rx="6" ry="15" stroke="#fafaf7" stroke-width="0.7" fill="none" opacity="0.6"/>
+            <ellipse cx="26" cy="26" rx="12" ry="15" stroke="#fafaf7" stroke-width="0.5" fill="none" opacity="0.35"/>
+            <path d="M11 26h30" stroke="#fafaf7" stroke-width="0.7" opacity="0.6"/>
+            <path d="M14 18h24M14 34h24" stroke="#fafaf7" stroke-width="0.5" opacity="0.35"/>
+            <!-- Pakistan accent dot (green from PK flag) -->
+            <circle cx="32" cy="20" r="1.5" fill="#1a6e3a"/>
+            <!-- decipher center red dot -->
+            <circle cx="26" cy="26" r="2.4" fill="currentColor"/>
           </svg>
         </span>
         <span class="brand-text">

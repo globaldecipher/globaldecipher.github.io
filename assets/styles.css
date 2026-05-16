@@ -141,11 +141,11 @@ a:hover { color: var(--red); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px; height: 44px;
+  width: 52px; height: 52px;
   color: var(--red);
   flex: 0 0 auto;
 }
-.brand-mark svg { width: 44px; height: 44px; display: block; }
+.brand-mark svg { width: 52px; height: 52px; display: block; }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1; }
 .brand-text .b1 {

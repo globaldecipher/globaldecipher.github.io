@@ -150,33 +150,63 @@
     "access": "premium-preview"
   },
   {
-    "title": "Profile Framework: Militant Organization Research Template",
-    "summary": "A safe public template for building terrorist organization profiles without amplifying propaganda or tactical material.",
+    "title": "Osama bin Laden",
+    "summary": "Founder and first emir of al-Qaeda. Architect of the September 11, 2001 attacks. Killed in a U.S. Navy SEAL raid in Abbottabad, Pakistan, on May 2, 2011.",
     "type": "profiles",
     "region": "Global",
-    "category": "Group",
+    "category": "Individual",
     "tags": [
-      "Profiles",
-      "Actor Database",
-      "Research Template"
+      "al-Qaeda",
+      "Founder",
+      "Deceased"
     ],
-    "url": "/profiles/sample-group-profile/",
-    "date": "2026-04-20",
+    "url": "/profiles/osama-bin-laden/",
+    "date": "2026-05-10",
     "access": "free"
   },
   {
-    "title": "Profile Framework: Individual Actor Research Template",
-    "summary": "A safe framework for individual profiles that emphasizes verification, relevance, and public-interest limits.",
+    "title": "Ayman al-Zawahiri",
+    "summary": "Egyptian physician, Egyptian Islamic Jihad leader, and second emir of al-Qaeda. Killed by a U.S. drone strike in Kabul on July 31, 2022.",
+    "type": "profiles",
+    "region": "Global",
+    "category": "Individual",
+    "tags": [
+      "al-Qaeda",
+      "Egyptian Islamic Jihad",
+      "Deceased"
+    ],
+    "url": "/profiles/ayman-al-zawahiri/",
+    "date": "2026-05-09",
+    "access": "free"
+  },
+  {
+    "title": "Abu Musab al-Zarqawi",
+    "summary": "Jordanian militant who founded Jama'at al-Tawhid wal-Jihad, later al-Qaeda in Iraq. His campaign of mass-casualty attacks against Iraqi Shia laid the doctrinal foundation for what became the Islamic State.",
+    "type": "profiles",
+    "region": "Middle East",
+    "category": "Individual",
+    "tags": [
+      "al-Qaeda in Iraq",
+      "ISIS predecessor",
+      "Deceased"
+    ],
+    "url": "/profiles/abu-musab-al-zarqawi/",
+    "date": "2026-05-08",
+    "access": "free"
+  },
+  {
+    "title": "Mohammad Sharifullah",
+    "summary": "Afghan national and ISIS-K operative captured in Pakistan in 2025. Convicted in U.S. federal court for material support to a designated foreign terrorist organisation, including reconnaissance work tied to the August 2021 Abbey Gate suicide bombing in Kabul.",
     "type": "profiles",
     "region": "South Asia",
     "category": "Individual",
     "tags": [
-      "Profiles",
-      "Individuals",
-      "Verification"
+      "ISIS-K",
+      "Abbey Gate",
+      "Pakistan"
     ],
-    "url": "/profiles/sample-individual-profile/",
-    "date": "2026-04-18",
+    "url": "/profiles/mohammad-sharifullah/",
+    "date": "2026-05-07",
     "access": "free"
   }
 ]
