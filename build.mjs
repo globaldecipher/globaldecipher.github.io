@@ -20,9 +20,11 @@ const SITE = {
 };
 
 const NAV = [
+  ["News", "/news/"],
+  ["Opinion", "/opinion/"],
+  ["Monitoring", "/monitoring/"],
   ["Reports", "/reports/"],
   ["Profiles", "/profiles/"],
-  ["Methodology", "/methodology/"],
   ["Contact", "/contact/"]
 ];
 
@@ -1026,12 +1028,11 @@ function writePage(urlPath, html) {
 }
 
 function writeStaticFiles(items, pages) {
-  const hasType = (type) => items.some((item) => item.type === type);
   const urls = [
     "/",
-    ...(hasType("news") ? ["/news/"] : []),
-    ...(hasType("opinion") ? ["/opinion/"] : []),
-    ...(hasType("monitoring") ? ["/monitoring/"] : []),
+    "/news/",
+    "/opinion/",
+    "/monitoring/",
     "/reports/",
     "/profiles/",
     ...items.map((item) => item.url),
