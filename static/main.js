@@ -16,6 +16,81 @@
     });
   }
 
+  /* ---------- site-wide search ---------- */
+  const searchToggle = $("[data-search-toggle]");
+  const searchPanel = $("[data-site-search]");
+  if (searchToggle && searchPanel) {
+    const input = $("[data-site-search-input]", searchPanel);
+    const results = $("[data-site-search-results]", searchPanel);
+    let index = [];
+    let loaded = false;
+
+    const linkFor = (url) => {
+      const base = searchPanel.dataset.searchIndex || "search-index.json";
+      const prefix = base.replace(/search-index\.json$/, "");
+      if (!url || url === "/") return `${prefix}index.html`;
+      return `${prefix}${url.replace(/^\/|\/$/g, "")}/index.html`;
+    };
+
+    const render = () => {
+      if (!results) return;
+      const q = (input?.value || "").trim().toLowerCase();
+      const matches = index
+        .map((item) => {
+          const haystack = [item.title, item.summary, item.type, item.region, item.category, ...(item.tags || [])]
+            .join(" ")
+            .toLowerCase();
+          return { item, hit: !q || haystack.includes(q) };
+        })
+        .filter((entry) => entry.hit)
+        .slice(0, 8)
+        .map(({ item }) => `<a href="${linkFor(item.url)}">
+          <span>${item.type || "item"} · ${item.region || item.category || "Global"}</span>
+          <strong>${item.title}</strong>
+          <small>${item.summary || ""}</small>
+        </a>`)
+        .join("");
+      results.innerHTML = matches || `<p>No matching research found.</p>`;
+    };
+
+    const load = async () => {
+      if (loaded) return;
+      loaded = true;
+      try {
+        const res = await fetch(searchPanel.dataset.searchIndex || "search-index.json");
+        index = await res.json();
+      } catch {
+        index = [];
+      }
+    };
+
+    const openSearch = async () => {
+      searchPanel.hidden = false;
+      searchToggle.setAttribute("aria-expanded", "true");
+      await load();
+      render();
+      window.requestAnimationFrame(() => input?.focus());
+    };
+
+    const closeSearch = () => {
+      searchPanel.hidden = true;
+      searchToggle.setAttribute("aria-expanded", "false");
+    };
+
+    searchToggle.addEventListener("click", async () => {
+      if (searchPanel.hidden) await openSearch();
+      else closeSearch();
+    });
+    input?.addEventListener("input", render);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !searchPanel.hidden) closeSearch();
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+    });
+  }
+
   /* ---------- live UTC clock ---------- */
   const clockTargets = $$("[data-utc-clock]");
   if (clockTargets.length) {
@@ -86,7 +161,7 @@
   /* ---------- reveal on scroll ---------- */
   if ("IntersectionObserver" in window) {
     const targets = $$(
-      ".content-card, .stat-card, .region-card, .method-steps span, .desk-list a, .intel-desk, .split-heading, .article-body, .hero h1, .hero-lead, .hero-meta, .hero-actions, .premium-cta"
+      ".content-card, .snapshot-card, .gateway-card, .stat-card, .region-card, .method-steps span, .desk-list a, .intel-desk, .split-heading, .article-body, .article-sidebar, .hero h1, .hero-lead, .hero-meta, .hero-actions, .premium-cta"
     );
     for (const t of targets) t.classList.add("reveal");
     const io = new IntersectionObserver(
@@ -135,7 +210,7 @@
   }
 
   /* ---------- card spotlight (mouse-tracking glow) ---------- */
-  const cards = $$(".content-card, .stat-card, .region-card");
+  const cards = $$(".content-card, .snapshot-card, .gateway-card, .stat-card, .region-card");
   for (const card of cards) {
     card.addEventListener("mousemove", (e) => {
       const r = card.getBoundingClientRect();

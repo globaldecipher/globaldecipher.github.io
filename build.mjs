@@ -20,11 +20,9 @@ const SITE = {
 };
 
 const NAV = [
-  ["News", "/news/"],
-  ["Opinion", "/opinion/"],
-  ["Monitoring", "/monitoring/"],
   ["Reports", "/reports/"],
   ["Profiles", "/profiles/"],
+  ["Methodology", "/methodology/"],
   ["Contact", "/contact/"]
 ];
 
@@ -62,6 +60,28 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function stripMarkdown(value = "") {
+  return String(value)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/[*_`>#]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function plainTextFromHtml(value = "") {
+  return String(value)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function parseValue(raw) {
@@ -113,7 +133,7 @@ function inlineMarkdown(text) {
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   out = out.replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2">$1</a>');
   // Re-allow stored image tags to keep raw src/alt (escapeHtml only ran on text input).
   return out;
@@ -141,6 +161,14 @@ function markdownToHtml(markdown) {
   let paragraph = [];
   let list = [];
   let quote = [];
+  const headingIds = new Map();
+
+  function headingId(text) {
+    const base = slugify(stripMarkdown(text)) || "section";
+    const count = headingIds.get(base) || 0;
+    headingIds.set(base, count + 1);
+    return count ? `${base}-${count + 1}` : base;
+  }
 
   function flushParagraph() {
     if (paragraph.length) {
@@ -193,7 +221,7 @@ function markdownToHtml(markdown) {
     if (heading) {
       flushAll();
       const level = heading[1].length;
-      html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      html.push(`<h${level} id="${headingId(heading[2])}">${inlineMarkdown(heading[2])}</h${level}>`);
       continue;
     }
 
@@ -315,6 +343,120 @@ function typeLabel(type = "") {
   return labels[type] || type;
 }
 
+function routeForType(type = "") {
+  const routes = {
+    news: "/news/",
+    opinion: "/opinion/",
+    monitoring: "/monitoring/",
+    reports: "/reports/",
+    profiles: "/profiles/"
+  };
+  return routes[type] || "/";
+}
+
+function collectHeadings(markdown = "") {
+  const counts = new Map();
+  return markdown
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const match = line.trim().match(/^(#{2,3})\s+(.+)$/);
+      if (!match) return null;
+      const title = stripMarkdown(match[2]);
+      const base = slugify(title) || "section";
+      const count = counts.get(base) || 0;
+      counts.set(base, count + 1);
+      return {
+        level: match[1].length,
+        title,
+        id: count ? `${base}-${count + 1}` : base
+      };
+    })
+    .filter(Boolean);
+}
+
+function extractSection(markdown = "", heading = "") {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const wanted = heading.toLowerCase();
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].trim().match(/^##\s+(.+)$/);
+    if (match && stripMarkdown(match[1]).toLowerCase() === wanted) {
+      start = i + 1;
+      break;
+    }
+  }
+  if (start === -1) return "";
+  const block = [];
+  for (let i = start; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i].trim())) break;
+    block.push(lines[i]);
+  }
+  return block.join("\n").trim();
+}
+
+function firstParagraph(markdown = "") {
+  return stripMarkdown(
+    markdown
+      .split(/\n\s*\n/)
+      .map((part) => part.trim())
+      .find(Boolean) || ""
+  );
+}
+
+function extractListValue(markdown = "", label = "") {
+  const re = new RegExp(`^-\\s+\\*\\*${label}:\\*\\*\\s*(.+)$`, "im");
+  const match = markdown.match(re);
+  return match ? stripMarkdown(match[1]) : "";
+}
+
+function profileStatus(item) {
+  const status = firstParagraph(extractSection(item.body, "Status"));
+  if (/deceased|killed|executed/i.test(status)) return "Deceased";
+  if (/custody|convicted|imprisoned|detained|prison/i.test(status)) return "In custody";
+  if (/wanted|fugitive|reward/i.test(status)) return "Wanted";
+  if (/uncertain|unknown|whereabouts/i.test(status)) return "Uncertain";
+  return status ? "Documented" : "Profile";
+}
+
+function profileFacts(item) {
+  const identification = extractSection(item.body, "Identification");
+  const tags = Array.isArray(item.tags) ? item.tags : [];
+  return [
+    ["Status", profileStatus(item)],
+    ["Organisation", extractListValue(identification, "Organisation") || tags[0] || ""],
+    ["Role", extractListValue(identification, "Role") || item.category || ""],
+    ["Region", item.region || ""],
+    ["Updated", formatDate(item.date)]
+  ].filter(([, value]) => value);
+}
+
+function extractReportMetrics(markdown = "") {
+  const metrics = [];
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^##\s+Report at a glance/i.test(lines[i].trim())) continue;
+    for (let j = i + 1; j < lines.length; j++) {
+      const row = lines[j].trim();
+      if (/^##\s+/.test(row)) break;
+      if (!row.startsWith("|") || isTableSeparator(row)) continue;
+      const cells = parseTableRow(row);
+      if (cells.length >= 2 && !/^metric$/i.test(cells[0])) {
+        metrics.push([stripMarkdown(cells[0]), stripMarkdown(cells[1])]);
+      }
+    }
+    break;
+  }
+  return metrics;
+}
+
+function extractPdfLinks(markdown = "") {
+  return [...markdown.matchAll(/\[([^\]]+)\]\(([^)]+\.pdf)\)/gi)].map((match) => ({
+    label: stripMarkdown(match[1]),
+    href: match[2]
+  }));
+}
+
 function depthFor(urlPath) {
   if (urlPath === "/") return 0;
   return urlPath.replace(/^\/|\/$/g, "").split("/").filter(Boolean).length;
@@ -357,7 +499,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
   const assetPrefix = prefixFor(pagePath);
   const nav = NAV.map(([label, href]) => {
-    const active = current === href ? ' aria-current="page"' : "";
+    const active = current === href || (href !== "/" && pagePath.startsWith(href)) ? ' aria-current="page"' : "";
     return `<a${active} href="${linkFor(href, pagePath)}">${label}</a>`;
   }).join("");
   const year = new Date().getUTCFullYear();
@@ -389,11 +531,20 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </a>
       <nav class="site-nav" id="site-nav" aria-label="Primary navigation">${nav}</nav>
       <div class="header-cta">
-        <button class="search-btn" type="button" aria-label="Search">${icon("search")}</button>
+        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
         <a class="pitch-cta" href="mailto:${SITE.email}?subject=TGD%20pitch">Pitch us</a>
       </div>
       <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
     </div>
+    <section class="site-search-panel" id="site-search" data-site-search data-search-index="${assetPrefix}search-index.json" hidden>
+      <div class="container site-search-inner">
+        <label>
+          <span>Search TGD</span>
+          <input type="search" data-site-search-input placeholder="Search reports, profiles, regions, groups, or themes" autocomplete="off">
+        </label>
+        <div class="site-search-results" data-site-search-results></div>
+      </div>
+    </section>
   </header>
   <main id="main">${body}</main>
   <footer class="site-footer">
@@ -404,9 +555,9 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </div>
       <div>
         <h2>Channels</h2>
-        <a href="${SITE.x}" rel="noopener">X / Twitter</a>
-        <a href="${SITE.whatsapp}" rel="noopener">WhatsApp Channel</a>
-        <a href="${SITE.substack}" rel="noopener">Substack</a>
+        <a href="${SITE.x}" target="_blank" rel="noopener">X / Twitter</a>
+        <a href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp Channel</a>
+        <a href="${SITE.substack}" target="_blank" rel="noopener">Substack</a>
       </div>
       <div>
         <h2>Editorial</h2>
@@ -434,7 +585,9 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
 function card(item, currentPath = "/", { compact = false } = {}) {
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const tagMarkup = tags.slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
-  return `<article class="content-card" data-search="${escapeHtml([item.title, item.summary, item.category, item.region, tags.join(" ")].join(" ").toLowerCase())}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}">
+  const status = item.type === "profiles" ? profileStatus(item) : "";
+  const searchText = [item.title, item.summary, item.category, item.region, status, tags.join(" ")].join(" ").toLowerCase();
+  return `<article class="content-card" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
     <div class="card-kicker">
       <span>${escapeHtml(typeLabel(item.type))}</span>
       ${accessLabel(item)}
@@ -443,7 +596,7 @@ function card(item, currentPath = "/", { compact = false } = {}) {
     <p>${escapeHtml(item.summary || "")}</p>
     <div class="card-meta">
       <span>${escapeHtml(formatDate(item.date))}</span>
-      <span>${escapeHtml(item.region || item.category || "")}</span>
+      <span>${escapeHtml(item.type === "profiles" && status ? status : item.region || item.category || "")}</span>
     </div>
     ${compact ? "" : `<div class="tag-row">${tagMarkup}</div>`}
   </article>`;
@@ -483,7 +636,7 @@ function pillarStrip() {
     { icon: "mail", num: "Pitch us", label: "globaldecipher@gmail.com", url: `mailto:${SITE.email}?subject=TGD%20pitch` }
   ];
   const cells = items.map(
-    (s) => `<a class="pillar" href="${s.url}" rel="noopener">
+    (s) => `<a class="pillar" href="${s.url}"${/^https?:\/\//.test(s.url) ? ' target="_blank" rel="noopener"' : ""}>
       <span class="icon">${icon(s.icon)}</span>
       <span>
         <span class="num">${escapeHtml(s.num)}</span>
@@ -556,7 +709,7 @@ function tickerStrip(items) {
   const doubled = [...lines, ...lines].join("");
   return `<div class="ticker-bar">
     <div class="container ticker-row">
-      <span class="ticker-label"><span class="live-dot"></span> Live wire</span>
+      <span class="ticker-label"><span class="live-dot"></span> Latest research</span>
       <div class="ticker-track">
         <div class="ticker-strip">${doubled}</div>
       </div>
@@ -605,21 +758,20 @@ function pitchBand() {
 
 function homepage(items) {
   const currentPath = "/";
-  const latest = items.filter((item) => item.type === "news").slice(0, 3);
-  const secondary = latest.slice(1);
-  const monitoring = items.filter((item) => item.type === "monitoring").slice(0, 3);
-  const reports = items.filter((item) => item.type === "reports").slice(0, 2);
-  const profiles = items.filter((item) => item.type === "profiles").slice(0, 3);
-  const lead = latest[0] || reports[0] || profiles[0] || items[0];
-  const todayIso = new Date().toISOString().slice(0, 10);
-
-  const railItems = [...secondary, ...monitoring, ...reports, ...profiles]
+  const reports = items.filter((item) => item.type === "reports");
+  const profiles = items.filter((item) => item.type === "profiles");
+  const lead = reports[0] || profiles[0] || items[0];
+  const metrics = lead?.type === "reports" ? extractReportMetrics(lead.body) : [];
+  const metricMap = new Map(metrics);
+  const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
+  const railItems = [...reports.slice(1), ...profiles]
     .filter((item) => item && item.url !== lead?.url)
-    .slice(0, 3);
+    .slice(0, 5);
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
-  const leadListHref = lead?.type === "reports" ? "/reports/" : lead?.type === "profiles" ? "/profiles/" : "/news/";
-  const leadListLabel = lead?.type === "reports" ? "All reports" : lead?.type === "profiles" ? "All profiles" : "All briefings";
+  const heroTitle = lead?.type === "reports"
+    ? lead.title
+    : "Militant actor profiles and security research in one place";
   if (!lead) {
     return shell({
       title: SITE.title,
@@ -640,14 +792,23 @@ function homepage(items) {
     });
   }
 
+  const stats = [
+    ["Profiles", profiles.length, "Research profiles live"],
+    ["Regions", profileRegions.size, "Actor database coverage"],
+    ["Reports", reports.length, "Published assessments"],
+    metricMap.get("Militant attacks reported") ? ["Attacks", metricMap.get("Militant attacks reported"), "Latest monthly report"] : null,
+    metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), "Latest monthly report"] : null,
+    metricMap.get("Injuries") ? ["Injuries", metricMap.get("Injuries"), "Latest monthly report"] : null
+  ].filter(Boolean).slice(0, 6);
+
   const body = `
   ${tickerStrip(items)}
   <section class="hero">
     <div class="container hero-grid">
       <div class="hero-lead-col">
         <p class="hero-eyebrow">${leadType} · ${escapeHtml(lead.region || "Pakistan")}</p>
-        <h1><a href="${linkFor(lead.url, currentPath)}">${escapeHtml(lead.title)}</a></h1>
-        <p class="hero-lead">${escapeHtml(lead.summary)}</p>
+        <h1><a href="${linkFor(lead.url, currentPath)}">${escapeHtml(heroTitle)}</a></h1>
+        <p class="hero-lead">${escapeHtml(lead.summary || SITE.description)}</p>
         <div class="hero-meta">
           <span class="byline">${escapeHtml(lead.author || "TGD Desk")}</span>
           <span>${escapeHtml(formatDate(lead.date))}</span>
@@ -661,7 +822,7 @@ function homepage(items) {
       </div>
       <aside class="hero-rail">
         <div class="hero-rail-head">
-          <span class="title">Today on the desk</span>
+          <span class="title">Research queue</span>
           <span class="status"><span class="live-dot"></span> Updated</span>
         </div>
         ${railItems.length ? railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
@@ -671,58 +832,64 @@ function homepage(items) {
             <strong>${escapeHtml(item.title)}</strong>
           </span>
         </a>`).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
-        <a class="rail-cta" href="${linkFor(leadListHref, currentPath)}">${leadListLabel}</a>
+        <a class="rail-cta" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
       </aside>
     </div>
   </section>
 
-  <section class="band">
-    <div class="container split-heading">
-      <div>
-        <p class="band-eyebrow">From the desk</p>
-        <h2>Latest analysis</h2>
-      </div>
-      <a href="${linkFor("/news/", currentPath)}">View all</a>
-    </div>
-    <div class="container card-grid">${latest.map((item) => card(item, currentPath)).join("")}</div>
-    ${latest.length ? "" : '<div class="container"><p class="empty-state">News and analysis will appear here after upload.</p></div>'}
-  </section>
-
-  ${threatBoard()}
-
-  <section class="desk-section">
-    <div class="container desk-grid-pro">
-      <div>
-        <p class="band-eyebrow">Monitoring desk</p>
-        <h2>Tracking militant media — <em>not amplifying it.</em></h2>
-        <p>Source logs, confidence labels, and public-interest boundaries. We never reproduce recruitment content or tactical material.</p>
-        <a class="button primary" href="${linkFor("/monitoring/", currentPath)}">Request access <span class="arrow">→</span></a>
-      </div>
-      <div class="desk-list">${monitoring.length ? monitoring.map((item, i) => `<a href="${linkFor(item.url, currentPath)}">
-        <span class="num">0${i + 1}</span>
-        <span class="body">
-          <span>${escapeHtml(item.category || "Monitor")}</span>
-          <strong>${escapeHtml(item.title)}</strong>
-        </span>
-        <span class="arrow">→</span>
-      </a>`).join("") : '<p class="empty-state">Monitoring desk previews will appear here after upload.</p>'}</div>
+  <section class="snapshot-strip">
+    <div class="container snapshot-grid">
+      ${stats.map(([label, value, note]) => `<article class="snapshot-card">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${escapeHtml(note)}</small>
+      </article>`).join("")}
     </div>
   </section>
 
   <section class="band muted">
     <div class="container split-heading">
       <div>
-        <p class="band-eyebrow">Research library</p>
-        <h2>Reports &amp; actor profiles</h2>
+        <p class="band-eyebrow">Start here</p>
+        <h2>Reports and actor profiles, built for scanning.</h2>
       </div>
-      <a href="${linkFor("/profiles/", currentPath)}">View profiles</a>
+      <a href="${linkFor("/reports/", currentPath)}">View reports</a>
     </div>
-    <div class="container feature-grid">
-      ${reports.map((item) => card(item, currentPath)).join("")}
-      ${profiles.map((item) => card(item, currentPath)).join("")}
+    <div class="container gateway-grid">
+      <a class="gateway-card" href="${linkFor("/reports/", currentPath)}">
+        <span class="gateway-kicker">Monthly assessments</span>
+        <strong>Read structured Pakistan security reports</strong>
+        <p>Casualties, tactics, provincial trends, threat actors, and downloadable source PDFs.</p>
+      </a>
+      <a class="gateway-card" href="${linkFor("/profiles/", currentPath)}">
+        <span class="gateway-kicker">Actor database</span>
+        <strong>Explore terrorist and militant leader profiles</strong>
+        <p>Search by region, organisation, status, and movement ecosystem.</p>
+      </a>
     </div>
-    ${reports.length || profiles.length ? "" : '<div class="container"><p class="empty-state">Reports and profiles will appear here after upload.</p></div>'}
   </section>
+
+  <section class="band">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">Actor database</p>
+        <h2>Latest profiles</h2>
+      </div>
+      <a href="${linkFor("/profiles/", currentPath)}">View all profiles</a>
+    </div>
+    <div class="container card-grid">${profiles.slice(0, 6).map((item) => card(item, currentPath)).join("")}</div>
+  </section>
+
+  ${reports.length ? `<section class="band muted">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">Research product</p>
+        <h2>Latest monthly report</h2>
+      </div>
+      <a href="${linkFor("/reports/", currentPath)}">Report archive</a>
+    </div>
+    <div class="container feature-grid">${reports.slice(0, 2).map((item) => card(item, currentPath)).join("")}</div>
+  </section>` : ""}
 
   ${pitchBand()}`;
 
@@ -754,6 +921,59 @@ function pageTemplate(page) {
   return shell({ title: page.title, description: page.summary || SITE.description, body, current: page.url, pagePath: page.url });
 }
 
+function articleSidebar(item) {
+  const headings = collectHeadings(item.body).filter((heading) => heading.level === 2).slice(0, 10);
+  const pdfs = extractPdfLinks(item.body);
+  const metrics = item.type === "reports" ? extractReportMetrics(item.body).slice(0, 4) : [];
+  const facts = item.type === "profiles" ? profileFacts(item) : [];
+  const tags = Array.isArray(item.tags) ? item.tags : [];
+
+  const metricBlock = metrics.length
+    ? `<div class="article-side-panel">
+        <h2>At a glance</h2>
+        <dl class="side-stats">${metrics.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
+      </div>`
+    : "";
+
+  const factBlock = facts.length
+    ? `<div class="article-side-panel">
+        <h2>Profile facts</h2>
+        <dl class="side-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
+      </div>`
+    : "";
+
+  const tocBlock = headings.length
+    ? `<div class="article-side-panel">
+        <h2>On this page</h2>
+        <nav class="article-toc" aria-label="Article sections">${headings.map((heading) => `<a href="#${heading.id}">${escapeHtml(heading.title)}</a>`).join("")}</nav>
+      </div>`
+    : "";
+
+  const pdfBlock = pdfs.length
+    ? `<div class="article-side-panel">
+        <h2>Files</h2>
+        ${pdfs.map((pdf) => `<a class="file-link" href="${escapeHtml(pdf.href)}">${escapeHtml(pdf.label || "Download PDF")}</a>`).join("")}
+      </div>`
+    : "";
+
+  const tagBlock = tags.length
+    ? `<div class="article-side-panel">
+        <h2>Tags</h2>
+        <div class="side-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+      </div>`
+    : "";
+
+  const researchBlock = item.type === "profiles"
+    ? `<div class="article-side-panel">
+        <h2>Research note</h2>
+        <p>Public-source profile. TGD excludes operational guidance and treats uncertain current-status claims separately.</p>
+      </div>`
+    : "";
+
+  const blocks = [metricBlock, factBlock, tocBlock, pdfBlock, tagBlock, researchBlock].filter(Boolean).join("");
+  return blocks ? `<aside class="article-sidebar">${blocks}</aside>` : "";
+}
+
 function articleTemplate(item, allItems) {
   const related = allItems
     .filter((candidate) => candidate.url !== item.url && (candidate.type === item.type || candidate.region === item.region))
@@ -782,10 +1002,11 @@ function articleTemplate(item, allItems) {
   <section class="article-band">
     <div class="container article-shell">
       <article class="article-body">${item.html}</article>
+      ${articleSidebar(item)}
       ${premiumCta}
     </div>
   </section>
-  <section class="band">
+  ${related.length ? `<section class="band">
     <div class="container split-heading">
       <div>
         <p class="eyebrow">Related reading</p>
@@ -793,8 +1014,8 @@ function articleTemplate(item, allItems) {
       </div>
     </div>
     <div class="container card-grid">${related.map((candidate) => card(candidate, item.url, { compact: true })).join("")}</div>
-  </section>`;
-  return shell({ title: item.title, description: item.summary || SITE.description, body, pagePath: item.url });
+  </section>` : ""}`;
+  return shell({ title: item.title, description: item.summary || SITE.description, body, current: routeForType(item.type), pagePath: item.url });
 }
 
 function writePage(urlPath, html) {
@@ -805,11 +1026,12 @@ function writePage(urlPath, html) {
 }
 
 function writeStaticFiles(items, pages) {
+  const hasType = (type) => items.some((item) => item.type === type);
   const urls = [
     "/",
-    "/news/",
-    "/opinion/",
-    "/monitoring/",
+    ...(hasType("news") ? ["/news/"] : []),
+    ...(hasType("opinion") ? ["/opinion/"] : []),
+    ...(hasType("monitoring") ? ["/monitoring/"] : []),
     "/reports/",
     "/profiles/",
     ...items.map((item) => item.url),
@@ -919,8 +1141,8 @@ function main() {
       items: allContent.filter((item) => item.type === "reports"),
       filters: [
         ["Monthly", "Monthly"],
-        ["Threat Assessment", "Threat Assessment"],
-        ["Premium", "Premium"]
+        ["Pakistan", "Pakistan"],
+        ["Counterterrorism", "Counterterrorism"]
       ]
     })
   );
@@ -929,13 +1151,19 @@ function main() {
     listingPage({
       title: "Terrorist Profiles",
       eyebrow: "Actor database",
-      summary: "Research profiles on militant organizations, leadership structures, ideology, and operating areas.",
+      summary: "Searchable research profiles on militant leaders, organisations, status, ideology, and operating areas.",
       current: "/profiles/",
       items: allContent.filter((item) => item.type === "profiles"),
       filters: [
-        ["Group", "Group"],
-        ["Individual", "Individual"],
-        ["South Asia", "South Asia"]
+        ["South Asia", "South Asia"],
+        ["Middle East", "Middle East"],
+        ["Deceased", "Deceased"],
+        ["In custody", "In custody"],
+        ["Wanted", "Wanted"],
+        ["Islamic State", "Islamic State"],
+        ["al-Qaeda", "al-Qaeda"],
+        ["al-Shabaab", "al-Shabaab"],
+        ["TTP", "TTP"]
       ]
     })
   );
