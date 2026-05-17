@@ -98,14 +98,41 @@ function parseFrontMatter(filePath) {
   return { data, body };
 }
 
+// Detect a line that's an HTML block (starts with < and a tag name).
+// Lets you paste raw <iframe>, <div>, <video>, <img> etc. for chart embeds.
+const HTML_LINE_RE = /^<\s*(\/?[a-zA-Z][a-zA-Z0-9-]*)/;
+const VOID_OR_INLINE_HTML_RE = /^<\s*(br|hr|img|input|meta|link|source)\b/i;
+
 function inlineMarkdown(text) {
   let out = escapeHtml(text);
+  // Image: ![alt](url) — runs BEFORE links to avoid ![]() being read as ! + []().
+  out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (_m, alt, src, title) => {
+    const titleAttr = title ? ` title="${title}"` : "";
+    return `<img alt="${alt}" src="${src}"${titleAttr} loading="lazy" decoding="async">`;
+  });
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
   out = out.replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2">$1</a>');
+  // Re-allow stored image tags to keep raw src/alt (escapeHtml only ran on text input).
   return out;
+}
+
+function parseTableRow(line) {
+  // Split a markdown table row like "| a | b | c |" into cells.
+  return line
+    .replace(/^\s*\|/, "")
+    .replace(/\|\s*$/, "")
+    .split("|")
+    .map((c) => c.trim());
+}
+
+function isTableSeparator(line) {
+  // Header separator row: | --- | :---: | ---: |
+  const cells = parseTableRow(line);
+  if (!cells.length) return false;
+  return cells.every((c) => /^:?-{3,}:?$/.test(c));
 }
 
 function markdownToHtml(markdown) {
@@ -117,7 +144,19 @@ function markdownToHtml(markdown) {
 
   function flushParagraph() {
     if (paragraph.length) {
-      html.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+      // Standalone image line → wrap in <figure> for nice presentation.
+      const joined = paragraph.join(" ");
+      const onlyImage = joined.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
+      if (onlyImage) {
+        const alt = onlyImage[1];
+        const src = onlyImage[2];
+        const title = onlyImage[3];
+        const caption = title || alt;
+        const titleAttr = title ? ` title="${title}"` : "";
+        html.push(`<figure class="article-figure"><img alt="${alt}" src="${src}"${titleAttr} loading="lazy" decoding="async">${caption ? `<figcaption>${caption}</figcaption>` : ""}</figure>`);
+      } else {
+        html.push(`<p>${inlineMarkdown(joined)}</p>`);
+      }
       paragraph = [];
     }
   }
@@ -142,7 +181,8 @@ function markdownToHtml(markdown) {
     flushQuote();
   }
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
     if (!trimmed) {
       flushAll();
@@ -154,6 +194,54 @@ function markdownToHtml(markdown) {
       flushAll();
       const level = heading[1].length;
       html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    // Markdown table — look ahead for a separator row on the next non-blank line.
+    if (trimmed.includes("|") && trimmed.startsWith("|")) {
+      const next = (lines[i + 1] || "").trim();
+      if (next && isTableSeparator(next)) {
+        flushAll();
+        const headers = parseTableRow(trimmed);
+        const aligns = parseTableRow(next).map((c) => {
+          if (c.startsWith(":") && c.endsWith(":")) return "center";
+          if (c.endsWith(":")) return "right";
+          return "left";
+        });
+        const bodyRows = [];
+        let j = i + 2;
+        while (j < lines.length) {
+          const row = (lines[j] || "").trim();
+          if (!row || !row.startsWith("|")) break;
+          bodyRows.push(parseTableRow(row));
+          j++;
+        }
+        const thead = `<thead><tr>${headers
+          .map((h, idx) => `<th${aligns[idx] !== "left" ? ` style="text-align:${aligns[idx]}"` : ""}>${inlineMarkdown(h)}</th>`)
+          .join("")}</tr></thead>`;
+        const tbody = `<tbody>${bodyRows
+          .map(
+            (r) =>
+              `<tr>${r
+                .map((c, idx) => `<td${aligns[idx] !== "left" ? ` style="text-align:${aligns[idx]}"` : ""}>${inlineMarkdown(c)}</td>`)
+                .join("")}</tr>`
+          )
+          .join("")}</tbody>`;
+        html.push(`<div class="article-table-wrap"><table class="article-table">${thead}${tbody}</table></div>`);
+        i = j - 1;
+        continue;
+      }
+    }
+
+    // HTML block passthrough — paste iframe / video / div embeds straight in.
+    if (HTML_LINE_RE.test(trimmed) && !VOID_OR_INLINE_HTML_RE.test(trimmed)) {
+      flushAll();
+      const block = [trimmed];
+      while (i + 1 < lines.length && lines[i + 1].trim() !== "") {
+        i++;
+        block.push(lines[i]);
+      }
+      html.push(`<div class="article-embed">${block.join("\n")}</div>`);
       continue;
     }
 

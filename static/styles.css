@@ -1090,6 +1090,134 @@ a:hover { color: var(--red); }
   font-size: 0.92em;
 }
 
+/* ============ ARTICLE FIGURES / IMAGES ============ */
+.article-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 28px 0;
+  border-radius: var(--radius-lg);
+}
+.article-figure {
+  margin: 36px 0;
+  padding: 0;
+}
+.article-figure img {
+  margin: 0 0 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.article-figure figcaption {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-left: 14px;
+  border-left: 2px solid var(--red);
+  line-height: 1.5;
+}
+
+/* Wide figure breakout — for big charts that should extend beyond the column. */
+.article-figure.wide,
+.article-body figure.wide {
+  margin-left: -80px;
+  margin-right: -80px;
+}
+@media (max-width: 900px) {
+  .article-figure.wide,
+  .article-body figure.wide { margin-left: 0; margin-right: 0; }
+}
+
+/* ============ ARTICLE TABLES ============ */
+.article-table-wrap {
+  margin: 32px 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+}
+.article-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: 0.96rem;
+}
+.article-table thead {
+  background: var(--paper-2);
+}
+.article-table th {
+  padding: 14px 18px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+.article-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  line-height: 1.5;
+}
+.article-table tbody tr:last-child td { border-bottom: 0; }
+.article-table tbody tr:hover td { background: var(--paper-2); }
+
+/* ============ EMBEDS (iframe / video / chart widgets) ============ */
+.article-embed {
+  margin: 32px 0;
+  padding: 0;
+}
+.article-embed iframe {
+  display: block;
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+}
+.article-embed video {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+/* ============ DOWNLOAD CARD (PDF / dataset links) ============ */
+.article-body a[href$=".pdf"],
+.article-body a[href$=".xlsx"],
+.article-body a[href$=".csv"],
+.article-body a[href$=".zip"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin: 6px 4px 6px 0;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.94rem;
+  transition: background 180ms var(--ease), border-color 180ms var(--ease);
+}
+.article-body a[href$=".pdf"]:hover,
+.article-body a[href$=".xlsx"]:hover,
+.article-body a[href$=".csv"]:hover,
+.article-body a[href$=".zip"]:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.article-body a[href$=".pdf"]::before { content: "PDF"; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; padding: 2px 6px; background: var(--red); color: #fff; border-radius: 2px; }
+.article-body a[href$=".xlsx"]::before { content: "XLS"; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; padding: 2px 6px; background: var(--green); color: #fff; border-radius: 2px; }
+.article-body a[href$=".csv"]::before { content: "CSV"; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; padding: 2px 6px; background: var(--ink); color: #fff; border-radius: 2px; }
+.article-body a[href$=".zip"]::before { content: "ZIP"; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; padding: 2px 6px; background: var(--gold); color: #fff; border-radius: 2px; }
+
 .article-meta {
   display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
   margin-top: 18px;
@@ -1249,6 +1377,11 @@ a:hover { color: var(--red); }
 /* ============ SCROLL-DRIVEN INTERACTION ============ */
 /* Modern browsers only. Falls back gracefully where unsupported. */
 @supports (animation-timeline: view()) {
+  /* Neutralize the JS-driven .reveal opacity:0 so scroll-driven animations
+     (which apply to ancestor sections) aren't blocked by child elements
+     stuck at opacity:0 from the IntersectionObserver fallback path. */
+  .reveal { opacity: 1; transform: none; }
+
   @media (prefers-reduced-motion: no-preference) {
     /* Each major section zooms in slightly + fades as it enters the viewport. */
     .band,

@@ -115,6 +115,77 @@ A note about the public sources used (Wikipedia, Britannica, government document
 - You don't have to build locally. Just edit on github.com and commit.
 - Want to fix a typo in a live article? Browse to the `.md` file on GitHub, click the pencil icon (top right), edit, commit. Site rebuilds.
 
+## Adding charts, tables, PDFs, and embeds to a report
+
+### 1. Charts and images (PNG, JPG, SVG)
+
+Export your chart from Excel / Google Sheets / Canva / Datawrapper / Flourish as **PNG** (or SVG for sharper rendering). Then:
+
+1. On github.com, browse to `static/charts/`
+2. Click **Add file → Upload files**, drag the image in, **Commit changes**
+3. In your article markdown, reference it on its own line:
+
+   ```markdown
+   ![Reported incidents by month, Pakistan Q1 2026](/assets/charts/may-2026-incidents.png)
+   ```
+
+   The text in `[ ]` is the alt text AND the caption. Put a quoted caption after the URL if you want a different caption:
+
+   ```markdown
+   ![](/assets/charts/may-2026-incidents.png "Source: TGD monitoring · public sources only")
+   ```
+
+When an image is on its own line, the site wraps it in a `<figure>` with a red-bar caption below. Inside a paragraph the image inlines normally.
+
+### 2. Data tables
+
+GitHub-flavoured markdown tables work. Pipe-separated rows, with a header separator. Use `---` for default, `---:` for right-align, `:---:` for center.
+
+```markdown
+| Region | Incidents | Claimed | Verified | Trend |
+| --- | ---: | ---: | ---: | :---: |
+| Pakistan | 51 | 38 | 22 | ↑ |
+| Afghanistan | 34 | 26 | 14 | → |
+```
+
+Renders as a proper styled table with bold uppercase headers, hairline rows, and hover highlights.
+
+### 3. PDF (or XLSX / CSV / ZIP) downloads
+
+1. On github.com, browse to `static/reports/`
+2. Upload your PDF (e.g. `2026-05-monthly-threat-review.pdf`)
+3. In the article, link to it like any other link:
+
+   ```markdown
+   [Download the May 2026 Threat Review (PDF)](/assets/reports/2026-05-monthly-threat-review.pdf)
+   ```
+
+The site automatically styles PDF/XLSX/CSV/ZIP links as download buttons with a coloured file-type badge.
+
+### 4. Interactive charts (Datawrapper, Flourish, Tableau, etc.)
+
+Paste the `<iframe>` embed code from the chart tool on its own block (with blank lines above and below). Example from Datawrapper:
+
+```html
+<iframe src="https://datawrapper.dwcdn.net/abc123/1/" width="100%" height="500" frameborder="0" scrolling="no" allowfullscreen></iframe>
+```
+
+The site renders the iframe in a styled embed container with rounded corners.
+
+### 5. Pull quotes
+
+Quote-style emphasis with `>`:
+
+```markdown
+> Public-source monitoring is a leading indicator of attention, not of capability.
+```
+
+Renders with a red left border in italic serif.
+
+### Putting it together (monthly report example)
+
+A realistic report mixes them all — see [`content/reports/2026-05-monthly-threat-review.md`](content/reports/2026-05-monthly-threat-review.md) in the repo for a working template.
+
 ## What NOT to publish
 
 - Verbatim propaganda statements, recruitment text, or operational/tactical detail.

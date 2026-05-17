@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" role="img" aria-label="Reported security incidents by month, Pakistan, Q1 2026">
+  <style>
+    .axis { stroke: #b9b3a5; stroke-width: 1; }
+    .grid { stroke: #ebe6d8; stroke-width: 1; }
+    .label { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; fill: #6b6b66; letter-spacing: 0.06em; }
+    .value { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; fill: #0d1b2a; font-weight: 700; }
+    .title { font-family: "Fraunces", Georgia, serif; font-size: 18px; font-weight: 800; fill: #0d1b2a; letter-spacing: -0.01em; }
+    .bar { fill: #0d1b2a; }
+    .bar-accent { fill: #b91c2c; }
+  </style>
+  <rect width="720" height="360" fill="#fafaf7"/>
+  <text x="40" y="34" class="title">Reported security incidents — Pakistan, Q1 2026</text>
+  <text x="40" y="54" class="label">SOURCE: PUBLIC-DOMAIN MONITORING · ILLUSTRATIVE SAMPLE</text>
+  <line x1="40" y1="300" x2="700" y2="300" class="axis"/>
+  <line x1="40" y1="100" x2="700" y2="100" class="grid"/>
+  <line x1="40" y1="200" x2="700" y2="200" class="grid"/>
+  <text x="34" y="104" class="label" text-anchor="end">60</text>
+  <text x="34" y="204" class="label" text-anchor="end">30</text>
+  <text x="34" y="304" class="label" text-anchor="end">0</text>
+  <g transform="translate(80,0)">
+    <rect x="0"   y="160" width="80" height="140" class="bar"/>
+    <text x="40"  y="150" class="value" text-anchor="middle">42</text>
+    <text x="40"  y="324" class="label" text-anchor="middle">JAN</text>
+  </g>
+  <g transform="translate(200,0)">
+    <rect x="0"   y="120" width="80" height="180" class="bar"/>
+    <text x="40"  y="110" class="value" text-anchor="middle">54</text>
+    <text x="40"  y="324" class="label" text-anchor="middle">FEB</text>
+  </g>
+  <g transform="translate(320,0)">
+    <rect x="0"   y="80"  width="80" height="220" class="bar-accent"/>
+    <text x="40"  y="70"  class="value" text-anchor="middle">66</text>
+    <text x="40"  y="324" class="label" text-anchor="middle">MAR</text>
+  </g>
+  <g transform="translate(440,0)">
+    <rect x="0"   y="140" width="80" height="160" class="bar"/>
+    <text x="40"  y="130" class="value" text-anchor="middle">48</text>
+    <text x="40"  y="324" class="label" text-anchor="middle">APR</text>
+  </g>
+  <g transform="translate(560,0)">
+    <rect x="0"   y="130" width="80" height="170" class="bar"/>
+    <text x="40"  y="120" class="value" text-anchor="middle">51</text>
+    <text x="40"  y="324" class="label" text-anchor="middle">MAY</text>
+  </g>
+</svg>
