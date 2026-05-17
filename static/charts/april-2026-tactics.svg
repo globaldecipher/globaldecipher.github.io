@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Tactics used in recorded militant activity in April 2026</title>
+  <desc id="desc">Horizontal bar chart showing direct fire and armed assaults, targeted killings, IED or explosive attacks, abductions, and quadcopter drone strikes.</desc>
+  <rect width="960" height="540" fill="#fafaf7"/>
+  <text x="70" y="66" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#0d1b2a">Tactics in recorded activity</text>
+  <text x="70" y="96" font-family="Inter, Arial, sans-serif" font-size="15" fill="#6b6b66">April 2026 | share of recorded militant activity by primary tactic</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="15" fill="#1a1a1a">
+    <text x="70" y="166">Direct fire / armed assault</text>
+    <rect x="320" y="144" width="520" height="32" fill="#b91c2c"/>
+    <text x="858" y="166" font-weight="700" fill="#0d1b2a">45</text>
+    <text x="328" y="166" fill="#ffffff" font-size="13">46.9%</text>
+    <text x="70" y="226">Targeted killing</text>
+    <rect x="320" y="204" width="277" height="32" fill="#a17328"/>
+    <text x="615" y="226" font-weight="700" fill="#0d1b2a">24</text>
+    <text x="328" y="226" fill="#ffffff" font-size="13">25.0%</text>
+    <text x="70" y="286">IED / explosive attack</text>
+    <rect x="320" y="264" width="220" height="32" fill="#0d1b2a"/>
+    <text x="558" y="286" font-weight="700" fill="#0d1b2a">19</text>
+    <text x="328" y="286" fill="#ffffff" font-size="13">19.8%</text>
+    <text x="70" y="346">Abduction</text>
+    <rect x="320" y="324" width="69" height="32" fill="#14532d"/>
+    <text x="407" y="346" font-weight="700" fill="#0d1b2a">6</text>
+    <text x="328" y="346" fill="#ffffff" font-size="13">6.3%</text>
+    <text x="70" y="406">Quadcopter drone strike</text>
+    <rect x="320" y="384" width="24" height="32" fill="#6b6b66"/>
+    <text x="362" y="406" font-weight="700" fill="#0d1b2a">2</text>
+  </g>
+  <line x1="320" y1="442" x2="840" y2="442" stroke="#d8d3c5"/>
+  <g font-family="JetBrains Mono, Menlo, monospace" font-size="12" fill="#6b6b66">
+    <text x="320" y="466">0</text>
+    <text x="430" y="466">10</text>
+    <text x="545" y="466">20</text>
+    <text x="662" y="466">30</text>
+    <text x="777" y="466">40</text>
+  </g>
+  <text x="70" y="504" font-family="JetBrains Mono, Menlo, monospace" font-size="12" letter-spacing="1.2" fill="#6b6b66">Source: TGD April 2026 open-source monitoring dataset</text>
+</svg>

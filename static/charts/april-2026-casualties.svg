@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Casualties by affected group in April 2026</title>
+  <desc id="desc">Horizontal stacked bar chart showing fatalities and injuries among civilians, law enforcement agencies, security forces, and peace committees.</desc>
+  <rect width="960" height="540" fill="#fafaf7"/>
+  <text x="70" y="66" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#0d1b2a">Casualties by affected group</text>
+  <text x="70" y="96" font-family="Inter, Arial, sans-serif" font-size="15" fill="#6b6b66">April 2026 | fatalities and injuries recorded from militant violence</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="14" fill="#1a1a1a">
+    <rect x="70" y="124" width="14" height="14" fill="#b91c2c"/>
+    <text x="92" y="136">Fatalities</text>
+    <rect x="190" y="124" width="14" height="14" fill="#a17328"/>
+    <text x="212" y="136">Injuries</text>
+  </g>
+  <g font-family="Inter, Arial, sans-serif" font-size="15" fill="#1a1a1a">
+    <text x="70" y="186">Civilians</text>
+    <rect x="260" y="164" width="227" height="34" fill="#b91c2c"/>
+    <rect x="487" y="164" width="293" height="34" fill="#a17328"/>
+    <text x="800" y="187" font-weight="700" fill="#0d1b2a">80</text>
+    <text x="270" y="187" fill="#ffffff" font-size="13">35</text>
+    <text x="499" y="187" fill="#ffffff" font-size="13">45</text>
+    <text x="70" y="256">Law enforcement agencies</text>
+    <rect x="260" y="234" width="137" height="34" fill="#b91c2c"/>
+    <rect x="397" y="234" width="273" height="34" fill="#a17328"/>
+    <text x="690" y="257" font-weight="700" fill="#0d1b2a">63</text>
+    <text x="270" y="257" fill="#ffffff" font-size="13">21</text>
+    <text x="409" y="257" fill="#ffffff" font-size="13">42</text>
+    <text x="70" y="326">Security forces</text>
+    <rect x="260" y="304" width="65" height="34" fill="#b91c2c"/>
+    <rect x="325" y="304" width="46" height="34" fill="#a17328"/>
+    <text x="391" y="327" font-weight="700" fill="#0d1b2a">17</text>
+    <text x="270" y="327" fill="#ffffff" font-size="13">10</text>
+    <text x="334" y="327" fill="#ffffff" font-size="13">7</text>
+    <text x="70" y="396">Peace committees</text>
+    <rect x="260" y="374" width="10" height="34" fill="#b91c2c"/>
+    <text x="290" y="397" font-weight="700" fill="#0d1b2a">1</text>
+  </g>
+  <line x1="260" y1="430" x2="780" y2="430" stroke="#d8d3c5"/>
+  <g font-family="JetBrains Mono, Menlo, monospace" font-size="12" fill="#6b6b66">
+    <text x="260" y="454">0</text>
+    <text x="385" y="454">20</text>
+    <text x="515" y="454">40</text>
+    <text x="645" y="454">60</text>
+    <text x="770" y="454">80</text>
+  </g>
+  <text x="70" y="500" font-family="JetBrains Mono, Menlo, monospace" font-size="12" letter-spacing="1.2" fill="#6b6b66">Source: TGD April 2026 open-source monitoring dataset</text>
+</svg>

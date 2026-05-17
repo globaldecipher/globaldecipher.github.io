@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">Khyber Pakhtunkhwa incident distribution in April 2026</title>
+  <desc id="desc">Horizontal bar chart showing reported entries by district: Bannu 25, Bajaur 14, Lakki Marwat 9, Khyber 7, Peshawar 6, Tank 6, Hangu 4, North Waziristan 4, and Dera Ismail Khan 3.</desc>
+  <rect width="960" height="600" fill="#fafaf7"/>
+  <text x="70" y="66" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#0d1b2a">Khyber Pakhtunkhwa distribution</text>
+  <text x="70" y="96" font-family="Inter, Arial, sans-serif" font-size="15" fill="#6b6b66">Reported entries in April 2026, including militant incidents and security-force or police operations</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="15" fill="#1a1a1a">
+    <text x="70" y="158">Bannu</text>
+    <rect x="250" y="138" width="520" height="26" fill="#b91c2c"/>
+    <text x="792" y="158" font-weight="700" fill="#0d1b2a">25</text>
+    <text x="70" y="204">Bajaur</text>
+    <rect x="250" y="184" width="291" height="26" fill="#b91c2c"/>
+    <text x="563" y="204" font-weight="700" fill="#0d1b2a">14</text>
+    <text x="70" y="250">Lakki Marwat</text>
+    <rect x="250" y="230" width="187" height="26" fill="#b91c2c"/>
+    <text x="459" y="250" font-weight="700" fill="#0d1b2a">9</text>
+    <text x="70" y="296">Khyber</text>
+    <rect x="250" y="276" width="146" height="26" fill="#b91c2c"/>
+    <text x="418" y="296" font-weight="700" fill="#0d1b2a">7</text>
+    <text x="70" y="342">Peshawar</text>
+    <rect x="250" y="322" width="125" height="26" fill="#b91c2c"/>
+    <text x="397" y="342" font-weight="700" fill="#0d1b2a">6</text>
+    <text x="70" y="388">Tank</text>
+    <rect x="250" y="368" width="125" height="26" fill="#b91c2c"/>
+    <text x="397" y="388" font-weight="700" fill="#0d1b2a">6</text>
+    <text x="70" y="434">Hangu</text>
+    <rect x="250" y="414" width="83" height="26" fill="#b91c2c"/>
+    <text x="355" y="434" font-weight="700" fill="#0d1b2a">4</text>
+    <text x="70" y="480">North Waziristan</text>
+    <rect x="250" y="460" width="83" height="26" fill="#b91c2c"/>
+    <text x="355" y="480" font-weight="700" fill="#0d1b2a">4</text>
+    <text x="70" y="526">Dera Ismail Khan</text>
+    <rect x="250" y="506" width="62" height="26" fill="#b91c2c"/>
+    <text x="334" y="526" font-weight="700" fill="#0d1b2a">3</text>
+  </g>
+  <text x="70" y="570" font-family="JetBrains Mono, Menlo, monospace" font-size="12" letter-spacing="1.2" fill="#6b6b66">Source: TGD April 2026 open-source monitoring dataset</text>
+</svg>
