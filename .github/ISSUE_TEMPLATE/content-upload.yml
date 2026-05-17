@@ -1,0 +1,130 @@
+name: New TGD content
+description: Publish a report, article, incident log, opinion, or profile without editing files by hand.
+title: "Publish: "
+labels: ["content-upload"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this form and submit it. If you have publishing permission, GitHub will create the website article automatically.
+
+  - type: dropdown
+    id: content_type
+    attributes:
+      label: Content type
+      description: Choose where this should appear on the website.
+      options:
+        - Monthly report
+        - Daily article
+        - Daily incident log
+        - Opinion
+        - Profile
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: The headline shown on the website.
+      placeholder: "Pakistan Monthly Terrorism & Counter-Terrorism Assessment - May 2026"
+    validations:
+      required: true
+
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: Use year-month-day format.
+      placeholder: "2026-05-31"
+    validations:
+      required: true
+
+  - type: input
+    id: region
+    attributes:
+      label: Region
+      placeholder: "Pakistan"
+    validations:
+      required: true
+
+  - type: input
+    id: category
+    attributes:
+      label: Category
+      description: Optional. Leave blank if unsure.
+      placeholder: "Monthly, Daily Briefing, Daily Incident Log, Individual"
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Short summary
+      description: One or two lines. This appears on cards and search.
+      placeholder: "A short summary of the report or article."
+    validations:
+      required: true
+
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Separate tags with commas.
+      placeholder: "Pakistan, Counterterrorism, May 2026"
+
+  - type: input
+    id: author
+    attributes:
+      label: Author or desk
+      description: Optional. Leave blank for the default TGD desk.
+      placeholder: "TGD Research Desk"
+
+  - type: dropdown
+    id: featured
+    attributes:
+      label: Feature on homepage?
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sensitivity
+    attributes:
+      label: Sensitivity
+      options:
+        - standard
+        - research-sensitive
+    validations:
+      required: true
+
+  - type: input
+    id: pdf_link
+    attributes:
+      label: PDF link
+      description: Optional. Paste a public PDF link or GitHub attachment link.
+      placeholder: "https://..."
+
+  - type: textarea
+    id: body
+    attributes:
+      label: Article body
+      description: Paste the full article/report here. Use ## for section headings.
+      placeholder: |
+        ## Executive summary
+
+        Write here.
+
+        ## Operational overview
+
+        Write here.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Publish confirmation
+      options:
+        - label: I checked the title, date, summary, and body.
+          required: true
