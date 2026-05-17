@@ -337,8 +337,9 @@ function accessLabel(item) {
   return '<span class="badge badge-free">Free</span>';
 }
 
-function brandMark(prefix = "") {
-  return `<img class="brand-logo" src="${prefix}assets/brand/tgd-logo-header.jpg" alt="The Global Decipher" width="1024" height="480">`;
+function brandMark(prefix = "", variant = "header") {
+  const file = variant === "footer" ? "tgd-logo-footer.png" : "tgd-logo-header.png";
+  return `<img class="brand-logo" src="${prefix}assets/brand/${file}" alt="The Global Decipher" width="1800" height="600">`;
 }
 
 function icon(name) {
@@ -398,7 +399,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <footer class="site-footer">
     <div class="container footer-grid">
       <div>
-        <a class="footer-brand" href="${linkFor("/", pagePath)}">${brandMark(assetPrefix)}</a>
+        <a class="footer-brand" href="${linkFor("/", pagePath)}">${brandMark(assetPrefix, "footer")}</a>
         <p>${SITE.description}</p>
       </div>
       <div>

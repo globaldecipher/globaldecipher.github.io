@@ -138,15 +138,15 @@ a:hover { color: var(--red); }
 .brand:hover, .footer-brand:hover { color: inherit; }
 
 .brand-logo {
-  height: 64px;
+  height: 70px;
   width: auto;
   display: block;
   transition: height 220ms var(--ease), transform 320ms var(--ease);
 }
 .brand:hover .brand-logo { transform: scale(1.03); }
-.site-header.is-scrolled .brand-logo { height: 52px; }
+.site-header.is-scrolled .brand-logo { height: 58px; }
 
-.footer-brand .brand-logo { height: 80px; }
+.footer-brand .brand-logo { height: 92px; }
 
 .site-nav {
   display: flex; justify-content: flex-end; align-items: center;
@@ -1368,8 +1368,8 @@ a:hover { color: var(--red); }
 }
 
 @media (max-width: 560px) {
-  .brand-logo { height: 48px; }
-  .footer-brand .brand-logo { height: 64px; }
+  .brand-logo { height: 54px; }
+  .footer-brand .brand-logo { height: 72px; }
   .footer-grid { grid-template-columns: 1fr; }
   .pitch-card { padding: 24px; }
 }
@@ -1442,4 +1442,3 @@ a:hover { color: var(--red); }
 
 /* Header tweak: sticky shadow becomes more visible on scroll */
 .site-header.is-scrolled { background: rgba(250, 250, 247, 0.97); }
-
