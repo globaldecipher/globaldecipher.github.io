@@ -551,6 +551,7 @@ function tickerStrip(items) {
   const lines = items.slice(0, 8).map((item) => {
     return `<a href="${linkFor(item.url, "/")}"><span class="region">${escapeHtml(item.region || item.category || "Global")}</span><strong>${escapeHtml(item.title)}</strong></a>`;
   });
+  if (!lines.length) return "";
   const doubled = [...lines, ...lines].join("");
   return `<div class="ticker-bar">
     <div class="container ticker-row">
@@ -563,21 +564,6 @@ function tickerStrip(items) {
 }
 
 function threatBoard() {
-  const regions = [
-    { name: "Pakistan", coord: "33.7 N / 73.1 E", level: "high", note: "Cross-province militant claim activity remains elevated; messaging cycles follow operational events." },
-    { name: "Afghanistan", coord: "34.5 N / 69.2 E", level: "elevated", note: "Provincial media releases continue; cross-border narrative spillover into Pakistan and Iran tracked." },
-    { name: "Middle East", coord: "33.5 N / 36.3 E", level: "elevated", note: "Narrative migration across encrypted channels under platform pressure." },
-    { name: "Wider region", coord: "Global", level: "watch", note: "Platform migration patterns and influence operations linked to regional incidents." }
-  ];
-  const levelLabel = { high: "High", elevated: "Elevated", watch: "Watch" };
-  const cards = regions.map(
-    (r) => `<a class="region-card" href="${linkFor("/news/", "/")}">
-      <span class="threat-pill ${r.level}">${levelLabel[r.level]}</span>
-      <span class="region-coord">${r.coord}</span>
-      <strong class="region-name">${r.name}</strong>
-      <span class="region-note">${r.note}</span>
-    </a>`
-  ).join("");
   return `<section class="threat-board">
     <div class="container">
       <div class="split-heading">
@@ -587,7 +573,7 @@ function threatBoard() {
         </div>
         <a href="${linkFor("/news/", "/")}">All regional analysis</a>
       </div>
-      <div class="threat-grid">${cards}</div>
+      <p class="empty-state">Regional desk updates will appear here after upload.</p>
     </div>
   </section>`;
 }
@@ -619,21 +605,46 @@ function pitchBand() {
 function homepage(items) {
   const currentPath = "/";
   const latest = items.filter((item) => item.type === "news").slice(0, 3);
-  const lead = latest[0];
   const secondary = latest.slice(1);
-  const featured = items.filter((item) => item.featured).slice(0, 4);
   const monitoring = items.filter((item) => item.type === "monitoring").slice(0, 3);
   const reports = items.filter((item) => item.type === "reports").slice(0, 2);
   const profiles = items.filter((item) => item.type === "profiles").slice(0, 3);
+  const lead = latest[0] || reports[0] || profiles[0] || items[0];
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const railItems = [...secondary, ...monitoring.slice(0, 1)].slice(0, 3);
+  const railItems = [...secondary, ...monitoring, ...reports, ...profiles]
+    .filter((item) => item && item.url !== lead?.url)
+    .slice(0, 3);
+  const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
+  const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
+  const leadListHref = lead?.type === "reports" ? "/reports/" : lead?.type === "profiles" ? "/profiles/" : "/news/";
+  const leadListLabel = lead?.type === "reports" ? "All reports" : lead?.type === "profiles" ? "All profiles" : "All briefings";
+  if (!lead) {
+    return shell({
+      title: SITE.title,
+      description: SITE.description,
+      body: `${tickerStrip(items)}
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-lead-col">
+        <p class="hero-eyebrow">The Global Decipher</p>
+        <h1>New reporting will appear here after upload.</h1>
+        <p class="hero-lead">${escapeHtml(SITE.description)}</p>
+      </div>
+    </div>
+  </section>
+  ${pitchBand()}`,
+      current: "/",
+      pagePath: currentPath
+    });
+  }
+
   const body = `
   ${tickerStrip(items)}
   <section class="hero">
     <div class="container hero-grid">
       <div class="hero-lead-col">
-        <p class="hero-eyebrow">Lead briefing · ${escapeHtml(lead.region || "Pakistan")}</p>
+        <p class="hero-eyebrow">${leadType} · ${escapeHtml(lead.region || "Pakistan")}</p>
         <h1><a href="${linkFor(lead.url, currentPath)}">${escapeHtml(lead.title)}</a></h1>
         <p class="hero-lead">${escapeHtml(lead.summary)}</p>
         <div class="hero-meta">
@@ -643,7 +654,7 @@ function homepage(items) {
           ${accessLabel(lead)}
         </div>
         <div class="hero-actions">
-          <a class="button primary" href="${linkFor(lead.url, currentPath)}">Read briefing <span class="arrow">→</span></a>
+          <a class="button primary" href="${linkFor(lead.url, currentPath)}">${leadCta} <span class="arrow">→</span></a>
           <a class="button secondary" href="${linkFor("/methodology/", currentPath)}">How we work</a>
         </div>
       </div>
@@ -652,14 +663,14 @@ function homepage(items) {
           <span class="title">Today on the desk</span>
           <span class="status"><span class="live-dot"></span> Updated</span>
         </div>
-        ${railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
+        ${railItems.length ? railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
           <span class="num">0${i + 2}</span>
           <span>
             <span class="meta">${escapeHtml(item.region || item.category || "Brief")}</span>
             <strong>${escapeHtml(item.title)}</strong>
           </span>
-        </a>`).join("")}
-        <a class="rail-cta" href="${linkFor("/news/", currentPath)}">All briefings</a>
+        </a>`).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
+        <a class="rail-cta" href="${linkFor(leadListHref, currentPath)}">${leadListLabel}</a>
       </aside>
     </div>
   </section>
@@ -673,6 +684,7 @@ function homepage(items) {
       <a href="${linkFor("/news/", currentPath)}">View all</a>
     </div>
     <div class="container card-grid">${latest.map((item) => card(item, currentPath)).join("")}</div>
+    ${latest.length ? "" : '<div class="container"><p class="empty-state">News and analysis will appear here after upload.</p></div>'}
   </section>
 
   ${threatBoard()}
@@ -685,14 +697,14 @@ function homepage(items) {
         <p>Source logs, confidence labels, and public-interest boundaries. We never reproduce recruitment content or tactical material.</p>
         <a class="button primary" href="${linkFor("/monitoring/", currentPath)}">Request access <span class="arrow">→</span></a>
       </div>
-      <div class="desk-list">${monitoring.map((item, i) => `<a href="${linkFor(item.url, currentPath)}">
+      <div class="desk-list">${monitoring.length ? monitoring.map((item, i) => `<a href="${linkFor(item.url, currentPath)}">
         <span class="num">0${i + 1}</span>
         <span class="body">
           <span>${escapeHtml(item.category || "Monitor")}</span>
           <strong>${escapeHtml(item.title)}</strong>
         </span>
         <span class="arrow">→</span>
-      </a>`).join("")}</div>
+      </a>`).join("") : '<p class="empty-state">Monitoring desk previews will appear here after upload.</p>'}</div>
     </div>
   </section>
 
@@ -708,32 +720,24 @@ function homepage(items) {
       ${reports.map((item) => card(item, currentPath)).join("")}
       ${profiles.map((item) => card(item, currentPath)).join("")}
     </div>
+    ${reports.length || profiles.length ? "" : '<div class="container"><p class="empty-state">Reports and profiles will appear here after upload.</p></div>'}
   </section>
 
-  ${pitchBand()}
-
-  ${featured.length ? `<section class="band">
-    <div class="container split-heading">
-      <div>
-        <p class="band-eyebrow">Featured</p>
-        <h2>Start here</h2>
-      </div>
-    </div>
-    <div class="container card-grid">${featured.map((item) => card(item, currentPath)).join("")}</div>
-  </section>` : ""}`;
+  ${pitchBand()}`;
 
   return shell({ title: SITE.title, description: SITE.description, body, current: "/", pagePath: currentPath });
 }
 
 function listingPage({ title, eyebrow, summary, current, items, filters }) {
+  const hasItems = items.length > 0;
   const body = `${sectionHero(title, eyebrow, summary)}
   <section class="band">
     <div class="container">
-      ${filterToolbar(filters)}
+      ${hasItems ? filterToolbar(filters) : ""}
       <div class="listing-grid" data-content-list>
         ${items.map((item) => card(item, current)).join("")}
       </div>
-      <p class="empty-state" data-empty-state hidden>No matching briefings found.</p>
+      <p class="empty-state" data-empty-state${hasItems ? " hidden" : ""}>${hasItems ? "No matching briefings found." : "No published items yet. New uploads will appear here."}</p>
     </div>
   </section>`;
   return shell({ title, description: summary, body, current, pagePath: current });
