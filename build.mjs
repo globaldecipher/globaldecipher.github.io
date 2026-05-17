@@ -563,7 +563,6 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </div>
       <div>
         <h2>Editorial</h2>
-        <a href="${linkFor("/methodology/", pagePath)}">Methodology</a>
         <a href="${linkFor("/corrections-policy/", pagePath)}">Corrections</a>
         <a href="${linkFor("/privacy-policy/", pagePath)}">Privacy</a>
       </div>
@@ -819,7 +818,7 @@ function homepage(items) {
         </div>
         <div class="hero-actions">
           <a class="button primary" href="${linkFor(lead.url, currentPath)}">${leadCta} <span class="arrow">→</span></a>
-          <a class="button secondary" href="${linkFor("/methodology/", currentPath)}">How we work</a>
+          <a class="button secondary" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
         </div>
       </div>
       <aside class="hero-rail">
