@@ -23,6 +23,7 @@ const NAV = [
   ["News", "/news/"],
   ["Opinion", "/opinion/"],
   ["Monitoring", "/monitoring/"],
+  ["Incident Map", "/incident-map/"],
   ["Reports", "/reports/"],
   ["Profiles", "/profiles/"],
   ["Contact", "/contact/"]
@@ -415,6 +416,7 @@ function extractListValue(markdown = "", label = "") {
 function profileStatus(item) {
   const status = firstParagraph(extractSection(item.body, "Status"));
   if (/deceased|killed|executed/i.test(status)) return "Deceased";
+  if (/^active\b/i.test(status)) return "Active";
   if (/custody|convicted|imprisoned|detained|prison/i.test(status)) return "In custody";
   if (/wanted|fugitive|reward/i.test(status)) return "Wanted";
   if (/uncertain|unknown|whereabouts/i.test(status)) return "Uncertain";
