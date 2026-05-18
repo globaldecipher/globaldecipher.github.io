@@ -1,0 +1,166 @@
+name: Incident tracker update
+description: Add a public-source incident to the live TGD incident map.
+title: "Incident: "
+labels: ["incident-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Submit a public-source incident for the map. If you have publishing permission, GitHub will update the tracker feed automatically.
+
+  - type: input
+    id: title
+    attributes:
+      label: Incident title
+      placeholder: "Reported IED blast in Wana Bazaar"
+    validations:
+      required: true
+
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: Use year-month-day format.
+      placeholder: "2026-05-18"
+    validations:
+      required: true
+
+  - type: input
+    id: time
+    attributes:
+      label: Time label
+      description: Optional. Use a public-facing label, not sensitive timing.
+      placeholder: "Reported today"
+
+  - type: dropdown
+    id: province
+    attributes:
+      label: Province
+      options:
+        - Khyber Pakhtunkhwa
+        - Balochistan
+        - Punjab
+        - Sindh
+        - Islamabad
+        - Gilgit-Baltistan
+        - Azad Jammu and Kashmir
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: district
+    attributes:
+      label: District or area
+      placeholder: "South Waziristan"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - IED / Explosion
+        - Drone / Quadcopter
+        - Targeted killing
+        - Armed clash
+        - Counterterrorism operation
+        - Abduction
+        - Protest / Unrest
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: input
+    id: actor
+    attributes:
+      label: Reported actor
+      placeholder: "Unidentified"
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - Initial report
+        - Official update
+        - Confirmed
+        - Under review
+    validations:
+      required: true
+
+  - type: input
+    id: fatalities
+    attributes:
+      label: Fatalities
+      placeholder: "0"
+
+  - type: input
+    id: injuries
+    attributes:
+      label: Injuries
+      placeholder: "0"
+
+  - type: input
+    id: latitude
+    attributes:
+      label: Latitude
+      description: Optional. Leave blank to use district-level approximation when available.
+      placeholder: "32.30"
+
+  - type: input
+    id: longitude
+    attributes:
+      label: Longitude
+      description: Optional. Leave blank to use district-level approximation when available.
+      placeholder: "69.57"
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Public summary
+      description: Keep this concise and avoid tactical details.
+      placeholder: "TGD reported that..."
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Source link
+      placeholder: "https://x.com/Global_Decipher/status/..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source_type
+    attributes:
+      label: Source type
+      options:
+        - TGD X
+        - Official statement
+        - Local media
+        - Field source
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Review confirmation
+      options:
+        - label: I checked the source link, casualty figures, and location level.
+          required: true
