@@ -1,0 +1,87 @@
+name: Update incident tracker from form
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  update-tracker:
+    if: contains(github.event.issue.labels.*.name, 'incident-update') && !contains(github.event.issue.labels.*.name, 'incident-published')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check publisher permission
+        id: permission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.event.issue.user.login }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          permission="$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq .permission 2>/dev/null || echo none)"
+          case "$permission" in
+            admin|maintain|write)
+              echo "$ACTOR can update the incident tracker."
+              ;;
+            *)
+              gh issue comment "$ISSUE" --repo "$REPO" --body "I could not update the incident tracker because @$ACTOR does not have write permission on this repository."
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update incident feed
+        id: make
+        run: node .github/scripts/add-incident-from-issue.mjs
+
+      - name: Commit incident feed
+        id: commit
+        env:
+          INCIDENT_TITLE: ${{ steps.make.outputs.incident_title }}
+        run: |
+          if [ -z "$(git status --porcelain static/data/incidents.json)" ]; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/data/incidents.json
+          git commit -m "Update incident tracker: $INCIDENT_TITLE"
+          git push
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Mark incident as published
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          INCIDENT_TITLE: ${{ steps.make.outputs.incident_title }}
+          INCIDENT_ID: ${{ steps.make.outputs.incident_id }}
+          INCIDENT_COUNT: ${{ steps.make.outputs.incident_count }}
+        run: |
+          gh issue comment "$ISSUE" --repo "$REPO" --body "Added **$INCIDENT_TITLE** to the incident tracker as \`$INCIDENT_ID\`. The feed now has $INCIDENT_COUNT incidents and the website will rebuild automatically."
+          gh issue edit "$ISSUE" --repo "$REPO" --add-label "incident-published"
+          gh issue close "$ISSUE" --repo "$REPO" --comment "Done."
+
+      - name: Explain form problem
+        if: failure() && steps.permission.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE" --repo "$REPO" --body "This did not update the incident tracker. Please check the required fields, use YYYY-MM-DD for the date, and keep casualty fields numeric."
