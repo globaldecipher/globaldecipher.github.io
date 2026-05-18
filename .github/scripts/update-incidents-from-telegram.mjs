@@ -62,6 +62,16 @@ function numberField(value) {
   return match ? Number(match[0]) : 0;
 }
 
+function dateInKarachi(seconds) {
+  const date = new Date((seconds || Math.floor(Date.now() / 1000)) * 1000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Karachi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+}
+
 function incidentLike(text, fields) {
   if (fields.district || fields.summary || fields.type || fields.category) return true;
   return /attack|blast|explosion|ied|quadcopter|drone|killed|injured|operation|ibo|ambush|firing|militant|terrorist/i.test(text);
@@ -92,7 +102,7 @@ function buildIncident(update) {
   if (!incidentLike(text, fields)) return null;
 
   const location = findDistrict(text, fields);
-  const date = new Date((message.date || Math.floor(Date.now() / 1000)) * 1000).toISOString().slice(0, 10);
+  const date = dateInKarachi(message.date);
   const category = fields.type || fields.category || 'Security incident';
   const summary = fields.summary || clean(text).split('\n').filter((line) => !/^\s*[^:]+\s*:/.test(line)).join(' ') || clean(text);
   const fatalities = numberField(fields.killed || fields.fatalities);
