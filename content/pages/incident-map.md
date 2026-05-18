@@ -7,13 +7,13 @@ eyebrow: "Live tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
 ---
 
-<style>@import url("/assets/incident-map.css?v=20260519-live-polish");</style>
+<style>@import url("/assets/incident-map.css?v=20260519-map-command");</style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-tracker-top">
     <div>
-      <p class="tracker-kicker">TGD live monitoring</p>
-      <h2>Pakistan incident map</h2>
+      <p class="tracker-kicker">TGD LIVE MONITORING</p>
+      <h2>PAKISTAN INCIDENT MAP</h2>
       <p class="tracker-note" data-source-note>Loading tracker feed.</p>
     </div>
     <div class="tracker-refresh"><span class="tracker-pulse"></span><span data-last-updated>Loading</span></div>
@@ -53,4 +53,4 @@ summary: "A public-source incident tracker for security events monitored by The 
   </div>
 </section>
 
-<script src="/assets/incident-map.js?v=20260519-pkt-day" defer></script>
+<script src="/assets/incident-map.js?v=20260519-map-command" defer></script>
