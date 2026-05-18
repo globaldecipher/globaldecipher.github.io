@@ -5,6 +5,7 @@ const STATE_PATH = 'static/data/telegram-state.json';
 const DEBUG_PATH = 'static/data/telegram-debug.json';
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
+const DEBUG = String(process.env.TELEGRAM_DEBUG || '').toLowerCase() === 'true';
 
 const DISTRICTS = [
   { terms: ['bajaur', 'loi sam'], district: 'Bajaur', province: 'Khyber Pakhtunkhwa', lat: 34.72, lng: 71.5 },
@@ -53,12 +54,7 @@ function findDistrict(text, fields) {
   const haystack = lower(`${fields.district || ''} ${fields.province || ''} ${text}`);
   const matched = DISTRICTS.find((item) => item.terms.some((term) => haystack.includes(term)));
   if (matched) return matched;
-  return {
-    district: fields.district || 'Unspecified',
-    province: fields.province || 'Pakistan',
-    lat: 30.3753,
-    lng: 69.3451
-  };
+  return { district: fields.district || 'Unspecified', province: fields.province || 'Pakistan', lat: 30.3753, lng: 69.3451 };
 }
 
 function numberField(value) {
@@ -126,15 +122,25 @@ function buildIncident(update) {
   };
 }
 
-async function telegram(method, body) {
+async function telegramRaw(method, body = {}) {
   const response = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body)
   });
-  const data = await response.json();
-  if (!data.ok) throw new Error(`Telegram ${method} failed: ${data.description || response.status}`);
+  return response.json();
+}
+
+async function telegram(method, body = {}) {
+  const data = await telegramRaw(method, body);
+  if (!data.ok) throw new Error(`Telegram ${method} failed: ${data.description || 'unknown error'}`);
   return data.result;
+}
+
+async function telegramSafe(method, body = {}) {
+  const data = await telegramRaw(method, body);
+  if (!data.ok) return { ok: false, error: data.description || 'unknown error' };
+  return { ok: true, result: data.result };
 }
 
 function debugResult(update, reason, fields = {}) {
@@ -161,6 +167,9 @@ async function main() {
   const feed = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   const state = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { last_update_id: 0 };
   const offset = Number(state.last_update_id || 0) + 1;
+  const botCheck = await telegramSafe('getMe');
+  const chatCheck = await telegramSafe('getChat', { chat_id: CHAT_ID });
+  const memberCheck = botCheck.ok ? await telegramSafe('getChatMember', { chat_id: CHAT_ID, user_id: botCheck.result.id }) : { ok: false, error: 'bot unavailable' };
   const updates = await telegram('getUpdates', {
     offset,
     timeout: 0,
@@ -174,6 +183,9 @@ async function main() {
     checked_at: new Date().toISOString(),
     offset,
     expected_chat_id: CHAT_ID,
+    bot: botCheck.ok ? { id: botCheck.result.id, username: botCheck.result.username } : { error: botCheck.error },
+    chat: chatCheck.ok ? { id: String(chatCheck.result.id), type: chatCheck.result.type, title: chatCheck.result.title || '', username: chatCheck.result.username || '' } : { error: chatCheck.error },
+    bot_member: memberCheck.ok ? { status: memberCheck.result.status, can_post_messages: Boolean(memberCheck.result.can_post_messages) } : { error: memberCheck.error },
     updates_count: updates.length,
     results: []
   };
@@ -216,7 +228,7 @@ async function main() {
     fs.writeFileSync(STATE_PATH, `${JSON.stringify({ last_update_id: lastUpdateId }, null, 2)}\n`);
   }
 
-  if (updates.length) {
+  if (DEBUG || updates.length) {
     fs.writeFileSync(DEBUG_PATH, `${JSON.stringify(debug, null, 2)}\n`);
   }
 
@@ -227,6 +239,10 @@ async function main() {
   }
 
   console.log(`Read ${updates.length} Telegram update(s); added ${added.length} incident(s).`);
+  if (chatCheck.ok) console.log(`Telegram chat check ok: ${chatCheck.result.type} ${chatCheck.result.title || chatCheck.result.username || ''}`);
+  else console.log(`Telegram chat check failed: ${chatCheck.error}`);
+  if (memberCheck.ok) console.log(`Bot member status: ${memberCheck.result.status}`);
+  else console.log(`Bot member check failed: ${memberCheck.error}`);
   setOutput('added_count', added.length);
 }
 
