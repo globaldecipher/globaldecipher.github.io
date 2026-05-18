@@ -25,22 +25,34 @@ summary: "A public-source incident tracker for security events monitored by The 
     <label>Severity<select data-filter="severity"><option value="">All severities</option></select></label>
     <label>Search<input data-filter="search" type="search" placeholder="District, actor, keyword"></label>
   </div>
+  <section class="provincial-breakdown" data-provincial-breakdown aria-label="Current provincial breakdown">
+    <div class="breakdown-title"><span>Current</span><span>Provincial</span><span>Breakdown</span></div>
+    <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Live incident feed</span></div>
+    <div class="breakdown-map-frame" data-map>
+      <object class="tracker-pakistan-map" data="/assets/pakistan-map.svg" type="image/svg+xml" aria-hidden="true" tabindex="-1"></object>
+      <div class="tracker-marker-layer" data-marker-layer></div>
+      <div class="province-hotspot hotspot-kp" data-province-hotspot="Khyber Pakhtunkhwa">0</div>
+      <div class="province-hotspot hotspot-balochistan" data-province-hotspot="Balochistan">0</div>
+      <div class="province-hotspot hotspot-sindh" data-province-hotspot="Sindh">0</div>
+      <div class="province-hotspot hotspot-punjab" data-province-hotspot="Punjab">0</div>
+      <div class="province-hotspot hotspot-gb" data-province-hotspot="Gilgit-Baltistan">0</div>
+      <div class="province-hotspot hotspot-ict" data-province-hotspot="Islamabad">0</div>
+      <div class="tracker-map-credit">Boundary: Natural Earth</div>
+    </div>
+    <div class="breakdown-line line-balochistan"></div>
+    <div class="breakdown-line line-kp"></div>
+    <div class="breakdown-line line-sindh"></div>
+    <div class="breakdown-line line-punjab"></div>
+    <div class="breakdown-line line-gb"></div>
+    <div class="breakdown-line line-ict"></div>
+    <article class="province-card card-balochistan" data-province-card="Balochistan"></article>
+    <article class="province-card card-kp" data-province-card="Khyber Pakhtunkhwa"></article>
+    <article class="province-card card-sindh" data-province-card="Sindh"></article>
+    <article class="province-card card-punjab" data-province-card="Punjab"></article>
+    <article class="province-card card-gb" data-province-card="Gilgit-Baltistan"></article>
+    <article class="province-card card-ict" data-province-card="Islamabad"></article>
+  </section>
   <div class="tracker-grid">
-    <section class="tracker-map-panel" aria-label="Incident map">
-      <div class="tracker-map-head">
-        <div><span class="map-label">Pakistan live map</span><strong data-map-count>0 incidents</strong></div>
-        <div class="tracker-legend"><span><i class="legend-dot high"></i>High</span><span><i class="legend-dot medium"></i>Medium</span><span><i class="legend-dot low"></i>Low</span></div>
-      </div>
-      <div class="tracker-map-plane" data-map>
-        <img class="tracker-pakistan-map" src="/assets/pakistan-map.svg" alt="" aria-hidden="true" loading="eager">
-        <div class="tracker-place label-kp">Khyber Pakhtunkhwa</div>
-        <div class="tracker-place label-balochistan">Balochistan</div>
-        <div class="tracker-place label-punjab">Punjab</div>
-        <div class="tracker-place label-sindh">Sindh</div>
-        <div class="tracker-map-credit">Boundary: Natural Earth</div>
-        <div class="tracker-marker-layer" data-marker-layer></div>
-      </div>
-    </section>
     <aside class="tracker-log-panel" aria-label="Incident log">
       <div class="tracker-log-head"><span>Incident log</span><strong data-result-count>0 shown</strong></div>
       <div class="incident-list" data-incident-list></div>
