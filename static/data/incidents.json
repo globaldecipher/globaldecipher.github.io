@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-18T22:29:30.541Z",
+  "last_updated": "2026-05-18T22:29:36.776Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-12-quetta",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-18T22:29:36.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Armed Attack reported in Quetta",
+      "district": "Quetta",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 30.3,
+      "lng": 67.2,
+      "category": "Armed Attack",
+      "actor": "Unidentified",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 1,
+      "summary": "Live webhook test incident in Quetta.",
+      "source": "test",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-11-tank",
       "date": "2026-05-19",
