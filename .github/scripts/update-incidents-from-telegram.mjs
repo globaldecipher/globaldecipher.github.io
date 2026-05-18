@@ -6,6 +6,7 @@ const DEBUG_PATH = 'static/data/telegram-debug.json';
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 const DEBUG = String(process.env.TELEGRAM_DEBUG || '').toLowerCase() === 'true';
+const PAKISTAN_TIME_ZONE = 'Asia/Karachi';
 
 const DISTRICTS = [
   { terms: ['bajaur', 'loi sam'], district: 'Bajaur', province: 'Khyber Pakhtunkhwa', lat: 34.72, lng: 71.5 },
@@ -23,6 +24,8 @@ const DISTRICTS = [
   { terms: ['islamabad'], district: 'Islamabad', province: 'Islamabad', lat: 33.68, lng: 73.05 },
   { terms: ['gilgit'], district: 'Gilgit', province: 'Gilgit-Baltistan', lat: 35.92, lng: 74.31 }
 ];
+
+const INCIDENT_PATTERN = /attack|blast|explosion|ied|quadcopter|drone|killed|injured|operation|ibo|ambush|firing|militant|terrorist/i;
 
 function setOutput(name, value) {
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
@@ -62,19 +65,31 @@ function numberField(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function dateInKarachi(seconds) {
-  const date = new Date((seconds || Math.floor(Date.now() / 1000)) * 1000);
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Karachi',
+function datePartsInPakistan(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: PAKISTAN_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
-  }).format(date);
+  }).formatToParts(date);
+
+  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+}
+
+function pakistanDateFromSeconds(seconds = Math.floor(Date.now() / 1000)) {
+  const date = new Date(Number(seconds) * 1000);
+  const parts = datePartsInPakistan(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function isoFromSeconds(seconds) {
+  const value = Number(seconds);
+  return Number.isFinite(value) && value > 0 ? new Date(value * 1000).toISOString() : new Date().toISOString();
 }
 
 function incidentLike(text, fields) {
   if (fields.district || fields.summary || fields.type || fields.category) return true;
-  return /attack|blast|explosion|ied|quadcopter|drone|killed|injured|operation|ibo|ambush|firing|militant|terrorist/i.test(text);
+  return INCIDENT_PATTERN.test(text);
 }
 
 function getMessage(update) {
@@ -101,8 +116,9 @@ function buildIncident(update) {
   const fields = parseFields(text);
   if (!incidentLike(text, fields)) return null;
 
+  const messageSeconds = Number(message.date) || Math.floor(Date.now() / 1000);
   const location = findDistrict(text, fields);
-  const date = dateInKarachi(message.date);
+  const date = pakistanDateFromSeconds(messageSeconds);
   const category = fields.type || fields.category || 'Security incident';
   const summary = fields.summary || clean(text).split('\n').filter((line) => !/^\s*[^:]+\s*:/.test(line)).join(' ') || clean(text);
   const fatalities = numberField(fields.killed || fields.fatalities);
@@ -112,6 +128,7 @@ function buildIncident(update) {
   return {
     id: `${date}-telegram-${message.chat.id}-${message.message_id}-${slug(location.district || 'incident')}`,
     date,
+    reported_at: isoFromSeconds(messageSeconds),
     time_label: 'From Telegram feed',
     title: fields.title || `${category} reported in ${location.district}`,
     district: location.district,
@@ -155,6 +172,7 @@ async function telegramSafe(method, body = {}) {
 
 function debugResult(update, reason, fields = {}) {
   const message = getMessage(update);
+  const messageSeconds = Number(message?.date || 0);
   return {
     update_id: update.update_id || 0,
     type: updateType(update),
@@ -162,9 +180,19 @@ function debugResult(update, reason, fields = {}) {
     chat_id: message?.chat?.id ? String(message.chat.id) : '',
     chat_type: message?.chat?.type || '',
     message_id: message?.message_id || 0,
+    message_date_utc: messageSeconds ? isoFromSeconds(messageSeconds) : '',
+    message_date_pakistan: messageSeconds ? pakistanDateFromSeconds(messageSeconds) : '',
     has_text: Boolean(message?.text || message?.caption),
     field_keys: Object.keys(fields)
   };
+}
+
+function sortIncidents(incidents) {
+  return incidents.sort((a, b) => (
+    String(b.date || '').localeCompare(String(a.date || '')) ||
+    String(b.reported_at || '').localeCompare(String(a.reported_at || '')) ||
+    String(b.id || '').localeCompare(String(a.id || ''))
+  ));
 }
 
 async function main() {
@@ -191,6 +219,8 @@ async function main() {
   const added = [];
   const debug = {
     checked_at: new Date().toISOString(),
+    current_day_pakistan: pakistanDateFromSeconds(),
+    time_zone: PAKISTAN_TIME_ZONE,
     offset,
     expected_chat_id: CHAT_ID,
     bot: botCheck.ok ? { id: botCheck.result.id, username: botCheck.result.username } : { error: botCheck.error },
@@ -243,7 +273,9 @@ async function main() {
   }
 
   if (added.length) {
-    feed.incidents = added.concat(feed.incidents || []).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    feed.time_zone = PAKISTAN_TIME_ZONE;
+    feed.current_day = pakistanDateFromSeconds();
+    feed.incidents = sortIncidents(added.concat(feed.incidents || []));
     feed.last_updated = new Date().toISOString();
     fs.writeFileSync(DATA_PATH, `${JSON.stringify(feed, null, 2)}\n`);
   }
