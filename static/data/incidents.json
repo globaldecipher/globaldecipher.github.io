@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-18T22:36:27.332Z",
+  "last_updated": "2026-05-18T23:30:44.197Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-15-dera-ismail-khan",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-18T23:30:43.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Targeted Killing / Shooting reported in Dera Ismail Khan",
+      "district": "Dera Ismail Khan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 31.83,
+      "lng": 70.9,
+      "category": "Targeted Killing / Shooting",
+      "actor": "Unidentified Armed Assailants",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 1,
+      "injuries": 0,
+      "summary": "Unidentified armed assailants killed Police Officer Abdul Aziz within the limits of Yarak Police Station in Dera Ismail Khan district of Khyber Pakhtunkhwa.",
+      "source": "Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-14-mardan",
       "date": "2026-05-19",
