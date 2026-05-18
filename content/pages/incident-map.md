@@ -7,7 +7,7 @@ eyebrow: "Live tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
 ---
 
-<style>@import url("/assets/incident-map.css?v=20260519-pkt-day");</style>
+<style>@import url("/assets/incident-map.css?v=20260519-live-polish");</style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-tracker-top">
