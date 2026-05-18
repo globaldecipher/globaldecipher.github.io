@@ -1,6 +1,10 @@
 name: Update incident tracker from Telegram
 
 on:
+  push:
+    paths:
+      - '.github/workflows/telegram-incident-monitor.yml'
+      - '.github/scripts/update-incidents-from-telegram.mjs'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
