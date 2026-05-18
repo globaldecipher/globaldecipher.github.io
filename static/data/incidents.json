@@ -1,10 +1,12 @@
 {
-  "last_updated": "2026-05-18T20:59:59.053Z",
-  "source_note": "Initial public-source feed. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
+  "last_updated": "2026-05-18T21:11:19Z",
+  "time_zone": "Asia/Karachi",
+  "current_day": "2026-05-19",
+  "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
     {
-      "id": "2026-05-18-telegram--1003994704651-7-bajaur",
-      "date": "2026-05-18",
+      "id": "2026-05-19-telegram--1003994704651-7-bajaur",
+      "date": "2026-05-19",
       "time_label": "From Telegram feed",
       "title": "IED / Explosion reported in Bajaur",
       "district": "Bajaur",
@@ -24,8 +26,8 @@
       "verified": false
     },
     {
-      "id": "2026-05-18-telegram--1003994704651-8-dera-ismail-khan",
-      "date": "2026-05-18",
+      "id": "2026-05-19-telegram--1003994704651-8-dera-ismail-khan",
+      "date": "2026-05-19",
       "time_label": "From Telegram feed",
       "title": "Targeted Killing / Shooting reported in Dera Ismail Khan",
       "district": "Dera Ismail Khan",
