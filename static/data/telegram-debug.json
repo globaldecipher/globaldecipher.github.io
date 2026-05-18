@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-05-18T20:43:04.800Z",
+  "checked_at": "2026-05-18T20:59:58.904Z",
   "offset": 828254858,
   "expected_chat_id": "-1003994704651",
   "bot": {
@@ -16,6 +16,45 @@
     "status": "administrator",
     "can_post_messages": false
   },
-  "updates_count": 0,
-  "results": []
+  "updates_count": 2,
+  "results": [
+    {
+      "update_id": 828254858,
+      "type": "message",
+      "reason": "added",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 7,
+      "has_text": true,
+      "field_keys": [
+        "district",
+        "province",
+        "type",
+        "killed",
+        "injured",
+        "actor",
+        "summary",
+        "source"
+      ]
+    },
+    {
+      "update_id": 828254859,
+      "type": "message",
+      "reason": "added",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 8,
+      "has_text": true,
+      "field_keys": [
+        "district",
+        "province",
+        "type",
+        "killed",
+        "injured",
+        "actor",
+        "summary",
+        "source"
+      ]
+    }
+  ]
 }
