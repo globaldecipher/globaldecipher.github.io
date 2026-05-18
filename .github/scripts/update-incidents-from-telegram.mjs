@@ -2,6 +2,7 @@ import fs from 'fs';
 
 const DATA_PATH = 'static/data/incidents.json';
 const STATE_PATH = 'static/data/telegram-state.json';
+const DEBUG_PATH = 'static/data/telegram-debug.json';
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 
@@ -66,8 +67,20 @@ function numberField(value) {
 }
 
 function incidentLike(text, fields) {
-  if (fields.district || fields.summary || fields.type) return true;
+  if (fields.district || fields.summary || fields.type || fields.category) return true;
   return /attack|blast|explosion|ied|quadcopter|drone|killed|injured|operation|ibo|ambush|firing|militant|terrorist/i.test(text);
+}
+
+function getMessage(update) {
+  return update.channel_post || update.edited_channel_post || update.message || update.edited_message || null;
+}
+
+function updateType(update) {
+  if (update.channel_post) return 'channel_post';
+  if (update.edited_channel_post) return 'edited_channel_post';
+  if (update.message) return 'message';
+  if (update.edited_message) return 'edited_message';
+  return 'unknown';
 }
 
 function sourceUrl(message) {
@@ -77,7 +90,7 @@ function sourceUrl(message) {
 }
 
 function buildIncident(update) {
-  const message = update.channel_post || update.edited_channel_post;
+  const message = getMessage(update);
   const text = message?.text || message?.caption || '';
   const fields = parseFields(text);
   if (!incidentLike(text, fields)) return null;
@@ -124,6 +137,20 @@ async function telegram(method, body) {
   return data.result;
 }
 
+function debugResult(update, reason, fields = {}) {
+  const message = getMessage(update);
+  return {
+    update_id: update.update_id || 0,
+    type: updateType(update),
+    reason,
+    chat_id: message?.chat?.id ? String(message.chat.id) : '',
+    chat_type: message?.chat?.type || '',
+    message_id: message?.message_id || 0,
+    has_text: Boolean(message?.text || message?.caption),
+    field_keys: Object.keys(fields)
+  };
+}
+
 async function main() {
   if (!TOKEN || !CHAT_ID) {
     console.log('TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not configured; skipping.');
@@ -134,24 +161,63 @@ async function main() {
   const feed = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   const state = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { last_update_id: 0 };
   const offset = Number(state.last_update_id || 0) + 1;
-  const updates = await telegram('getUpdates', { offset, timeout: 0, allowed_updates: ['channel_post', 'edited_channel_post'] });
+  const updates = await telegram('getUpdates', {
+    offset,
+    timeout: 0,
+    allowed_updates: ['message', 'edited_message', 'channel_post', 'edited_channel_post']
+  });
 
   let lastUpdateId = Number(state.last_update_id || 0);
   const existingIds = new Set((feed.incidents || []).map((incident) => incident.id));
   const added = [];
+  const debug = {
+    checked_at: new Date().toISOString(),
+    offset,
+    expected_chat_id: CHAT_ID,
+    updates_count: updates.length,
+    results: []
+  };
 
   for (const update of updates) {
     lastUpdateId = Math.max(lastUpdateId, Number(update.update_id || 0));
-    const message = update.channel_post || update.edited_channel_post;
-    if (!message || String(message.chat?.id) !== CHAT_ID) continue;
+    const message = getMessage(update);
+    const text = message?.text || message?.caption || '';
+    const fields = parseFields(text);
+
+    if (!message) {
+      debug.results.push(debugResult(update, 'no_supported_message', fields));
+      continue;
+    }
+    if (String(message.chat?.id) !== CHAT_ID) {
+      debug.results.push(debugResult(update, 'chat_mismatch', fields));
+      continue;
+    }
+    if (!incidentLike(text, fields)) {
+      debug.results.push(debugResult(update, 'not_incident_text', fields));
+      continue;
+    }
+
     const incident = buildIncident(update);
-    if (!incident || existingIds.has(incident.id)) continue;
+    if (!incident) {
+      debug.results.push(debugResult(update, 'parse_failed', fields));
+      continue;
+    }
+    if (existingIds.has(incident.id)) {
+      debug.results.push(debugResult(update, 'duplicate', fields));
+      continue;
+    }
+
     existingIds.add(incident.id);
     added.push(incident);
+    debug.results.push(debugResult(update, 'added', fields));
   }
 
   if (lastUpdateId > Number(state.last_update_id || 0)) {
     fs.writeFileSync(STATE_PATH, `${JSON.stringify({ last_update_id: lastUpdateId }, null, 2)}\n`);
+  }
+
+  if (updates.length) {
+    fs.writeFileSync(DEBUG_PATH, `${JSON.stringify(debug, null, 2)}\n`);
   }
 
   if (added.length) {
@@ -160,7 +226,7 @@ async function main() {
     fs.writeFileSync(DATA_PATH, `${JSON.stringify(feed, null, 2)}\n`);
   }
 
-  console.log(`Added ${added.length} Telegram incident(s).`);
+  console.log(`Read ${updates.length} Telegram update(s); added ${added.length} incident(s).`);
   setOutput('added_count', added.length);
 }
 
