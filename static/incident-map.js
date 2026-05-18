@@ -3,7 +3,8 @@
   if (!root) return;
 
   const DATA_URL = "/assets/data/incidents.json";
-  const BOUNDS = { minLat: 23.4, maxLat: 37.3, minLng: 60.5, maxLng: 78.4 };
+  const BOUNDS = { minLat: 23.753369, maxLat: 37.03667, minLng: 60.843359, maxLng: 77.048633 };
+  const MAP_PADDING = { x: 4.5, y: 3.8 };
   const state = { incidents: [], filtered: [], activeId: "", filters: { province: "", category: "", severity: "", search: "" } };
   const els = {
     sourceNote: root.querySelector("[data-source-note]"),
@@ -55,8 +56,8 @@
   function project(incident) {
     const lng = Number(incident.lng);
     const lat = Number(incident.lat);
-    const x = ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * 100;
-    const y = (1 - ((lat - BOUNDS.minLat) / (BOUNDS.maxLat - BOUNDS.minLat))) * 100;
+    const x = MAP_PADDING.x + ((lng - BOUNDS.minLng) / (BOUNDS.maxLng - BOUNDS.minLng)) * (100 - MAP_PADDING.x * 2);
+    const y = MAP_PADDING.y + (1 - ((lat - BOUNDS.minLat) / (BOUNDS.maxLat - BOUNDS.minLat))) * (100 - MAP_PADDING.y * 2);
     return {
       x: Math.max(5, Math.min(95, x)),
       y: Math.max(6, Math.min(94, y))
