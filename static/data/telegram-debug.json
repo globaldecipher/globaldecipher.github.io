@@ -1,6 +1,41 @@
 {
-  "checked_at": null,
-  "offset": 1,
-  "updates_count": 0,
-  "results": []
+  "checked_at": "2026-05-18T20:41:02.504Z",
+  "offset": 828254857,
+  "expected_chat_id": "-1003994704651",
+  "bot": {
+    "id": 8885884978,
+    "username": "TGDIncidentFeedBot"
+  },
+  "chat": {
+    "id": "-1003994704651",
+    "type": "supergroup",
+    "title": "TGD Incident Feed",
+    "username": ""
+  },
+  "bot_member": {
+    "status": "administrator",
+    "can_post_messages": false
+  },
+  "updates_count": 1,
+  "results": [
+    {
+      "update_id": 828254857,
+      "type": "message",
+      "reason": "added",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 6,
+      "has_text": true,
+      "field_keys": [
+        "district",
+        "province",
+        "type",
+        "killed",
+        "injured",
+        "actor",
+        "summary",
+        "source"
+      ]
+    }
+  ]
 }
