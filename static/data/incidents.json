@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-18T21:42:48.978Z",
+  "last_updated": "2026-05-18T22:29:13.527Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-10-bannu",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-18T22:29:13.000Z",
+      "time_label": "From Telegram feed",
+      "title": "IED / Explosion reported in Bannu",
+      "district": "Bannu",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.99,
+      "lng": 70.6,
+      "category": "IED / Explosion",
+      "actor": "Unidentified",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 2,
+      "summary": "Live webhook test incident in Bannu.",
+      "source": "test",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-9-swabi",
       "date": "2026-05-19",
