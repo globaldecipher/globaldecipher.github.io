@@ -13,6 +13,14 @@
     { key: 'islamabad', label: 'Islamabad Capital Territory' }
   ];
   const PROVINCE_LABELS = new Map(PROVINCES.map((province) => [province.key, province.label]));
+  const HOTSPOT_ANCHORS = new Map([
+    ['balochistan', { x: 0.42, y: 0.58 }],
+    ['khyber-pakhtunkhwa', { x: 0.44, y: 0.56 }],
+    ['sindh', { x: 0.52, y: 0.58 }],
+    ['punjab', { x: 0.42, y: 0.54 }],
+    ['gilgit-baltistan', { x: 0.52, y: 0.48 }],
+    ['islamabad', { x: 0.5, y: 0.5 }]
+  ]);
 
   const state = {
     allIncidents: [],
@@ -163,6 +171,32 @@
     return '#d9d9d7';
   }
 
+  function findProvincePath(doc, key) {
+    return Array.from(doc.querySelectorAll('[data-region]')).find((path) => provinceKey(path.dataset.region) === key);
+  }
+
+  function positionHotspotInsideProvince(doc, hotspot) {
+    const key = provinceKey(hotspot.dataset.provinceHotspot);
+    const path = findProvincePath(doc, key);
+    const frame = els.mapObject?.closest('[data-map]');
+    const svg = doc.documentElement;
+    const viewBox = svg?.viewBox?.baseVal;
+    if (!path || !frame || !viewBox || !viewBox.width || !viewBox.height) return;
+
+    try {
+      const box = path.getBBox();
+      const anchor = HOTSPOT_ANCHORS.get(key) || { x: 0.5, y: 0.5 };
+      const objectRect = els.mapObject.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
+      const x = (box.x + box.width * anchor.x - viewBox.x) / viewBox.width;
+      const y = (box.y + box.height * anchor.y - viewBox.y) / viewBox.height;
+      hotspot.style.left = String(objectRect.left - frameRect.left + objectRect.width * x) + 'px';
+      hotspot.style.top = String(objectRect.top - frameRect.top + objectRect.height * y) + 'px';
+    } catch (_error) {
+      // Keep the CSS fallback if the embedded SVG is not ready yet.
+    }
+  }
+
   function updateProvinceMap(groups) {
     const doc = els.mapObject?.contentDocument;
     if (!doc) return;
@@ -172,6 +206,7 @@
       path.style.fill = provinceColor(count);
       path.style.stroke = count ? 'rgba(70, 10, 14, 0.72)' : 'rgba(31, 42, 56, 0.32)';
     });
+    els.provinceHotspots.forEach((hotspot) => positionHotspotInsideProvince(doc, hotspot));
   }
 
   function renderProvinceCards(groups) {
@@ -281,10 +316,10 @@
     renderList();
   }
 
-  function renderSourceNote(data) {
-    const base = data.source_note || '';
-    const dayNote = `Showing ${formatPakistanDay(state.currentDate)} Pakistan time.`;
-    els.sourceNote.textContent = [base, dayNote].filter(Boolean).join(' ');
+  function renderSourceNote() {
+    const count = state.incidents.length;
+    const incidentLabel = count === 1 ? 'incident' : 'incidents';
+    els.sourceNote.textContent = formatCount(count) + ' live ' + incidentLabel + ' mapped for ' + formatPakistanDay(state.currentDate) + '.';
   }
 
   async function loadFeed() {
@@ -299,7 +334,7 @@
         String(b.id || '').localeCompare(String(a.id || ''))
       ));
       state.incidents = visibleIncidentsForPakistanDay(state.allIncidents);
-      renderSourceNote(data);
+      renderSourceNote();
       els.lastUpdated.textContent = 'Updated ' + formatDate(data.last_updated);
       populateFilters();
       render();
@@ -324,6 +359,8 @@
   if (els.mapObject) {
     els.mapObject.addEventListener('load', () => renderProvinceCards(provinceGroups()));
   }
+
+  window.addEventListener('resize', () => renderProvinceCards(provinceGroups()));
 
   loadFeed();
   window.setInterval(loadFeed, 90000);
