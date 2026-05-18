@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-18T22:32:33.793Z",
+  "last_updated": "2026-05-18T22:36:27.332Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-14-mardan",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-18T22:36:27.000Z",
+      "time_label": "From Telegram feed",
+      "title": "IED / Explosion reported in Mardan",
+      "district": "Mardan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "IED / Explosion",
+      "actor": "Unidentified",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 2,
+      "summary": "District: Mardan\nProvince: Khyber Pakhtunkhwa\nType: IED / Explosion\nKilled: 0\nInjured: 2\nActor: Unidentified",
+      "source": "TGD Telegram",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-13-quetta",
       "date": "2026-05-19",
