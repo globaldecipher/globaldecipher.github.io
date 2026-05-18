@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-18T22:29:13.527Z",
+  "last_updated": "2026-05-18T22:29:30.541Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-11-tank",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-18T22:29:30.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Targeted Killing reported in Tank",
+      "district": "Tank",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.22,
+      "lng": 70.38,
+      "category": "Targeted Killing",
+      "actor": "Unidentified Armed Assailants",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 1,
+      "injuries": 0,
+      "summary": "Live webhook test incident in Tank.",
+      "source": "test",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-10-bannu",
       "date": "2026-05-19",
