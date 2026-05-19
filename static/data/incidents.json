@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-19T09:05:05.393Z",
+  "last_updated": "2026-05-19T09:09:44.566Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-19-telegram--1003994704651-17-nowshehra",
+      "date": "2026-05-19",
+      "reported_at": "2026-05-19T09:09:44.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Targeted Killing / Shooting reported in Nowshehra",
+      "district": "Nowshehra",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Targeted Killing / Shooting",
+      "actor": "Unidentified Armed Assailants",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 8,
+      "injuries": 0,
+      "summary": "District: Nowshehra\nProvince: Khyber Pakhtunkhwa\nType: Targeted Killing / Shooting\nKilled: 8\nInjured: 0\nActor: Unidentified Armed Assailants\nSource: Local and Police Sources",
+      "source": "Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-19-telegram--1003994704651-16-swabi",
       "date": "2026-05-19",
