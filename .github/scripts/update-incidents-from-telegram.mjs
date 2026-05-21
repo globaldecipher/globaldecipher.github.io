@@ -1,8 +1,10 @@
 import fs from 'fs';
+import path from 'path';
 
 const DATA_PATH = 'static/data/incidents.json';
 const STATE_PATH = 'static/data/telegram-state.json';
 const DEBUG_PATH = 'static/data/telegram-debug.json';
+const IMPORT_DIR = 'static/data/imports';
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 const DEBUG = String(process.env.TELEGRAM_DEBUG || '').toLowerCase() === 'true';
@@ -17,13 +19,26 @@ const DISTRICTS = [
   { terms: ['wana', 'south waziristan'], district: 'South Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.3, lng: 69.57 },
   { terms: ['dera ismail khan', 'di khan'], district: 'Dera Ismail Khan', province: 'Khyber Pakhtunkhwa', lat: 31.83, lng: 70.9 },
   { terms: ['bannu'], district: 'Bannu', province: 'Khyber Pakhtunkhwa', lat: 32.99, lng: 70.6 },
+  { terms: ['north waziristan', 'mir ali', 'miranshah', 'spin wam', 'shewa'], district: 'North Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.98, lng: 70.13 },
+  { terms: ['lower south waziristan', 'angoor adda'], district: 'Lower South Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.1, lng: 69.36 },
+  { terms: ['kurram'], district: 'Kurram', province: 'Khyber Pakhtunkhwa', lat: 33.73, lng: 70.1 },
+  { terms: ['hangu'], district: 'Hangu', province: 'Khyber Pakhtunkhwa', lat: 33.53, lng: 71.06 },
+  { terms: ['karak'], district: 'Karak', province: 'Khyber Pakhtunkhwa', lat: 33.12, lng: 71.09 },
+  { terms: ['khyber', 'tirah'], district: 'Khyber', province: 'Khyber Pakhtunkhwa', lat: 34.03, lng: 71.13 },
+  { terms: ['charsadda'], district: 'Charsadda', province: 'Khyber Pakhtunkhwa', lat: 34.15, lng: 71.74 },
   { terms: ['peshawar'], district: 'Peshawar', province: 'Khyber Pakhtunkhwa', lat: 34.01, lng: 71.56 },
-  { terms: ['quetta', 'mangla zarghoon'], district: 'Quetta', province: 'Balochistan', lat: 30.3, lng: 67.2 },
+  { terms: ['quetta', 'mangla zarghoon', 'shabaan'], district: 'Quetta', province: 'Balochistan', lat: 30.3, lng: 67.2 },
   { terms: ['khuzdar'], district: 'Khuzdar', province: 'Balochistan', lat: 27.8, lng: 66.62 },
   { terms: ['kech', 'turbat'], district: 'Kech', province: 'Balochistan', lat: 26, lng: 63.05 },
+  { terms: ['washuk'], district: 'Washuk', province: 'Balochistan', lat: 27.72, lng: 64.8 },
+  { terms: ['ziarat'], district: 'Ziarat', province: 'Balochistan', lat: 30.38, lng: 67.73 },
+  { terms: ['barkhan'], district: 'Barkhan', province: 'Balochistan', lat: 29.9, lng: 69.53 },
+  { terms: ['nushki'], district: 'Nushki', province: 'Balochistan', lat: 29.55, lng: 66.02 },
   { terms: ['karachi'], district: 'Karachi', province: 'Sindh', lat: 24.86, lng: 67.01 },
   { terms: ['lahore'], district: 'Lahore', province: 'Punjab', lat: 31.52, lng: 74.36 },
   { terms: ['dera ghazi khan', 'd g khan', 'dg khan'], district: 'Dera Ghazi Khan', province: 'Punjab', lat: 30.05, lng: 70.64 },
+  { terms: ['taunsa'], district: 'Taunsa', province: 'Punjab', lat: 30.7, lng: 70.65 },
+  { terms: ['attock'], district: 'Attock', province: 'Punjab', lat: 33.77, lng: 72.36 },
   { terms: ['islamabad'], district: 'Islamabad', province: 'Islamabad', lat: 33.68, lng: 73.05 },
   { terms: ['gilgit'], district: 'Gilgit', province: 'Gilgit-Baltistan', lat: 35.92, lng: 74.31 }
 ];
@@ -39,7 +54,7 @@ function clean(value) {
 }
 
 function slug(value) {
-  return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+  return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
 }
 
 function lower(value) {
@@ -56,15 +71,31 @@ function parseFields(text) {
   return fields;
 }
 
-function findDistrict(text, fields) {
+function findDistrict(text, fields = {}) {
   const haystack = lower(`${fields.district || ''} ${fields.province || ''} ${text}`);
   const matched = DISTRICTS.find((item) => item.terms.some((term) => haystack.includes(term)));
   if (matched) return matched;
-  return { district: fields.district || 'Unspecified', province: fields.province || 'Pakistan', lat: 30.3753, lng: 69.3451 };
+  return { district: fields.district || 'Unspecified', province: normalProvince(fields.province || 'Pakistan'), lat: 30.3753, lng: 69.3451 };
+}
+
+function normalProvince(value) {
+  const compact = lower(value).replace(/[^a-z0-9]+/g, '');
+  if (compact === 'kpk' || compact.includes('khyber')) return 'Khyber Pakhtunkhwa';
+  if (compact.includes('baloch') || compact.includes('baluch')) return 'Balochistan';
+  if (compact.includes('punjab')) return 'Punjab';
+  if (compact.includes('sindh') || compact.includes('sind')) return 'Sindh';
+  if (compact.includes('gilgit')) return 'Gilgit-Baltistan';
+  if (compact.includes('islamabad')) return 'Islamabad';
+  return clean(value) || 'Pakistan';
 }
 
 function numberField(value) {
   const match = clean(value).match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function integerCell(value) {
+  const match = clean(value).match(/-?\d+/);
   return match ? Number(match[0]) : 0;
 }
 
@@ -88,6 +119,10 @@ function pakistanDateFromSeconds(seconds = Math.floor(Date.now() / 1000)) {
 function isoFromSeconds(seconds) {
   const value = Number(seconds);
   return Number.isFinite(value) && value > 0 ? new Date(value * 1000).toISOString() : new Date().toISOString();
+}
+
+function isoFromDate(value) {
+  return `${clean(value)}T12:00:00.000Z`;
 }
 
 function dateToUtcMs(value) {
@@ -138,6 +173,20 @@ function sourceUrl(message) {
   return `https://t.me/${username}/${message.message_id}`;
 }
 
+function normalCategory(value) {
+  const category = clean(value) || 'Security incident';
+  if (/ied|bomb/i.test(category)) return 'IED / Explosion';
+  if (/security operation|counter/i.test(category)) return 'Counterterrorism Operation';
+  if (/drone|quadcopter/i.test(category)) return 'Drone / Quadcopter';
+  return category;
+}
+
+function severityFor(fatalities, injuries, abductions, assetsDamaged) {
+  if (fatalities > 0 || injuries >= 3 || abductions > 0) return 'High';
+  if (injuries > 0 || (assetsDamaged && !/^none$/i.test(assetsDamaged))) return 'Medium';
+  return 'Low';
+}
+
 function buildIncident(update) {
   const message = getMessage(update);
   const text = message?.text || message?.caption || '';
@@ -160,7 +209,7 @@ function buildIncident(update) {
     time_label: 'From Telegram feed',
     title: fields.title || `${category} reported in ${location.district}`,
     district: location.district,
-    province: fields.province || location.province,
+    province: fields.province ? normalProvince(fields.province) : location.province,
     country: 'Pakistan',
     lat: location.lat,
     lng: location.lng,
@@ -175,6 +224,133 @@ function buildIncident(update) {
     source_url: fields.source || sourceUrl(message),
     verified: false
   };
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  const source = String(text || '').replace(/^\uFEFF/, '');
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (inQuotes) {
+      if (char === '"') {
+        if (source[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') inQuotes = true;
+    else if (char === ',') {
+      row.push(field);
+      field = '';
+    } else if (char === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else if (char !== '\r') {
+      field += char;
+    }
+  }
+
+  if (field || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  const headers = (rows.shift() || []).map((header) => clean(header));
+  return rows
+    .filter((values) => values.some((value) => clean(value)))
+    .map((values) => Object.fromEntries(headers.map((header, index) => [header, clean(values[index])])));
+}
+
+function importPaths() {
+  if (!fs.existsSync(IMPORT_DIR)) return [];
+  return fs.readdirSync(IMPORT_DIR)
+    .filter((name) => name.toLowerCase().endsWith('.csv'))
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => path.join(IMPORT_DIR, name));
+}
+
+function importedIncident(row, filePath) {
+  const date = clean(row.Date);
+  const uid = clean(row['Incident UID']);
+  if (!date || !uid) return null;
+
+  const district = clean(row.District) || 'Unspecified';
+  const locationText = `${district} ${row.Location || ''} ${row['Incident Description'] || ''}`;
+  const location = findDistrict(locationText, { district, province: row.Province });
+  const category = normalCategory(row['Attack Method']);
+  const civilianFatalities = integerCell(row.Civilian_Casualties);
+  const militantFatalities = integerCell(row.Militants_Casualties);
+  const forceFatalities = integerCell(row.Forces_Casualties);
+  const civilianInjuries = integerCell(row.Civilian_Injuries);
+  const militantInjuries = integerCell(row.Militants_Injuries);
+  const forceInjuries = integerCell(row.Forces_Injuries);
+  const fatalities = civilianFatalities + militantFatalities + forceFatalities;
+  const injuries = civilianInjuries + militantInjuries + forceInjuries;
+  const abductions = integerCell(row.Abductions);
+  const assetsDamaged = clean(row['Assets Damaged']);
+  const claim = clean(row.Claim);
+  const actor = !claim || /^unclaimed$/i.test(claim) ? 'Unidentified' : claim;
+
+  return {
+    id: `import-${slug(uid)}`,
+    date,
+    reported_at: isoFromDate(date),
+    time_label: row['Week Number'] || 'Imported weekly dataset',
+    title: `${category} reported in ${location.district}`,
+    district: location.district,
+    province: normalProvince(row.Province || location.province),
+    country: 'Pakistan',
+    lat: location.lat,
+    lng: location.lng,
+    category,
+    actor,
+    status: /^unclaimed$/i.test(claim) ? 'Imported record' : 'Claimed / recorded',
+    severity: severityFor(fatalities, injuries, abductions, assetsDamaged),
+    fatalities,
+    injuries,
+    summary: clean(row['Incident Description']) || clean(row['Casualty Description']) || `${category} reported in ${location.district}.`,
+    source: 'TGD weekly dataset',
+    source_url: '',
+    verified: false,
+    imported: true,
+    import_source: path.basename(filePath),
+    incident_uid: uid,
+    week_label: clean(row['Week Number']),
+    target_type: clean(row['Target Type']),
+    assets_damaged: assetsDamaged,
+    abductions,
+    casualty_note: clean(row['Casualty Description'])
+  };
+}
+
+function importedIncidents(todayPakistan) {
+  const imported = [];
+  for (const filePath of importPaths()) {
+    const rows = parseCsv(fs.readFileSync(filePath, 'utf8'));
+    for (const row of rows) {
+      const incident = importedIncident(row, filePath);
+      if (incident && withinArchiveWindow(incident, todayPakistan)) imported.push(incident);
+    }
+  }
+  return sortIncidents(imported);
+}
+
+function isTestIncident(incident) {
+  const text = lower(`${incident?.source || ''} ${incident?.source_url || ''} ${incident?.summary || ''} ${incident?.title || ''}`);
+  return text.includes('test incident') || text.includes('webhook test') || text === 'test';
 }
 
 async function telegramRaw(method, body = {}) {
@@ -224,35 +400,43 @@ function sortIncidents(incidents) {
 }
 
 async function main() {
-  if (!TOKEN || !CHAT_ID) {
-    console.log('TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not configured; skipping.');
-    setOutput('added_count', 0);
-    return;
-  }
-
   const feed = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   const todayPakistan = pakistanDateFromSeconds();
   const originalIncidents = Array.isArray(feed.incidents) ? feed.incidents : [];
-  const archivedExisting = originalIncidents.filter((incident) => withinArchiveWindow(incident, todayPakistan));
+  const manualImported = importedIncidents(todayPakistan);
+  const manualIds = new Set(manualImported.map((incident) => incident.id));
+  const cleanedExisting = originalIncidents.filter((incident) => !manualIds.has(incident.id) && !isTestIncident(incident));
+  const archivedExisting = cleanedExisting.filter((incident) => withinArchiveWindow(incident, todayPakistan));
   const state = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { last_update_id: 0 };
   const offset = Number(state.last_update_id || 0) + 1;
-  const botCheck = await telegramSafe('getMe');
-  const chatCheck = await telegramSafe('getChat', { chat_id: CHAT_ID });
-  const memberCheck = botCheck.ok ? await telegramSafe('getChatMember', { chat_id: CHAT_ID, user_id: botCheck.result.id }) : { ok: false, error: 'bot unavailable' };
-  const updates = await telegram('getUpdates', {
-    offset,
-    timeout: 0,
-    allowed_updates: ['message', 'edited_message', 'channel_post', 'edited_channel_post']
-  });
+
+  let updates = [];
+  let botCheck = { ok: false, error: 'TELEGRAM_BOT_TOKEN not configured' };
+  let chatCheck = { ok: false, error: 'TELEGRAM_CHAT_ID not configured' };
+  let memberCheck = { ok: false, error: 'bot unavailable' };
+
+  if (TOKEN && CHAT_ID) {
+    botCheck = await telegramSafe('getMe');
+    chatCheck = await telegramSafe('getChat', { chat_id: CHAT_ID });
+    memberCheck = botCheck.ok ? await telegramSafe('getChatMember', { chat_id: CHAT_ID, user_id: botCheck.result.id }) : { ok: false, error: 'bot unavailable' };
+    updates = await telegram('getUpdates', {
+      offset,
+      timeout: 0,
+      allowed_updates: ['message', 'edited_message', 'channel_post', 'edited_channel_post']
+    });
+  }
 
   let lastUpdateId = Number(state.last_update_id || 0);
-  const existingIds = new Set(archivedExisting.map((incident) => incident.id));
+  const existingIds = new Set(manualImported.concat(archivedExisting).map((incident) => incident.id));
   const added = [];
   const debug = {
     checked_at: new Date().toISOString(),
     current_day_pakistan: todayPakistan,
     archive_days: ARCHIVE_DAYS,
     archive_start: archiveStartDate(todayPakistan),
+    import_sources: importPaths().map((filePath) => path.basename(filePath)),
+    imported_count: manualImported.length,
+    removed_test_count: originalIncidents.length - cleanedExisting.length - originalIncidents.filter((incident) => manualIds.has(incident.id)).length,
     time_zone: PAKISTAN_TIME_ZONE,
     offset,
     expected_chat_id: CHAT_ID,
@@ -291,6 +475,10 @@ async function main() {
       debug.results.push(debugResult(update, 'outside_archive_window', fields));
       continue;
     }
+    if (isTestIncident(incident)) {
+      debug.results.push(debugResult(update, 'test_incident_ignored', fields));
+      continue;
+    }
     if (existingIds.has(incident.id)) {
       debug.results.push(debugResult(update, 'duplicate', fields));
       continue;
@@ -305,24 +493,27 @@ async function main() {
     fs.writeFileSync(STATE_PATH, `${JSON.stringify({ last_update_id: lastUpdateId }, null, 2)}\n`);
   }
 
-  if (DEBUG || updates.length) {
+  if (DEBUG || updates.length || manualImported.length) {
     fs.writeFileSync(DEBUG_PATH, `${JSON.stringify(debug, null, 2)}\n`);
   }
 
-  const archiveChanged = archivedExisting.length !== originalIncidents.length;
-  const dayChanged = feed.current_day !== todayPakistan || feed.archive_days !== ARCHIVE_DAYS || feed.archive_start !== archiveStartDate(todayPakistan);
-  if (added.length || archiveChanged || dayChanged) {
+  const mergedIncidents = sortIncidents(manualImported.concat(added, archivedExisting));
+  const archiveChanged = JSON.stringify(sortIncidents(originalIncidents.slice())) !== JSON.stringify(mergedIncidents);
+  const metadataChanged = feed.current_day !== todayPakistan || feed.archive_days !== ARCHIVE_DAYS || feed.archive_start !== archiveStartDate(todayPakistan);
+  if (added.length || archiveChanged || metadataChanged) {
     feed.time_zone = PAKISTAN_TIME_ZONE;
     feed.current_day = todayPakistan;
     feed.archive_days = ARCHIVE_DAYS;
     feed.archive_start = archiveStartDate(todayPakistan);
-    feed.incidents = sortIncidents(added.concat(archivedExisting));
+    feed.import_sources = importPaths().map((filePath) => path.basename(filePath));
+    feed.incidents = mergedIncidents;
     feed.last_updated = new Date().toISOString();
     fs.writeFileSync(DATA_PATH, `${JSON.stringify(feed, null, 2)}\n`);
   }
 
   console.log(`Read ${updates.length} Telegram update(s); added ${added.length} incident(s).`);
-  console.log(`Archive window: ${archiveStartDate(todayPakistan)} to ${todayPakistan}; retained ${archivedExisting.length + added.length} incident(s).`);
+  console.log(`Imported ${manualImported.length} weekly incident(s).`);
+  console.log(`Archive window: ${archiveStartDate(todayPakistan)} to ${todayPakistan}; retained ${mergedIncidents.length} incident(s).`);
   if (chatCheck.ok) console.log(`Telegram chat check ok: ${chatCheck.result.type} ${chatCheck.result.title || chatCheck.result.username || ''}`);
   else console.log(`Telegram chat check failed: ${chatCheck.error}`);
   if (memberCheck.ok) console.log(`Bot member status: ${memberCheck.result.status}`);
