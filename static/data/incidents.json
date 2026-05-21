@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-20T21:39:01.912Z",
+  "last_updated": "2026-05-21T08:09:54.451Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-19-north-waziristan",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:09:54.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation reported in North Waziristan",
+      "district": "North Waziristan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.98,
+      "lng": 70.13,
+      "category": "Counterterrorism Operation",
+      "actor": "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 6,
+      "injuries": 0,
+      "summary": "During a prolonged intelligence operation, security forces killed notorious militant Hazrat Umer alias Jan Mir and Tor Saqib along with four accomplices in Spinwam, North Waziristan district of Khyber Pakhtunkhwa. According to reports, Hazrat Umer was an important commander of the Pakistani Taliban’s Aleem Khan Khushali group.",
+      "source": "Local and Security Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-18-dera-ismail-khan",
       "date": "2026-05-21",
