@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:16:21.576Z",
+  "last_updated": "2026-05-21T08:17:02.094Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-23-dera-ghazi-khan",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:17:01.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Drone Attack reported in Dera Ghazi Khan",
+      "district": "Dera Ghazi Khan",
+      "province": "Punjab",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Drone Attack",
+      "actor": "Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Terrorists affiliated with the Tehreek-e-Taliban Pakistan (TTP) targeted the Chitrota Police Station in the Tunsa Sharif area of Punjab using quadcopter drones. According to reports, explosives dropped from the drones damaged the structure of the building, while no casualties were reported.",
+      "source": "Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-22-kurram",
       "date": "2026-05-21",
