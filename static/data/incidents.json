@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:11:14.064Z",
+  "last_updated": "2026-05-21T08:16:21.576Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-22-kurram",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:16:21.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Militant Infighting / Clash reported in Kurram",
+      "district": "Kurram",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Militant Infighting / Clash",
+      "actor": "Jamaat-ul-Ahrar / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 18,
+      "injuries": 0,
+      "summary": "The Jamaat-ul-Ahrar faction released a statement following clashes in Kurram district of Khyber Pakhtunkhwa, accusing Tehreek-e-Taliban Pakistan (TTP) of killing its senior commander Mumtaz Ummati along with 18 militants. The group warned of a strong response to the incident. Earlier, local and police sources confirmed clashes between two armed groups in which 18 militants were killed.",
+      "source": "Jamaat-ul-Ahrar Statement / Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-21-quetta",
       "date": "2026-05-21",
