@@ -201,10 +201,6 @@ summary: "A public-source incident tracker for security events monitored by The 
       week_label: clean(row["Week Number"])
     };
   }
-  function signature(incident) {
-    const group = lower(incident.category).replace(/ied|bomb|explosion|vbied/g, "explosion").replace(/drone|quadcopter/g, "drone").replace(/security operation|counterterrorism/g, "operation").replace(/shooting|assault|firing|armed/g, "armed");
-    return [incident.date, slug(incident.province), slug(incident.district), slug(group)].join("|");
-  }
   function isTest(incident) {
     const text = lower(`${incident.source || ""} ${incident.source_url || ""} ${incident.summary || ""} ${incident.title || ""}`);
     return text.includes("test incident") || text.includes("webhook test") || text === "test";
@@ -229,10 +225,10 @@ summary: "A public-source incident tracker for security events monitored by The 
     const response = await nativeFetch(input, init);
     const data = await response.clone().json();
     const imported = await loadImports();
-    const importedSignatures = new Set(imported.map(signature));
+    const importedDates = new Set(imported.map((incident) => incident.date));
     const byId = new Map(imported.map((incident) => [incident.id, incident]));
     for (const incident of Array.isArray(data.incidents) ? data.incidents : []) {
-      if (!incident || isTest(incident) || !inArchive(incident.date) || importedSignatures.has(signature(incident))) continue;
+      if (!incident || isTest(incident) || !inArchive(incident.date) || importedDates.has(incident.date)) continue;
       if (!byId.has(incident.id)) byId.set(incident.id, incident);
     }
     data.incidents = Array.from(byId.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.reported_at || "").localeCompare(String(a.reported_at || "")));
