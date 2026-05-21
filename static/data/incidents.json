@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:30:57.599Z",
+  "last_updated": "2026-05-21T08:31:01.719Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-25-bajaur",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:31:01.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Drone / Quadcopter Attack reported in Bajaur",
+      "district": "Bajaur",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 34.72,
+      "lng": 71.5,
+      "category": "Drone / Quadcopter Attack",
+      "actor": "Unidentified Armed Assailants",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 2,
+      "summary": "A quadcopter attack targeted the local population in the Salarzai area of Bajaur district. Police said two civilian children were injured in the attack. The injured children were identified as Rehana and Jawad, and were shifted to the hospital for treatment.",
+      "source": "Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-24-bajaur",
       "date": "2026-05-21",
