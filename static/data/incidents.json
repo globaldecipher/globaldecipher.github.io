@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:17:02.094Z",
+  "last_updated": "2026-05-21T08:30:57.599Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-24-bajaur",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:30:57.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Targeted Killing / Shooting reported in Bajaur",
+      "district": "Bajaur",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 34.72,
+      "lng": 71.5,
+      "category": "Targeted Killing / Shooting",
+      "actor": "Islamic State Khorasan Province",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 1,
+      "injuries": 0,
+      "summary": "The Islamic State Khorasan Province (ISKP) has claimed responsibility for an attack on police in Brakho village, Mamond area of Bajaur district in Khyber Pakhtunkhwa, in which Police Constable Ilyas was killed.",
+      "source": "ISKP Claim / Local Reports",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-23-dera-ghazi-khan",
       "date": "2026-05-21",
