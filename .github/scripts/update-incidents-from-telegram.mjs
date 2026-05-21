@@ -7,6 +7,8 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 const DEBUG = String(process.env.TELEGRAM_DEBUG || '').toLowerCase() === 'true';
 const PAKISTAN_TIME_ZONE = 'Asia/Karachi';
+const ARCHIVE_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DISTRICTS = [
   { terms: ['bajaur', 'loi sam'], district: 'Bajaur', province: 'Khyber Pakhtunkhwa', lat: 34.72, lng: 71.5 },
@@ -21,6 +23,7 @@ const DISTRICTS = [
   { terms: ['kech', 'turbat'], district: 'Kech', province: 'Balochistan', lat: 26, lng: 63.05 },
   { terms: ['karachi'], district: 'Karachi', province: 'Sindh', lat: 24.86, lng: 67.01 },
   { terms: ['lahore'], district: 'Lahore', province: 'Punjab', lat: 31.52, lng: 74.36 },
+  { terms: ['dera ghazi khan', 'd g khan', 'dg khan'], district: 'Dera Ghazi Khan', province: 'Punjab', lat: 30.05, lng: 70.64 },
   { terms: ['islamabad'], district: 'Islamabad', province: 'Islamabad', lat: 33.68, lng: 73.05 },
   { terms: ['gilgit'], district: 'Gilgit', province: 'Gilgit-Baltistan', lat: 35.92, lng: 74.31 }
 ];
@@ -85,6 +88,31 @@ function pakistanDateFromSeconds(seconds = Math.floor(Date.now() / 1000)) {
 function isoFromSeconds(seconds) {
   const value = Number(seconds);
   return Number.isFinite(value) && value > 0 ? new Date(value * 1000).toISOString() : new Date().toISOString();
+}
+
+function dateToUtcMs(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return NaN;
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function dateFromUtcMs(ms) {
+  const date = new Date(ms);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function archiveStartDate(today) {
+  return dateFromUtcMs(dateToUtcMs(today) - (ARCHIVE_DAYS - 1) * DAY_MS);
+}
+
+function withinArchiveWindow(incident, today) {
+  const value = dateToUtcMs(incident?.date);
+  const start = dateToUtcMs(archiveStartDate(today));
+  const end = dateToUtcMs(today);
+  return Number.isFinite(value) && value >= start && value <= end;
 }
 
 function incidentLike(text, fields) {
@@ -203,6 +231,9 @@ async function main() {
   }
 
   const feed = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+  const todayPakistan = pakistanDateFromSeconds();
+  const originalIncidents = Array.isArray(feed.incidents) ? feed.incidents : [];
+  const archivedExisting = originalIncidents.filter((incident) => withinArchiveWindow(incident, todayPakistan));
   const state = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { last_update_id: 0 };
   const offset = Number(state.last_update_id || 0) + 1;
   const botCheck = await telegramSafe('getMe');
@@ -215,11 +246,13 @@ async function main() {
   });
 
   let lastUpdateId = Number(state.last_update_id || 0);
-  const existingIds = new Set((feed.incidents || []).map((incident) => incident.id));
+  const existingIds = new Set(archivedExisting.map((incident) => incident.id));
   const added = [];
   const debug = {
     checked_at: new Date().toISOString(),
-    current_day_pakistan: pakistanDateFromSeconds(),
+    current_day_pakistan: todayPakistan,
+    archive_days: ARCHIVE_DAYS,
+    archive_start: archiveStartDate(todayPakistan),
     time_zone: PAKISTAN_TIME_ZONE,
     offset,
     expected_chat_id: CHAT_ID,
@@ -254,6 +287,10 @@ async function main() {
       debug.results.push(debugResult(update, 'parse_failed', fields));
       continue;
     }
+    if (!withinArchiveWindow(incident, todayPakistan)) {
+      debug.results.push(debugResult(update, 'outside_archive_window', fields));
+      continue;
+    }
     if (existingIds.has(incident.id)) {
       debug.results.push(debugResult(update, 'duplicate', fields));
       continue;
@@ -272,15 +309,20 @@ async function main() {
     fs.writeFileSync(DEBUG_PATH, `${JSON.stringify(debug, null, 2)}\n`);
   }
 
-  if (added.length) {
+  const archiveChanged = archivedExisting.length !== originalIncidents.length;
+  const dayChanged = feed.current_day !== todayPakistan || feed.archive_days !== ARCHIVE_DAYS || feed.archive_start !== archiveStartDate(todayPakistan);
+  if (added.length || archiveChanged || dayChanged) {
     feed.time_zone = PAKISTAN_TIME_ZONE;
-    feed.current_day = pakistanDateFromSeconds();
-    feed.incidents = sortIncidents(added.concat(feed.incidents || []));
+    feed.current_day = todayPakistan;
+    feed.archive_days = ARCHIVE_DAYS;
+    feed.archive_start = archiveStartDate(todayPakistan);
+    feed.incidents = sortIncidents(added.concat(archivedExisting));
     feed.last_updated = new Date().toISOString();
     fs.writeFileSync(DATA_PATH, `${JSON.stringify(feed, null, 2)}\n`);
   }
 
   console.log(`Read ${updates.length} Telegram update(s); added ${added.length} incident(s).`);
+  console.log(`Archive window: ${archiveStartDate(todayPakistan)} to ${todayPakistan}; retained ${archivedExisting.length + added.length} incident(s).`);
   if (chatCheck.ok) console.log(`Telegram chat check ok: ${chatCheck.result.type} ${chatCheck.result.title || chatCheck.result.username || ''}`);
   else console.log(`Telegram chat check failed: ${chatCheck.error}`);
   if (memberCheck.ok) console.log(`Bot member status: ${memberCheck.result.status}`);
