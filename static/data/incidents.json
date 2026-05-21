@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T16:36:16.201Z",
+  "last_updated": "2026-05-21T17:13:02.947Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-28-north-waziristan",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T17:13:02.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operations reported in North Waziristan",
+      "district": "North Waziristan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.98,
+      "lng": 70.13,
+      "category": "Counterterrorism Operations",
+      "actor": "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 23,
+      "injuries": 0,
+      "summary": "According to Pakistan Military Media Wing Inter-Services Public Relations (ISPR), security forces conducted a series of intelligence-based operations in multiple areas of Khyber Pakhtunkhwa, including Datta Khel, Spin Wam, and Bannu. Over the last 48 hours, 23 terrorists affiliated with the Pakistani Taliban, including ring leader Jan Meer alias Toor Saqib, were killed during intense exchanges of fire. Weapons, ammunition, explosives, prepared IEDs, underground tunnels, and bunkers were also recovered and destroyed during the operations.",
+      "source": "ISPR",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-27-jhal-magsi",
       "date": "2026-05-21",
