@@ -7,7 +7,11 @@ eyebrow: "Live tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
 ---
 
-<style>@import url("/assets/incident-map.css?v=20260519-map-command");</style>
+<style>
+@import url("/assets/incident-map.css?v=20260519-map-command");
+.tracker-controls{grid-template-columns:minmax(150px,.8fr) repeat(3,minmax(0,1fr)) minmax(240px,1.3fr)}
+@media (max-width:1180px){.tracker-controls{grid-template-columns:1fr}}
+</style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-tracker-top">
@@ -20,15 +24,16 @@ summary: "A public-source incident tracker for security events monitored by The 
   </div>
   <div class="tracker-metrics" data-metrics></div>
   <div class="tracker-controls" aria-label="Incident filters">
+    <label>Date<input data-filter="date" type="date" aria-label="Select archive date"></label>
     <label>Province<select data-filter="province"><option value="">All provinces</option></select></label>
     <label>Category<select data-filter="category"><option value="">All categories</option></select></label>
     <label>Severity<select data-filter="severity"><option value="">All severities</option></select></label>
     <label>Search<input data-filter="search" type="search" placeholder="District, actor, keyword"></label>
   </div>
-  <section class="provincial-breakdown" data-provincial-breakdown aria-label="Current provincial breakdown">
+  <section class="provincial-breakdown" data-provincial-breakdown aria-label="Daily provincial breakdown">
     <div class="breakdown-heading">
-      <div class="breakdown-title"><span>Current</span><span>Provincial</span><span>Breakdown</span></div>
-      <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Live incident feed</span></div>
+      <div class="breakdown-title"><span>Daily</span><span>Provincial</span><span>Breakdown</span></div>
+      <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Selected date feed</span></div>
     </div>
     <div class="breakdown-stage">
       <div class="breakdown-map-frame" data-map>
@@ -53,4 +58,4 @@ summary: "A public-source incident tracker for security events monitored by The 
   </div>
 </section>
 
-<script src="/assets/incident-map.js?v=20260519-map-command" defer></script>
+<script src="/assets/incident-map.js?v=20260521-archive" defer></script>
