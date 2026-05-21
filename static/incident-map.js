@@ -38,6 +38,7 @@
     sourceNote: root.querySelector('[data-source-note]'),
     lastUpdated: root.querySelector('[data-last-updated]'),
     metrics: root.querySelector('[data-metrics]'),
+    weeklyAnalytics: root.querySelector('[data-weekly-analytics]'),
     markerLayer: root.querySelector('[data-marker-layer]'),
     mapObject: root.querySelector('.tracker-pakistan-map'),
     incidentList: root.querySelector('[data-incident-list]'),
@@ -161,6 +162,26 @@
       String(b.reported_at || '').localeCompare(String(a.reported_at || '')) ||
       String(b.id || '').localeCompare(String(a.id || ''))
     ));
+  }
+
+  function fallbackWeekLabel(value) {
+    const day = Number(String(value || '').slice(8, 10));
+    if (!day) return 'Archive week';
+    if (day <= 7) return '1st week';
+    if (day <= 10) return '2nd week';
+    if (day <= 17) return '3rd week';
+    if (day <= 24) return '4th week';
+    return '5th week';
+  }
+
+  function weekLabel(incident) {
+    return String(incident.week_label || incident.week || fallbackWeekLabel(incident.date)).trim();
+  }
+
+  function weekOrder(label) {
+    const text = normalise(label);
+    const number = Number((text.match(/\d+/) || [0])[0]);
+    return number || 99;
   }
 
   function setSelectedDate(value) {
@@ -340,6 +361,50 @@
     ].join('');
   }
 
+  function weeklyGroups() {
+    const groups = new Map();
+    for (const incident of state.archivedIncidents) {
+      const label = weekLabel(incident);
+      if (!groups.has(label)) {
+        groups.set(label, { label, count: 0, fatalities: 0, injuries: 0, provinces: new Map(), categories: new Map() });
+      }
+      const group = groups.get(label);
+      group.count += 1;
+      group.fatalities += Number(incident.fatalities || 0);
+      group.injuries += Number(incident.injuries || 0);
+      addCount(group.provinces, incident.province || 'Unspecified');
+      addCount(group.categories, incident.category || 'Security incident');
+    }
+    return Array.from(groups.values()).sort((a, b) => weekOrder(a.label) - weekOrder(b.label) || a.label.localeCompare(b.label));
+  }
+
+  function barRow(label, value, max, detail, className = '') {
+    const percent = max ? Math.max(5, Math.round((value / max) * 100)) : 0;
+    return `<div class='weekly-bar-row ${esc(className)}'><div class='weekly-bar-label'>${esc(label)}</div><div class='weekly-bar-track'><span style='width:${percent}%'></span></div><strong>${esc(formatCount(value))}</strong><em>${esc(detail || '')}</em></div>`;
+  }
+
+  function renderWeeklyAnalytics() {
+    if (!els.weeklyAnalytics) return;
+    const groups = weeklyGroups();
+    if (!groups.length) {
+      els.weeklyAnalytics.innerHTML = '';
+      return;
+    }
+    const maxIncidents = Math.max(...groups.map((group) => group.count), 1);
+    const maxFatalities = Math.max(...groups.map((group) => group.fatalities), 1);
+    const incidentRows = groups.map((group) => {
+      const topProvince = topLabels(group.provinces, 1)[0] || 'No province';
+      return barRow(group.label, group.count, maxIncidents, topProvince);
+    }).join('');
+    const fatalityRows = groups.map((group) => {
+      const detail = `${formatCount(group.injuries)} injured`;
+      return barRow(group.label, group.fatalities, maxFatalities, detail, 'is-fatality');
+    }).join('');
+    const latest = groups[groups.length - 1];
+    const categories = topLabels(latest.categories, 4).map((category) => `<span>${esc(category)}</span>`).join('');
+    els.weeklyAnalytics.innerHTML = `<div class='weekly-chart-head'><span>Weekly archive graphs</span><strong>${esc(formatPakistanDay(archiveStartDate()))} to ${esc(formatPakistanDay(state.currentDate))}</strong></div><div class='weekly-chart-grid'><article class='weekly-chart-card'><h3>Incident volume</h3>${incidentRows}</article><article class='weekly-chart-card'><h3>Fatalities by week</h3>${fatalityRows}</article><article class='weekly-chart-card weekly-focus'><h3>Latest week profile</h3><strong>${esc(latest.label)}</strong><p>${formatCount(latest.count)} incidents, ${formatCount(latest.fatalities)} fatalities, ${formatCount(latest.injuries)} injuries.</p><div>${categories}</div></article></div>`;
+  }
+
   function renderMap() {
     els.markerLayer.innerHTML = '';
     els.mapCount.textContent = `${formatCount(state.filtered.length)} incident${state.filtered.length === 1 ? '' : 's'}`;
@@ -366,6 +431,7 @@
   function render() {
     applyFilters();
     renderMetrics();
+    renderWeeklyAnalytics();
     renderProvinceCards(provinceGroups());
     renderMap();
     renderList();
