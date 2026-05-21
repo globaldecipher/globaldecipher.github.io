@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T10:17:41.932Z",
+  "last_updated": "2026-05-21T16:36:16.201Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-27-jhal-magsi",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T16:36:15.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Grenade Attack / Shooting reported in Jhal Magsi",
+      "district": "Jhal Magsi",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Grenade Attack / Shooting",
+      "actor": "Baloch Militant Groups",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 0,
+      "injuries": 3,
+      "summary": "Terrorists affiliated with Baloch militant groups lobbed grenades and carried out distant firing on three police stations in Jhal Magsi district of Balochistan. According to reports, three civilians were affected in the attack.",
+      "source": "Local and Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-26-bajaur",
       "date": "2026-05-21",
