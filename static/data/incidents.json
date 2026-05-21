@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:10:39.233Z",
+  "last_updated": "2026-05-21T08:11:14.064Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-21-quetta",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:11:13.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation reported in Quetta",
+      "district": "Quetta",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 30.3,
+      "lng": 67.2,
+      "category": "Counterterrorism Operation",
+      "actor": "Security Forces / Militants",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 1,
+      "injuries": 0,
+      "summary": "Security forces killed Bashir, the mastermind behind the 30 September 2025 attack on FC (North) Balochistan Headquarters in Quetta, Balochistan, after a prolonged intelligence operation. According to reports, Bashir was traced following the 14–15 May Shaban operation in which 33 militants were killed. He was later eliminated on 20 May, while one of his associates was arrested alive.",
+      "source": "Local and Security Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-20-north-waziristan",
       "date": "2026-05-21",
