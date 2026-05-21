@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:09:54.451Z",
+  "last_updated": "2026-05-21T08:10:39.233Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-20-north-waziristan",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T08:10:38.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation / Clash reported in North Waziristan",
+      "district": "North Waziristan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.98,
+      "lng": 70.13,
+      "category": "Counterterrorism Operation / Clash",
+      "actor": "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 13,
+      "injuries": 0,
+      "summary": "The proscribed Tehreek-e-Taliban Pakistan (TTP) confirmed clashes with security forces in the Spin Wam area of North Waziristan district in Khyber Pakhtunkhwa. The group admitted that 13 of its members were killed during the operation, including commander Saqib, who was considered a top commander of the TTP.",
+      "source": "TTP Statement / Local Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-19-north-waziristan",
       "date": "2026-05-21",
