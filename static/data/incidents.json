@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T08:31:01.719Z",
+  "last_updated": "2026-05-21T10:17:41.932Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-21",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-21-telegram--1003994704651-26-bajaur",
+      "date": "2026-05-21",
+      "reported_at": "2026-05-21T10:17:41.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Drone / Quadcopter Attack reported in Bajaur",
+      "district": "Bajaur",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 34.72,
+      "lng": 71.5,
+      "category": "Drone / Quadcopter Attack",
+      "actor": "Unidentified Armed Assailants",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 2,
+      "injuries": 0,
+      "summary": "Two school students lost their lives in a quadcopter strike in the Mamond area of Bajaur district. The children were returning home from school in the Shahi Tangi area when the incident occurred.",
+      "source": "Local Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-25-bajaur",
       "date": "2026-05-21",
