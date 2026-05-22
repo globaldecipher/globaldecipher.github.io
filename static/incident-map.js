@@ -1,499 +1,500 @@
 (function () {
-  const root = document.querySelector('[data-incident-tracker]');
+  const root = document.querySelector("[data-incident-tracker]");
   if (!root) return;
 
-  const DATA_URL = '/assets/data/incidents.json';
-  const PAKISTAN_TIME_ZONE = 'Asia/Karachi';
-  const ARCHIVE_DAYS = 30;
-  const DAY_MS = 24 * 60 * 60 * 1000;
+  const DATA_URL = "/assets/data/incidents.json";
+  const TZ = "Asia/Karachi";
+  const ARCHIVE_DAYS = 31;
+  const DAY_MS = 86400000;
+
   const PROVINCES = [
-    { key: 'balochistan', label: 'Balochistan' },
-    { key: 'khyber-pakhtunkhwa', label: 'Khyber Pakhtunkhwa' },
-    { key: 'sindh', label: 'Sindh' },
-    { key: 'punjab', label: 'Punjab' },
-    { key: 'gilgit-baltistan', label: 'Gilgit-Baltistan' },
-    { key: 'islamabad', label: 'Islamabad Capital Territory' }
+    ["balochistan", "Balochistan"],
+    ["khyber-pakhtunkhwa", "Khyber Pakhtunkhwa"],
+    ["punjab", "Punjab"],
+    ["sindh", "Sindh"],
+    ["gilgit-baltistan", "Gilgit-Baltistan"],
+    ["islamabad", "Islamabad Capital Territory"]
   ];
-  const PROVINCE_LABELS = new Map(PROVINCES.map((province) => [province.key, province.label]));
+  const PROVINCE_LABELS = new Map(PROVINCES);
   const HOTSPOT_ANCHORS = new Map([
-    ['balochistan', { x: 0.42, y: 0.58 }],
-    ['khyber-pakhtunkhwa', { x: 0.44, y: 0.56 }],
-    ['sindh', { x: 0.52, y: 0.58 }],
-    ['punjab', { x: 0.42, y: 0.54 }],
-    ['gilgit-baltistan', { x: 0.52, y: 0.48 }],
-    ['islamabad', { x: 0.5, y: 0.5 }]
+    ["balochistan", [0.45, 0.57]],
+    ["khyber-pakhtunkhwa", [0.43, 0.55]],
+    ["punjab", [0.46, 0.54]],
+    ["sindh", [0.48, 0.52]],
+    ["gilgit-baltistan", [0.51, 0.48]],
+    ["islamabad", [0.5, 0.5]]
   ]);
 
   const state = {
-    allIncidents: [],
-    archivedIncidents: [],
-    incidents: [],
+    all: [],
+    archive: [],
+    range: [],
     filtered: [],
-    currentDate: todayInPakistan(),
-    selectedDate: todayInPakistan(),
-    filters: { date: todayInPakistan(), province: '', category: '', severity: '', search: '' }
+    today: pkToday(),
+    date: pkToday(),
+    mode: "date",
+    week: "",
+    activeView: "daily",
+    selectedProvince: "",
+    selectedIncident: "",
+    loaded: false,
+    filters: { province: "", category: "", severity: "", search: "" }
   };
 
   const els = {
-    sourceNote: root.querySelector('[data-source-note]'),
-    lastUpdated: root.querySelector('[data-last-updated]'),
-    metrics: root.querySelector('[data-metrics]'),
-    weeklyAnalytics: root.querySelector('[data-weekly-analytics]'),
-    markerLayer: root.querySelector('[data-marker-layer]'),
-    mapObject: root.querySelector('.tracker-pakistan-map'),
-    incidentList: root.querySelector('[data-incident-list]'),
-    mapCount: root.querySelector('[data-map-count]'),
-    resultCount: root.querySelector('[data-result-count]'),
-    filters: Array.from(root.querySelectorAll('[data-filter]')),
-    provincePanel: root.querySelector('[data-province-cards]'),
-    provinceHotspots: Array.from(root.querySelectorAll('[data-province-hotspot]'))
+    sourceNote: qs("[data-source-note]"),
+    lastUpdated: qs("[data-last-updated]"),
+    metrics: qs("[data-metrics]"),
+    timeline: qs("[data-timeline]"),
+    weekly: qs("[data-weekly-analytics]"),
+    mapObject: qs(".tracker-pakistan-map"),
+    mapTitle: qs("[data-map-title]"),
+    mapCount: qs("[data-map-count]"),
+    tooltip: qs("[data-map-tooltip]"),
+    detail: qs("[data-detail-panel]"),
+    list: qs("[data-incident-list]"),
+    resultCount: qs("[data-result-count]"),
+    filters: Array.from(root.querySelectorAll("[data-filter]")),
+    tabs: Array.from(root.querySelectorAll("[data-view-tab]")),
+    panels: Array.from(root.querySelectorAll("[data-view-panel]")),
+    hotspots: Array.from(root.querySelectorAll("[data-province-hotspot]"))
   };
 
+  function qs(selector) { return root.querySelector(selector); }
+  function text(value) { return String(value ?? ""); }
+  function clean(value) { return text(value).trim(); }
+  function norm(value) { return clean(value).toLowerCase(); }
   function esc(value) {
-    return String(value ?? '')
-      .split('&').join('&amp;')
-      .split('<').join('&lt;')
-      .split('>').join('&gt;')
-      .split(String.fromCharCode(34)).join('&quot;')
-      .split(String.fromCharCode(39)).join('&#39;');
+    return text(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-
-  function normalise(value) {
-    return String(value || '').trim().toLowerCase();
-  }
-
-  function formatCount(value) {
-    return new Intl.NumberFormat('en').format(Number(value || 0));
-  }
-
-  function pakistanDateFromDate(date) {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: PAKISTAN_TIME_ZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).formatToParts(date);
-    const byType = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+  function count(value) { return new Intl.NumberFormat("en").format(Number(value || 0)); }
+  function pkToday() {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+    const byType = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
     return `${byType.year}-${byType.month}-${byType.day}`;
   }
-
-  function todayInPakistan() {
-    return pakistanDateFromDate(new Date());
+  function ms(date) {
+    const match = text(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? Date.UTC(+match[1], +match[2] - 1, +match[3]) : NaN;
   }
-
-  function dateToUtcMs(value) {
-    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) return NaN;
-    return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  }
-
-  function dateFromUtcMs(ms) {
-    const date = new Date(ms);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  function addDays(value, days) {
-    const ms = dateToUtcMs(value);
-    if (!Number.isFinite(ms)) return value;
-    return dateFromUtcMs(ms + days * DAY_MS);
-  }
-
-  function archiveStartDate() {
-    return addDays(state.currentDate, -(ARCHIVE_DAYS - 1));
-  }
-
-  function isWithinArchiveWindow(value) {
-    const ms = dateToUtcMs(value);
-    const start = dateToUtcMs(archiveStartDate());
-    const end = dateToUtcMs(state.currentDate);
-    return Number.isFinite(ms) && ms >= start && ms <= end;
-  }
-
-  function formatPakistanDay(value) {
-    const ms = dateToUtcMs(value);
-    if (!Number.isFinite(ms)) return value || 'today';
-    return new Intl.DateTimeFormat('en', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(ms));
-  }
-
-  function formatDate(value) {
-    if (!value) return 'Unknown';
+  function fromMs(value) {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: PAKISTAN_TIME_ZONE }).format(date);
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
-
-  function severityClass(value) {
-    const severity = normalise(value);
-    if (severity.includes('low')) return 'low';
-    if (severity.includes('medium')) return 'medium';
-    return 'high';
+  function addDays(date, days) { return fromMs(ms(date) + days * DAY_MS); }
+  function archiveStart() { return addDays(state.today, -(ARCHIVE_DAYS - 1)); }
+  function inArchive(date) {
+    const value = ms(date);
+    return Number.isFinite(value) && value >= ms(archiveStart()) && value <= ms(state.today);
   }
-
+  function formatDay(date, compact = false) {
+    const value = ms(date);
+    if (!Number.isFinite(value)) return date || "today";
+    return new Intl.DateTimeFormat("en", { day: "numeric", month: compact ? "short" : "long", year: compact ? undefined : "numeric", timeZone: "UTC" }).format(new Date(value));
+  }
+  function formatUpdated(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || "Unknown";
+    return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: TZ }).format(date);
+  }
   function provinceKey(value) {
-    const compact = normalise(value).replace(/[^a-z0-9]+/g, '');
-    if (!compact) return '';
-    if (compact.includes('baloch') || compact.includes('baluch')) return 'balochistan';
-    if (compact.includes('khyber') || compact === 'kp' || compact.includes('fata')) return 'khyber-pakhtunkhwa';
-    if (compact.includes('sind')) return 'sindh';
-    if (compact.includes('punjab')) return 'punjab';
-    if (compact.includes('gilgit') || compact.includes('northernareas')) return 'gilgit-baltistan';
-    if (compact.includes('islamabad') || compact.includes('fct')) return 'islamabad';
+    const compact = norm(value).replace(/[^a-z0-9]+/g, "");
+    if (!compact) return "";
+    if (compact === "kpk" || compact.includes("khyber") || compact.includes("pakhtunkhwa") || compact.includes("fata")) return "khyber-pakhtunkhwa";
+    if (compact.includes("baloch") || compact.includes("baluch")) return "balochistan";
+    if (compact.includes("sind")) return "sindh";
+    if (compact.includes("punjab")) return "punjab";
+    if (compact.includes("gilgit")) return "gilgit-baltistan";
+    if (compact.includes("islamabad") || compact.includes("ict")) return "islamabad";
     return compact;
   }
-
-  function addCount(map, value, amount = 1) {
-    const label = String(value || '').trim();
+  function provinceLabel(value) { return PROVINCE_LABELS.get(provinceKey(value)) || clean(value) || "Pakistan"; }
+  function severityClass(value) {
+    const label = norm(value);
+    if (label.includes("low")) return "low";
+    if (label.includes("medium")) return "medium";
+    return "high";
+  }
+  function weekLabel(incident) {
+    const given = clean(incident.week_label || incident.week);
+    if (given) return given;
+    const day = Number(text(incident.date).slice(8, 10));
+    if (!day) return "Archive week";
+    if (day <= 7) return "1st week";
+    if (day <= 10) return "2nd week";
+    if (day <= 17) return "3rd week";
+    if (day <= 24) return "4th week";
+    return "5th week";
+  }
+  function weekOrder(label) { return Number((norm(label).match(/\d+/) || [99])[0]); }
+  function addCount(map, key, amount = 1) {
+    const label = clean(key);
     if (label) map.set(label, (map.get(label) || 0) + amount);
   }
-
-  function topLabels(map, limit = 3) {
-    return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, limit)
-      .map(([label]) => label);
+  function countBy(items, key) {
+    const map = new Map();
+    items.forEach((item) => addCount(map, item[key] || "Unspecified"));
+    return map;
+  }
+  function top(map, limit = 3) {
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, limit);
+  }
+  function topLabels(map, limit = 3) { return top(map, limit).map(([label]) => label); }
+  function rangeLabel() {
+    if (state.mode === "last7") return "LAST 7 DAYS";
+    if (state.mode === "week") return state.week.toUpperCase();
+    return formatDay(state.date).toUpperCase();
+  }
+  function setDate(date) {
+    state.mode = "date";
+    state.week = "";
+    state.date = /^\d{4}-\d{2}-\d{2}$/.test(text(date)) ? date : state.today;
+    state.selectedIncident = "";
+    const dateInput = els.filters.find((field) => field.dataset.filter === "date");
+    if (dateInput) dateInput.value = state.date;
   }
 
-  function sortIncidents(incidents) {
-    return incidents.slice().sort((a, b) => (
-      String(b.date || '').localeCompare(String(a.date || '')) ||
-      String(b.reported_at || '').localeCompare(String(a.reported_at || '')) ||
-      String(b.id || '').localeCompare(String(a.id || ''))
-    ));
+  function selectedRange() {
+    if (state.mode === "last7") {
+      const start = ms(addDays(state.today, -6));
+      const end = ms(state.today);
+      return state.archive.filter((incident) => ms(incident.date) >= start && ms(incident.date) <= end);
+    }
+    if (state.mode === "week") return state.archive.filter((incident) => weekLabel(incident) === state.week);
+    return state.archive.filter((incident) => incident.date === state.date);
+  }
+  function matches(incident) {
+    const haystack = [incident.title, incident.district, incident.province, incident.category, incident.actor, incident.status, incident.summary].map(norm).join(" ");
+    return (!state.filters.province || incident.province === state.filters.province) &&
+      (!state.filters.category || incident.category === state.filters.category) &&
+      (!state.filters.severity || incident.severity === state.filters.severity) &&
+      (!state.filters.search || haystack.includes(norm(state.filters.search)));
+  }
+  function applyFilters() {
+    state.range = selectedRange();
+    state.filtered = state.range.filter(matches);
+    if (state.selectedProvince && !state.filtered.some((incident) => provinceLabel(incident.province) === state.selectedProvince)) state.selectedProvince = "";
+    if (state.selectedIncident && !state.filtered.some((incident) => incident.id === state.selectedIncident)) state.selectedIncident = "";
   }
 
-  function fallbackWeekLabel(value) {
-    const day = Number(String(value || '').slice(8, 10));
-    if (!day) return 'Archive week';
-    if (day <= 7) return '1st week';
-    if (day <= 10) return '2nd week';
-    if (day <= 17) return '3rd week';
-    if (day <= 24) return '4th week';
-    return '5th week';
-  }
-
-  function weekLabel(incident) {
-    return String(incident.week_label || incident.week || fallbackWeekLabel(incident.date)).trim();
-  }
-
-  function weekOrder(label) {
-    const text = normalise(label);
-    const number = Number((text.match(/\d+/) || [0])[0]);
-    return number || 99;
-  }
-
-  function setSelectedDate(value) {
-    const nextDate = String(value || '').match(/^\d{4}-\d{2}-\d{2}$/) ? value : state.currentDate;
-    state.selectedDate = nextDate;
-    state.filters.date = nextDate;
-    state.incidents = state.archivedIncidents.filter((incident) => String(incident.date || '') === nextDate);
-  }
-
-  function provinceGroups() {
-    const groups = new Map(PROVINCES.map((province) => [province.key, {
-      ...province,
-      count: 0,
-      fatalities: 0,
-      injuries: 0,
-      high: 0,
-      districts: new Map(),
-      actors: new Map(),
-      categories: new Map()
-    }]));
-
-    for (const incident of state.filtered) {
+  function groups(items = state.filtered) {
+    const map = new Map(PROVINCES.map(([key, label]) => [key, { key, label, count: 0, fatalities: 0, injuries: 0, high: 0, districts: new Map(), actors: new Map(), categories: new Map(), incidents: [] }]));
+    items.forEach((incident) => {
       const key = provinceKey(incident.province);
-      if (!groups.has(key)) continue;
-      const group = groups.get(key);
+      if (!map.has(key)) return;
+      const group = map.get(key);
       group.count += 1;
       group.fatalities += Number(incident.fatalities || 0);
       group.injuries += Number(incident.injuries || 0);
-      if (severityClass(incident.severity) === 'high') group.high += 1;
+      group.high += severityClass(incident.severity) === "high" ? 1 : 0;
+      group.incidents.push(incident);
       addCount(group.districts, incident.district);
-      addCount(group.actors, incident.actor || 'Unspecified');
+      addCount(group.actors, incident.actor || "Unspecified");
       addCount(group.categories, incident.category);
-    }
-    return groups;
-  }
-
-  function trendFor(group) {
-    if (!group.count) return `No incident logged for ${formatPakistanDay(state.selectedDate)}.`;
-    const categories = topLabels(group.categories, 2).join(' ').toLowerCase();
-    if (group.fatalities + group.injuries >= 5) return 'High-impact reporting in selected day.';
-    if (group.high >= 2) return 'High-severity activity concentrated in this day.';
-    if (categories.includes('counterterrorism')) return 'Security operations dominate selected day.';
-    if (categories.includes('drone') || categories.includes('quadcopter')) return 'Drone and quadcopter reporting is active.';
-    if (categories.includes('ied') || categories.includes('explosion')) return 'Explosive incidents are prominent.';
-    return 'Comparatively limited activity in selected day.';
-  }
-
-  function provinceColor(count) {
-    if (count >= 6) return '#7f0c10';
-    if (count >= 3) return '#c3202b';
-    if (count >= 1) return '#e7b2b2';
-    return '#d9d9d7';
-  }
-
-  function findProvincePath(doc, key) {
-    return Array.from(doc.querySelectorAll('[data-region]')).find((path) => provinceKey(path.dataset.region) === key);
-  }
-
-  function positionHotspotInsideProvince(doc, hotspot) {
-    const key = provinceKey(hotspot.dataset.provinceHotspot);
-    const path = findProvincePath(doc, key);
-    const frame = els.mapObject?.closest('[data-map]');
-    const svg = doc.documentElement;
-    const viewBox = svg?.viewBox?.baseVal;
-    if (!path || !frame || !viewBox || !viewBox.width || !viewBox.height) return;
-
-    try {
-      const box = path.getBBox();
-      const anchor = HOTSPOT_ANCHORS.get(key) || { x: 0.5, y: 0.5 };
-      const objectRect = els.mapObject.getBoundingClientRect();
-      const frameRect = frame.getBoundingClientRect();
-      const x = (box.x + box.width * anchor.x - viewBox.x) / viewBox.width;
-      const y = (box.y + box.height * anchor.y - viewBox.y) / viewBox.height;
-      hotspot.style.left = String(objectRect.left - frameRect.left + objectRect.width * x) + 'px';
-      hotspot.style.top = String(objectRect.top - frameRect.top + objectRect.height * y) + 'px';
-    } catch (_error) {
-      // Keep the CSS fallback if the embedded SVG is not ready yet.
-    }
-  }
-
-  function updateProvinceMap(groups) {
-    const doc = els.mapObject?.contentDocument;
-    if (!doc) return;
-    doc.querySelectorAll('[data-region]').forEach((path) => {
-      const group = groups.get(provinceKey(path.dataset.region));
-      const count = group?.count || 0;
-      path.style.fill = provinceColor(count);
-      path.style.stroke = count ? 'rgba(70, 10, 14, 0.72)' : 'rgba(31, 42, 56, 0.32)';
     });
-    els.provinceHotspots.forEach((hotspot) => positionHotspotInsideProvince(doc, hotspot));
+    return map;
   }
-
-  function renderProvinceCards(groups) {
-    const activeGroups = PROVINCES
-      .map((province) => groups.get(province.key))
-      .filter((group) => group && group.count > 0)
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-
-    if (els.provincePanel) {
-      els.provincePanel.innerHTML = activeGroups.length ? activeGroups.map((group) => {
-        const key = group.key;
-        const districts = topLabels(group.districts).join(', ') || 'None in selected day';
-        const actorLabels = topLabels(group.actors).filter((actor) => !/unidentified|unspecified/i.test(actor));
-        const actors = (actorLabels.length ? actorLabels : topLabels(group.actors)).join(', ') || 'None in selected day';
-        return `<article class='province-card' data-province-card='${esc(group.label)}'><h3>${esc(PROVINCE_LABELS.get(key) || group.label)}</h3><div class='province-total'><strong>${formatCount(group.count)}</strong><span>Total Attack${group.count === 1 ? '' : 's'}</span></div><div class='province-detail'><span>Most affected district${group.districts.size === 1 ? '' : 's'}</span><strong>${esc(districts)}</strong></div><div class='province-detail'><span>Most active actor</span><strong>${esc(actors)}</strong></div><div class='province-detail'><span>Trends</span><p class='province-trend'>${esc(trendFor(group))}</p></div></article>`;
-      }).join('') : `<p class='breakdown-empty'>No incidents logged for ${esc(formatPakistanDay(state.selectedDate))} Pakistan time.</p>`;
-    }
-
-    for (const hotspot of els.provinceHotspots) {
-      const group = groups.get(provinceKey(hotspot.dataset.provinceHotspot));
-      const count = group?.count || 0;
-      hotspot.textContent = formatCount(count);
-      hotspot.classList.toggle('is-empty', count === 0);
-      hotspot.title = `${group?.label || hotspot.dataset.provinceHotspot}: ${formatCount(count)} incident${count === 1 ? '' : 's'}`;
-    }
-    updateProvinceMap(groups);
-  }
-
-  function uniqueValues(key) {
-    return Array.from(new Set(state.incidents.map((incident) => incident[key]).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  function trend(group) {
+    if (!group.count) return `No incident logged for ${rangeLabel().toLowerCase()}.`;
+    const cats = topLabels(group.categories, 2).join(" ").toLowerCase();
+    if (group.fatalities + group.injuries >= 5) return "High-impact reporting in current selection.";
+    if (group.high >= 2) return "High-severity activity is concentrated here.";
+    if (cats.includes("counterterrorism")) return "Security operations dominate the selection.";
+    if (cats.includes("drone") || cats.includes("quadcopter")) return "Drone and quadcopter reporting is active.";
+    if (cats.includes("ied") || cats.includes("explosion")) return "Explosive incidents are prominent.";
+    return "Comparatively limited activity in the selected feed.";
   }
 
   function fillSelect(select, values, allLabel) {
     const current = select.value;
-    select.innerHTML = [`<option value=''>${esc(allLabel)}</option>`]
-      .concat(values.map((value) => `<option value='${esc(value)}'>${esc(value)}</option>`))
-      .join('');
-    select.value = values.includes(current) ? current : '';
+    select.innerHTML = [`<option value="">${esc(allLabel)}</option>`].concat(values.map((value) => `<option value="${esc(value)}">${esc(value)}</option>`)).join("");
+    select.value = values.includes(current) ? current : "";
     return select.value;
   }
-
   function populateFilters() {
-    for (const field of els.filters) {
+    els.filters.forEach((field) => {
       const key = field.dataset.filter;
-      if (key === 'date') {
-        field.min = archiveStartDate();
-        field.max = state.currentDate;
-        field.value = state.selectedDate;
-        field.title = `Archive available from ${formatPakistanDay(field.min)} to ${formatPakistanDay(field.max)}.`;
-        continue;
+      if (key === "date") {
+        field.min = archiveStart();
+        field.max = state.today;
+        field.value = state.date;
+        return;
       }
-      if (field.tagName !== 'SELECT') continue;
-      const labels = { province: 'All provinces', category: 'All categories', severity: 'All severities' };
-      state.filters[key] = fillSelect(field, uniqueValues(key), labels[key] || 'All');
-    }
+      if (field.tagName !== "SELECT") return;
+      const values = Array.from(new Set(state.range.map((incident) => incident[key]).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+      state.filters[key] = fillSelect(field, values, { province: "All provinces", category: "All categories", severity: "All severities" }[key] || "All");
+    });
   }
 
-  function matchesFilters(incident) {
-    const haystack = [incident.title, incident.district, incident.province, incident.category, incident.actor, incident.status, incident.summary]
-      .map(normalise)
-      .join(' ');
-    return (!state.filters.province || incident.province === state.filters.province) &&
-      (!state.filters.category || incident.category === state.filters.category) &&
-      (!state.filters.severity || incident.severity === state.filters.severity) &&
-      (!state.filters.search || haystack.includes(normalise(state.filters.search)));
+  function renderTimeline() {
+    const dates = Array.from(new Set(state.archive.map((incident) => incident.date))).sort().slice(-31);
+    const buttons = [
+      ["Today", "date", state.today],
+      ["Yesterday", "date", addDays(state.today, -1)],
+      ["Last 7 days", "last7", "last7"],
+      ...dates.map((date) => [formatDay(date, true), "date", date])
+    ];
+    els.timeline.innerHTML = buttons.map(([label, mode, value]) => {
+      const active = (mode === "last7" && state.mode === "last7") || (mode === "date" && state.mode === "date" && state.date === value);
+      return `<button type="button" class="${active ? "is-active" : ""}" data-timeline-mode="${esc(mode)}" data-timeline-value="${esc(value)}">${esc(label)}</button>`;
+    }).join("");
   }
-
-  function applyFilters() {
-    state.filtered = state.incidents.filter(matchesFilters);
-  }
-
-  function metric(label, value, note) {
-    return `<article class='tracker-metric'><span class='metric-label'>${esc(label)}</span><strong class='metric-value'>${esc(value)}</strong><span class='metric-note'>${esc(note)}</span></article>`;
-  }
-
   function renderMetrics() {
     const fatalities = state.filtered.reduce((sum, item) => sum + Number(item.fatalities || 0), 0);
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
-    const provinces = new Set(state.filtered.map((item) => item.province).filter(Boolean)).size;
-    const high = state.filtered.filter((item) => severityClass(item.severity) === 'high').length;
+    const districts = new Set(state.filtered.map((item) => item.district).filter(Boolean)).size;
+    const topProvince = topLabels(countBy(state.filtered, "province"), 1)[0] || "None";
+    const high = state.filtered.filter((item) => severityClass(item.severity) === "high").length;
     els.metrics.innerHTML = [
-      metric('Incidents', formatCount(state.filtered.length), 'Selected date'),
-      metric('Fatalities', formatCount(fatalities), 'Reported in feed'),
-      metric('Injuries', formatCount(injuries), 'Reported in feed'),
-      metric('Provinces', formatCount(provinces), 'Daily spread'),
-      metric('High severity', formatCount(high), 'Marked for review')
-    ].join('');
+      ["Incidents", state.filtered.length, rangeLabel()],
+      ["Fatalities", fatalities, "Reported in feed"],
+      ["Injuries", injuries, "Reported in feed"],
+      ["Districts", districts, topProvince],
+      ["High severity", high, "Marked for review"]
+    ].map(([label, value, note]) => `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span></article>`).join("");
   }
 
-  function weeklyGroups() {
-    const groups = new Map();
-    for (const incident of state.archivedIncidents) {
+  function renderWeekly() {
+    const weekMap = new Map();
+    state.archive.forEach((incident) => {
       const label = weekLabel(incident);
-      if (!groups.has(label)) {
-        groups.set(label, { label, count: 0, fatalities: 0, injuries: 0, provinces: new Map(), categories: new Map() });
-      }
-      const group = groups.get(label);
+      if (!weekMap.has(label)) weekMap.set(label, { label, count: 0, fatalities: 0, injuries: 0, provinces: new Map(), districts: new Map(), actors: new Map(), categories: new Map() });
+      const group = weekMap.get(label);
       group.count += 1;
       group.fatalities += Number(incident.fatalities || 0);
       group.injuries += Number(incident.injuries || 0);
-      addCount(group.provinces, incident.province || 'Unspecified');
-      addCount(group.categories, incident.category || 'Security incident');
-    }
-    return Array.from(groups.values()).sort((a, b) => weekOrder(a.label) - weekOrder(b.label) || a.label.localeCompare(b.label));
+      addCount(group.provinces, incident.province || "Unspecified");
+      addCount(group.districts, incident.district || "Unspecified");
+      addCount(group.actors, incident.actor || "Unspecified");
+      addCount(group.categories, incident.category || "Security incident");
+    });
+    const weeks = Array.from(weekMap.values()).sort((a, b) => weekOrder(a.label) - weekOrder(b.label) || a.label.localeCompare(b.label));
+    if (!weeks.length) { els.weekly.innerHTML = ""; return; }
+    const maxIncidents = Math.max(...weeks.map((week) => week.count), 1);
+    const maxFatalities = Math.max(...weeks.map((week) => week.fatalities), 1);
+    const selected = weeks.find((week) => week.label === state.week) || weeks[weeks.length - 1];
+    const weekItems = state.archive.filter((incident) => weekLabel(incident) === selected.label);
+    const row = (week, value, max, detail, type) => `<button type="button" class="weekly-bar-row ${type}${state.mode === "week" && state.week === week.label ? " is-active" : ""}" data-week-select="${esc(week.label)}"><span class="weekly-bar-label">${esc(week.label)}</span><span class="weekly-bar-track"><span style="width:${Math.max(5, Math.round(value / max * 100))}%"></span></span><strong>${count(value)}</strong><em>${esc(detail)}</em></button>`;
+    const mini = (title, entries) => `<article class="weekly-chart-card"><h3>${esc(title)}</h3>${entries.length ? entries.map(([label, value]) => `<div class="weekly-rank"><span>${esc(label)}</span><strong>${count(value)}</strong></div>`).join("") : `<p class="weekly-empty">No entries</p>`}</article>`;
+    els.weekly.innerHTML = `
+      <div class="weekly-chart-head"><span>Weekly archive graphs</span><strong>${esc(formatDay(archiveStart(), true))} to ${esc(formatDay(state.today, true))}</strong></div>
+      <div class="weekly-chart-grid">
+        <article class="weekly-chart-card"><h3>Incident volume</h3>${weeks.map((week) => row(week, week.count, maxIncidents, topLabels(week.provinces, 1)[0] || "No province", "incident")).join("")}</article>
+        <article class="weekly-chart-card"><h3>Fatalities by week</h3>${weeks.map((week) => row(week, week.fatalities, maxFatalities, `${count(week.injuries)} injured`, "fatality")).join("")}</article>
+        <article class="weekly-chart-card weekly-focus"><h3>${esc(selected.label)} profile</h3><strong>${count(selected.count)}</strong><p>${count(selected.fatalities)} fatalities, ${count(selected.injuries)} injuries across ${count(selected.provinces.size)} province${selected.provinces.size === 1 ? "" : "s"}.</p><div>${topLabels(selected.categories, 5).map((label) => `<span>${esc(label)}</span>`).join("")}</div></article>
+        ${mini("Province spread", top(countBy(weekItems, "province"), 5))}
+        ${mini("Top districts", top(countBy(weekItems, "district"), 5))}
+        ${mini("Top actors", top(countBy(weekItems, "actor"), 5))}
+      </div>`;
   }
 
-  function barRow(label, value, max, detail, className = '') {
-    const percent = max ? Math.max(5, Math.round((value / max) * 100)) : 0;
-    return `<div class='weekly-bar-row ${esc(className)}'><div class='weekly-bar-label'>${esc(label)}</div><div class='weekly-bar-track'><span style='width:${percent}%'></span></div><strong>${esc(formatCount(value))}</strong><em>${esc(detail || '')}</em></div>`;
+  function color(count) {
+    if (count >= 10) return "#6f090d";
+    if (count >= 5) return "#8d1116";
+    if (count >= 2) return "#c33a3d";
+    if (count >= 1) return "#e5b0b0";
+    return "#d9d9d7";
   }
-
-  function renderWeeklyAnalytics() {
-    if (!els.weeklyAnalytics) return;
-    const groups = weeklyGroups();
-    if (!groups.length) {
-      els.weeklyAnalytics.innerHTML = '';
-      return;
-    }
-    const maxIncidents = Math.max(...groups.map((group) => group.count), 1);
-    const maxFatalities = Math.max(...groups.map((group) => group.fatalities), 1);
-    const incidentRows = groups.map((group) => {
-      const topProvince = topLabels(group.provinces, 1)[0] || 'No province';
-      return barRow(group.label, group.count, maxIncidents, topProvince);
-    }).join('');
-    const fatalityRows = groups.map((group) => {
-      const detail = `${formatCount(group.injuries)} injured`;
-      return barRow(group.label, group.fatalities, maxFatalities, detail, 'is-fatality');
-    }).join('');
-    const latest = groups[groups.length - 1];
-    const categories = topLabels(latest.categories, 4).map((category) => `<span>${esc(category)}</span>`).join('');
-    els.weeklyAnalytics.innerHTML = `<div class='weekly-chart-head'><span>Weekly archive graphs</span><strong>${esc(formatPakistanDay(archiveStartDate()))} to ${esc(formatPakistanDay(state.currentDate))}</strong></div><div class='weekly-chart-grid'><article class='weekly-chart-card'><h3>Incident volume</h3>${incidentRows}</article><article class='weekly-chart-card'><h3>Fatalities by week</h3>${fatalityRows}</article><article class='weekly-chart-card weekly-focus'><h3>Latest week profile</h3><strong>${esc(latest.label)}</strong><p>${formatCount(latest.count)} incidents, ${formatCount(latest.fatalities)} fatalities, ${formatCount(latest.injuries)} injuries.</p><div>${categories}</div></article></div>`;
+  function svgPath(doc, key) {
+    return Array.from(doc.querySelectorAll("[data-region]")).find((path) => provinceKey(path.dataset.region) === key);
   }
-
+  function positionHotspot(doc, hotspot) {
+    const key = provinceKey(hotspot.dataset.provinceHotspot);
+    const path = svgPath(doc, key);
+    const frame = hotspot.closest("[data-map]");
+    const viewBox = doc.documentElement?.viewBox?.baseVal;
+    if (!path || !frame || !viewBox?.width || !viewBox?.height) return;
+    try {
+      const box = path.getBBox();
+      const [ax, ay] = HOTSPOT_ANCHORS.get(key) || [0.5, 0.5];
+      const objectRect = els.mapObject.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
+      hotspot.style.left = `${objectRect.left - frameRect.left + objectRect.width * ((box.x + box.width * ax - viewBox.x) / viewBox.width)}px`;
+      hotspot.style.top = `${objectRect.top - frameRect.top + objectRect.height * ((box.y + box.height * ay - viewBox.y) / viewBox.height)}px`;
+    } catch (_error) {}
+  }
+  function showTooltip(group, event) {
+    if (!group || !els.tooltip) return;
+    els.tooltip.innerHTML = `<strong>${esc(group.label)}</strong><span>${count(group.count)} incident${group.count === 1 ? "" : "s"}</span><span>${count(group.fatalities)} fatalit${group.fatalities === 1 ? "y" : "ies"}</span><span>Top district: ${esc(topLabels(group.districts, 1)[0] || "None")}</span>`;
+    const rect = els.tooltip.closest("[data-map]").getBoundingClientRect();
+    els.tooltip.style.left = `${(event?.clientX || rect.left + rect.width / 2) - rect.left}px`;
+    els.tooltip.style.top = `${(event?.clientY || rect.top + rect.height / 2) - rect.top}px`;
+    els.tooltip.hidden = false;
+  }
+  function hideTooltip() { if (els.tooltip) els.tooltip.hidden = true; }
+  function selectProvince(label) {
+    state.selectedProvince = provinceLabel(label);
+    state.selectedIncident = "";
+    render();
+  }
   function renderMap() {
-    els.markerLayer.innerHTML = '';
-    els.mapCount.textContent = `${formatCount(state.filtered.length)} incident${state.filtered.length === 1 ? '' : 's'}`;
+    const map = groups();
+    els.mapTitle.textContent = rangeLabel();
+    els.mapCount.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"}`;
+    els.hotspots.forEach((hotspot) => {
+      const group = map.get(provinceKey(hotspot.dataset.provinceHotspot));
+      hotspot.textContent = count(group?.count || 0);
+      hotspot.classList.toggle("is-empty", !group?.count);
+      hotspot.classList.toggle("is-selected", group?.label === state.selectedProvince);
+      hotspot.title = `${group?.label || hotspot.dataset.provinceHotspot}: ${count(group?.count || 0)} incidents`;
+      hotspot.onmouseenter = (event) => showTooltip(group, event);
+      hotspot.onmouseleave = hideTooltip;
+      hotspot.onclick = () => selectProvince(group?.label || hotspot.dataset.provinceHotspot);
+    });
+    const doc = els.mapObject?.contentDocument;
+    if (doc) {
+      doc.querySelectorAll("[data-region]").forEach((path) => {
+        const group = map.get(provinceKey(path.dataset.region));
+        path.style.fill = color(group?.count || 0);
+        path.style.stroke = group?.count ? "rgba(68, 12, 16, 0.78)" : "rgba(31, 42, 56, 0.34)";
+        path.style.cursor = "pointer";
+        path.onmouseenter = (event) => showTooltip(group, event);
+        path.onmouseleave = hideTooltip;
+        path.onclick = () => selectProvince(group?.label || path.dataset.region);
+      });
+      els.hotspots.forEach((hotspot) => positionHotspot(doc, hotspot));
+    }
   }
 
-  function renderList() {
-    els.resultCount.textContent = `${formatCount(state.filtered.length)} shown`;
-    if (!state.filtered.length) {
-      const archiveText = isWithinArchiveWindow(state.selectedDate)
-        ? `No incidents logged for ${formatPakistanDay(state.selectedDate)} Pakistan time yet.`
-        : `Date is outside the ${ARCHIVE_DAYS}-day archive window.`;
-      const emptyMessage = state.incidents.length ? 'No incidents match these filters.' : archiveText;
-      els.incidentList.innerHTML = `<p class='tracker-empty'>${esc(emptyMessage)}</p>`;
+  function casualty(incident) { return `${count(incident.fatalities)} killed / ${count(incident.injuries)} injured`; }
+  function stat(label, value) { return `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`; }
+  function renderDetail() {
+    const map = groups();
+    const incident = state.filtered.find((item) => item.id === state.selectedIncident);
+    if (incident) {
+      const source = incident.source_url ? `<a href="${esc(incident.source_url)}" target="_blank" rel="noopener noreferrer">${esc(incident.source || "Open source")}</a>` : `<span>${esc(incident.source || "Source pending")}</span>`;
+      els.detail.innerHTML = `<div class="detail-panel-head"><span>Selected incident</span><button type="button" data-clear-detail>Clear</button></div><h3>${esc(incident.title)}</h3><p>${esc(incident.summary)}</p><div class="detail-stats">${stat("Date", incident.date || "Unknown")}${stat("District", incident.district || "Unknown")}${stat("Actor", incident.actor || "Unknown")}${stat("Casualties", casualty(incident))}${stat("Severity", incident.severity || "Unknown")}${stat("Category", incident.category || "Unknown")}</div><div class="detail-source"><span>Source</span>${source}</div>`;
       return;
     }
-
-    els.incidentList.innerHTML = state.filtered.map((incident, index) => {
-      const casualtyLine = `${formatCount(incident.fatalities)} killed / ${formatCount(incident.injuries)} injured`;
-      const source = incident.source_url ? `<a href='${esc(incident.source_url)}' target='_blank' rel='noopener noreferrer'>${esc(incident.source || 'Source')}</a>` : `<span>${esc(incident.source || 'Source pending')}</span>`;
-      return `<article class='incident-item' data-incident-id='${esc(incident.id)}'><div class='tracker-card-meta'><span>${index + 1}</span><span>${esc(incident.date)}</span><span>${esc(incident.province)}</span><span>${esc(incident.category)}</span></div><h3>${esc(incident.title)}</h3><p>${esc(incident.summary)}</p><div class='tracker-card-foot'><span>${esc(incident.district)}</span><span>${esc(incident.severity)}</span><span>${esc(casualtyLine)}</span><span>${esc(incident.status)}</span>${source}</div></article>`;
-    }).join('');
+    const group = state.selectedProvince ? map.get(provinceKey(state.selectedProvince)) : null;
+    if (group?.count) {
+      els.detail.innerHTML = `<div class="detail-panel-head"><span>Province briefing</span><button type="button" data-clear-detail>Clear</button></div><h3>${esc(group.label)}</h3><p>${esc(trend(group))}</p><div class="detail-stats">${stat("Incidents", count(group.count))}${stat("Fatalities", count(group.fatalities))}${stat("Injuries", count(group.injuries))}${stat("Top districts", topLabels(group.districts, 3).join(", ") || "None")}${stat("Active actors", topLabels(group.actors, 3).join(", ") || "None")}${stat("Latest", group.incidents[0]?.date || "None")}</div>`;
+      return;
+    }
+    const fatalities = state.filtered.reduce((sum, item) => sum + Number(item.fatalities || 0), 0);
+    const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
+    const topProvince = Array.from(map.values()).sort((a, b) => b.count - a.count)[0];
+    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${stat("Top province", topProvince?.count ? topProvince.label : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${stat("Top actor", topLabels(countBy(state.filtered, "actor"), 1)[0] || "None")}${stat("Archive", `${ARCHIVE_DAYS} days`)}</div>`;
   }
-
+  function renderList() {
+    els.resultCount.textContent = `${count(state.filtered.length)} shown`;
+    if (!state.filtered.length) {
+      const message = state.range.length ? "No incidents match these filters." : state.mode === "date" && !inArchive(state.date) ? `Date is outside the ${ARCHIVE_DAYS}-day archive window.` : `No incidents logged for ${rangeLabel().toLowerCase()} Pakistan time yet.`;
+      els.list.innerHTML = `<p class="tracker-empty">${esc(message)}</p>`;
+      return;
+    }
+    els.list.innerHTML = state.filtered.map((incident, index) => {
+      const source = incident.source_url ? `<a href="${esc(incident.source_url)}" target="_blank" rel="noopener noreferrer">${esc(incident.source || "Source")}</a>` : `<span>${esc(incident.source || "Source pending")}</span>`;
+      return `<article class="incident-item${incident.id === state.selectedIncident ? " active" : ""}" data-incident-id="${esc(incident.id)}" tabindex="0"><div class="tracker-card-meta"><span>${index + 1}</span><span>${esc(incident.date)}</span><span>${esc(incident.province)}</span><span class="severity-tag ${esc(severityClass(incident.severity))}">${esc(incident.severity || "High")}</span></div><h3>${esc(incident.title)}</h3><p>${esc(incident.summary)}</p><div class="tracker-card-foot"><span>${esc(incident.district)}</span><span>${esc(incident.category)}</span><span>${esc(casualty(incident))}</span><span>${esc(incident.status)}</span>${source}</div></article>`;
+    }).join("");
+  }
+  function renderTabs() {
+    els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.viewTab === state.activeView));
+    els.panels.forEach((panel) => panel.classList.toggle("is-focused", panel.dataset.viewPanel === state.activeView));
+  }
   function render() {
     applyFilters();
+    populateFilters();
+    renderTimeline();
     renderMetrics();
-    renderWeeklyAnalytics();
-    renderProvinceCards(provinceGroups());
+    renderWeekly();
     renderMap();
+    renderDetail();
     renderList();
-  }
-
-  function renderSourceNote() {
-    const count = state.incidents.length;
-    const incidentLabel = count === 1 ? 'incident' : 'incidents';
-    els.sourceNote.textContent = formatCount(count) + ' ' + incidentLabel + ' mapped for ' + formatPakistanDay(state.selectedDate) + '. Archive keeps the latest ' + ARCHIVE_DAYS + ' Pakistan-time days.';
+    renderTabs();
+    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in ${rangeLabel().toLowerCase()}. Archive keeps the latest ${ARCHIVE_DAYS} Pakistan-time days.`;
   }
 
   async function loadFeed() {
     try {
-      state.currentDate = todayInPakistan();
-      const response = await fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' });
-      if (!response.ok) throw new Error('Feed returned ' + response.status);
+      state.today = pkToday();
+      const response = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Feed returned ${response.status}`);
       const data = await response.json();
-      const allIncidents = Array.isArray(data.incidents) ? data.incidents.slice() : [];
-      state.allIncidents = sortIncidents(allIncidents);
-      state.archivedIncidents = state.allIncidents.filter((incident) => isWithinArchiveWindow(incident.date));
-      setSelectedDate(state.filters.date || state.currentDate);
-      renderSourceNote();
-      els.lastUpdated.textContent = 'Updated ' + formatDate(data.last_updated);
-      populateFilters();
+      state.all = Array.isArray(data.incidents) ? data.incidents.slice().sort((a, b) => text(b.date).localeCompare(text(a.date)) || text(b.reported_at).localeCompare(text(a.reported_at))) : [];
+      state.archive = state.all.filter((incident) => inArchive(incident.date));
+      if (!state.loaded && !state.archive.some((incident) => incident.date === state.date)) setDate(state.archive[0]?.date || state.today);
+      state.loaded = true;
+      els.lastUpdated.textContent = `Updated ${formatUpdated(data.last_updated)}`;
       render();
     } catch (error) {
-      els.lastUpdated.textContent = 'Feed unavailable';
-      els.sourceNote.textContent = 'The incident feed could not load. Please refresh the page.';
-      els.incidentList.innerHTML = `<p class='tracker-empty'>${esc(error.message)}</p>`;
+      els.lastUpdated.textContent = "Feed unavailable";
+      els.sourceNote.textContent = "The incident feed could not load. Please refresh the page.";
+      els.list.innerHTML = `<p class="tracker-empty">${esc(error.message)}</p>`;
     }
   }
 
-  function refreshIfPakistanDayChanged() {
-    const nextToday = todayInPakistan();
-    if (nextToday === state.currentDate) return;
-    const previousToday = state.currentDate;
-    state.currentDate = nextToday;
-    if (state.filters.date === previousToday) state.filters.date = nextToday;
-    loadFeed();
-  }
-
+  root.addEventListener("click", (event) => {
+    const timeline = event.target.closest("[data-timeline-mode]");
+    if (timeline) {
+      if (timeline.dataset.timelineMode === "last7") {
+        state.mode = "last7";
+        state.week = "";
+        state.selectedIncident = "";
+      } else setDate(timeline.dataset.timelineValue);
+      render();
+      return;
+    }
+    const week = event.target.closest("[data-week-select]");
+    if (week) {
+      state.mode = "week";
+      state.week = week.dataset.weekSelect;
+      state.selectedIncident = "";
+      state.activeView = "daily";
+      render();
+      qs("[data-view-panel='daily']")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    const card = event.target.closest("[data-incident-id]");
+    if (card) {
+      state.selectedIncident = card.dataset.incidentId;
+      state.selectedProvince = "";
+      render();
+      els.detail?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    if (event.target.closest("[data-clear-detail]")) {
+      state.selectedIncident = "";
+      state.selectedProvince = "";
+      render();
+      return;
+    }
+    const tab = event.target.closest("[data-view-tab]");
+    if (tab) {
+      state.activeView = tab.dataset.viewTab;
+      renderTabs();
+      qs(`[data-view-panel="${CSS.escape(state.activeView)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+  root.addEventListener("keydown", (event) => {
+    if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-incident-id]")) {
+      event.preventDefault();
+      state.selectedIncident = event.target.dataset.incidentId;
+      state.selectedProvince = "";
+      render();
+    }
+  });
   els.filters.forEach((field) => {
-    field.addEventListener('input', () => {
-      const key = field.dataset.filter;
-      if (key === 'date') {
-        setSelectedDate(field.value || state.currentDate);
-        populateFilters();
-      } else {
-        state.filters[key] = field.value;
-      }
-      renderSourceNote();
+    field.addEventListener("input", () => {
+      if (field.dataset.filter === "date") setDate(field.value || state.today);
+      else state.filters[field.dataset.filter] = field.value;
+      state.selectedIncident = "";
+      state.selectedProvince = "";
       render();
     });
   });
-
-  if (els.mapObject) {
-    els.mapObject.addEventListener('load', () => renderProvinceCards(provinceGroups()));
-  }
-
-  window.addEventListener('resize', () => renderProvinceCards(provinceGroups()));
+  els.mapObject?.addEventListener("load", () => renderMap());
+  window.addEventListener("resize", () => renderMap());
+  window.setInterval(loadFeed, 90000);
+  window.setInterval(() => {
+    const next = pkToday();
+    if (next !== state.today) {
+      const previous = state.today;
+      state.today = next;
+      if (state.date === previous) setDate(next);
+      loadFeed();
+    }
+  }, 30000);
 
   loadFeed();
-  window.setInterval(loadFeed, 90000);
-  window.setInterval(refreshIfPakistanDayChanged, 30000);
 })();
