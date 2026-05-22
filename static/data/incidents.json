@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-21T17:13:02.947Z",
+  "last_updated": "2026-05-22T07:53:40.274Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-05-21",
+  "current_day": "2026-05-22",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-22-telegram--1003994704651-29-bajaur",
+      "date": "2026-05-22",
+      "reported_at": "2026-05-22T07:53:39.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Search Operation / Clash reported in Bajaur",
+      "district": "Bajaur",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 34.72,
+      "lng": 71.5,
+      "category": "Search Operation / Clash",
+      "actor": "Security Forces / Militants",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Official sources said a joint search operation is being conducted in parts of Bajaur tribal district following recent attacks. The operation was launched in Tehsil Wada Mamond and surrounding areas. Sources said an exchange of fire also took place between forces and militants in the Inam Khwaru Chenagai area, causing casualties among the militants.",
+      "source": "Official Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-21-telegram--1003994704651-28-north-waziristan",
       "date": "2026-05-21",
