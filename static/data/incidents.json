@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T13:13:32.989Z",
+  "last_updated": "2026-05-23T14:14:00.196Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-39-lahore",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T14:13:59.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation / Arrests reported in Lahore",
+      "district": "Lahore",
+      "province": "Punjab",
+      "country": "Pakistan",
+      "lat": 31.52,
+      "lng": 74.36,
+      "category": "Counterterrorism Operation / Arrests",
+      "actor": "Counter Terrorism Department (CTD) / Pakistani Taliban-linked suspects",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "The Counter Terrorism Department (CTD) Punjab arrested 13 suspected terrorists during intelligence-based operations across Punjab. According to officials, the operations were conducted in Lahore, Jhang, Sahiwal, Jhelum, Chiniot, Mandi Bahauddin, and Mianwali. Arms and explosives were also recovered during the raids. The suspects were linked to Fitna al Khawarij (Pakistani Taliban) and other banned groups.",
+      "source": "CTD Punjab Officials",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-38-pishin",
       "date": "2026-05-23",
