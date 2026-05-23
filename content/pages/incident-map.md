@@ -8,7 +8,7 @@ summary: "A public-source incident tracker for security events monitored by The 
 ---
 
 <style>
-@import url("/assets/incident-map.css?v=20260524-fatality-archive");
+@import url("/assets/incident-map.css?v=20260524-intel-map");
 </style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
@@ -248,4 +248,4 @@ summary: "A public-source incident tracker for security events monitored by The 
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260524-fatality-archive" defer></script>
+<script src="/assets/incident-map.js?v=20260524-intel-map" defer></script>
