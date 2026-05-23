@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T05:46:18.939Z",
+  "last_updated": "2026-05-23T06:06:28.558Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-33-lakki-marwat",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T06:06:28.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Clash / Armed Encounter reported in Lakki Marwat",
+      "district": "Lakki Marwat",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.61,
+      "lng": 70.91,
+      "category": "Clash / Armed Encounter",
+      "actor": "Police Peace Committee / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 2,
+      "injuries": 1,
+      "summary": "A clash is underway between the Police Peace Committee and terrorists affiliated with the Pakistani Taliban near Kichi Qamar Lundiwa in Lakki Marwat district of Khyber Pakhtunkhwa. According to reports, two militants have been killed while commander Kaleem alias Qaima was reportedly injured.",
+      "source": "Lakki Police Peace Committee",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-32-bannu",
       "date": "2026-05-23",
