@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T05:46:08.902Z",
+  "last_updated": "2026-05-23T05:46:18.939Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-32-bannu",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T05:46:18.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Clash / Armed Encounter reported in Bannu",
+      "district": "Bannu",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.99,
+      "lng": 70.6,
+      "category": "Clash / Armed Encounter",
+      "actor": "Police Peace Committee / Ittehad-ul-Mujahideen Pakistan (IMP) / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Intense clashes are ongoing between the Police Peace Committee and terrorists affiliated with the Pakistani Taliban near the Barkazai area within the limits of Miryan Police Station in Bannu district of Khyber Pakhtunkhwa.",
+      "source": "Local Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-31-north-waziristan",
       "date": "2026-05-23",
