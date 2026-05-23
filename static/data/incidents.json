@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T08:30:00.507Z",
+  "last_updated": "2026-05-23T13:09:42.716Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-37-bajaur",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T13:09:42.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Curfew / Security Operation reported in Bajaur",
+      "district": "Bajaur",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 34.72,
+      "lng": 71.5,
+      "category": "Curfew / Security Operation",
+      "actor": "Security Forces",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Security forces have imposed a three-day curfew in Bajaur district of Khyber Pakhtunkhwa amid reports of a possible operation. The restrictions apply to the villages of Anga, Shahi Tangi, Nari Tangi, and Shakro in Wara Mamond. Residents have been advised to stay indoors and avoid areas believed to house militant hideouts.",
+      "source": "Official Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-35-bannu",
       "date": "2026-05-23",
