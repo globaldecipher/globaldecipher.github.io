@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T13:09:42.716Z",
+  "last_updated": "2026-05-23T13:13:32.989Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-38-pishin",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T13:13:32.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation / Encounter reported in Pishin",
+      "district": "Pishin",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Counterterrorism Operation / Encounter",
+      "actor": "Balochistan CTD / Terrorists",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 4,
+      "injuries": 0,
+      "summary": "The Balochistan Counter-Terrorism Department (CTD) has claimed to have killed four terrorists in an intense exchange of fire during an operation in the Surkhab refugee camp area, about 20 kilometres from Pishin town. The operation was launched after receiving intelligence about terrorist presence.",
+      "source": "CTD Spokesperson",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-37-bajaur",
       "date": "2026-05-23",
