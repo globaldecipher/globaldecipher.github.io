@@ -42,6 +42,7 @@
     week: "",
     archiveMode: "weekly",
     fatalityBreakdownOpen: false,
+    metricInsight: "incidents",
     playback: false,
     activeView: "daily",
     selectedProvince: "",
@@ -310,11 +311,18 @@
     const compare = comparisonStats();
     const current = compare.current[key] || 0;
     const previous = compare.previous[key] || 0;
-    if (!current && !previous) return { className: "flat", text: `${label} steady` };
-    if (!previous) return { className: "up", text: `+${count(current)} vs prev 7d` };
+    const max = Math.max(current, previous, 1);
+    const base = {
+      current,
+      previous,
+      currentWidth: Math.max(current ? 8 : 0, Math.round(current / max * 100)),
+      previousWidth: Math.max(previous ? 8 : 0, Math.round(previous / max * 100))
+    };
+    if (!current && !previous) return { ...base, className: "flat", label: "Steady", value: "0", summary: `${label} stayed quiet in both 7-day windows.` };
+    if (!previous) return { ...base, className: "up", label: "New rise", value: `+${count(current)}`, summary: `${label} appeared in the current 7-day window after no previous reading.` };
     const change = Math.round(((current - previous) / previous) * 100);
-    if (Math.abs(change) < 5) return { className: "flat", text: `${label} steady` };
-    return { className: change > 0 ? "up" : "down", text: `${change > 0 ? "+" : ""}${change}% vs prev 7d` };
+    if (Math.abs(change) < 5) return { ...base, className: "flat", label: "Steady", value: `${change > 0 ? "+" : ""}${change}%`, summary: `${label} is broadly unchanged from the previous 7 days.` };
+    return { ...base, className: change > 0 ? "up" : "down", label: change > 0 ? "Rising" : "Lower", value: `${change > 0 ? "+" : ""}${change}%`, summary: `${label} is ${change > 0 ? "higher" : "lower"} than the previous 7 days.` };
   }
   function confidence(incident) {
     const status = norm(incident.status);
@@ -374,7 +382,8 @@
     const high = state.filtered.filter((item) => severityClass(item.severity) === "high").length;
     const metric = (label, value, note, trendKey, extra = "") => {
       const trend = trendBadge(trendKey, label);
-      return `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span><span class="metric-trend ${esc(trend.className)}">${esc(trend.text)}</span>${extra}</article>`;
+      const open = state.metricInsight === trendKey;
+      return `<article class="tracker-metric${open ? " insight-open" : ""}"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span><button class="metric-trend ${esc(trend.className)}" type="button" data-metric-trend="${esc(trendKey)}" aria-expanded="${open ? "true" : "false"}"><span>${esc(trend.label)}</span><strong>${esc(trend.value)}</strong><em>vs previous 7 days</em></button><div class="metric-insight${open ? " is-open" : ""}"><p>${esc(trend.summary)}</p><div><span>Current 7d</span><strong>${count(trend.current)}</strong><i><b style="width:${trend.currentWidth}%"></b></i></div><div><span>Previous 7d</span><strong>${count(trend.previous)}</strong><i><b style="width:${trend.previousWidth}%"></b></i></div></div>${extra}</article>`;
     };
     const splitRows = FATALITY_GROUPS.map(([key, label]) => {
       const value = fatalitySplit[key];
@@ -651,6 +660,12 @@
     const fatalityToggle = event.target.closest("[data-fatality-toggle]");
     if (fatalityToggle) {
       state.fatalityBreakdownOpen = !state.fatalityBreakdownOpen;
+      renderMetrics();
+      return;
+    }
+    const metricTrend = event.target.closest("[data-metric-trend]");
+    if (metricTrend) {
+      state.metricInsight = state.metricInsight === metricTrend.dataset.metricTrend ? "" : metricTrend.dataset.metricTrend;
       renderMetrics();
       return;
     }

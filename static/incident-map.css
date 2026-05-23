@@ -64,6 +64,7 @@
 .detail-panel-head,
 .detail-source span,
 .metric-trend,
+.metric-insight,
 .source-confidence,
 .briefing-tags,
 .briefing-split,
@@ -174,6 +175,13 @@
   position: relative;
 }
 
+.tracker-metric.insight-open {
+  border-color: rgba(123, 0, 8, 0.2);
+  background:
+    linear-gradient(180deg, rgba(123, 0, 8, 0.035), transparent 58%),
+    #fff;
+}
+
 .metric-label {
   display: block;
   color: var(--muted);
@@ -201,9 +209,12 @@
 }
 
 .metric-trend {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  min-height: 24px;
+  gap: 2px 9px;
+  width: 100%;
+  min-height: 38px;
   margin-top: 10px;
   border: 1px solid rgba(31, 42, 56, 0.1);
   background: var(--paper-2);
@@ -212,7 +223,9 @@
   font-weight: 950;
   letter-spacing: 0.08em;
   line-height: 1.1;
-  padding: 3px 7px;
+  text-align: left;
+  cursor: pointer;
+  padding: 7px 9px;
 }
 
 .metric-trend.up {
@@ -225,6 +238,100 @@
   border-color: rgba(31, 42, 56, 0.18);
   background: rgba(31, 42, 56, 0.07);
   color: #1f2a38;
+}
+
+.metric-trend:hover,
+.metric-trend:focus-visible,
+.metric-trend[aria-expanded="true"] {
+  outline: 2px solid rgba(123, 0, 8, 0.12);
+  border-color: rgba(123, 0, 8, 0.28);
+  background: #fff;
+}
+
+.metric-trend span,
+.metric-trend strong,
+.metric-trend em {
+  display: block;
+}
+
+.metric-trend span {
+  color: var(--muted);
+}
+
+.metric-trend strong {
+  justify-self: end;
+  color: inherit;
+  font-family: var(--serif-display);
+  font-size: 1.12rem;
+  line-height: 0.95;
+}
+
+.metric-trend em {
+  grid-column: 1 / 3;
+  color: var(--text-soft);
+  font-size: 0.54rem;
+  font-style: normal;
+  letter-spacing: 0.07em;
+}
+
+.metric-insight {
+  display: none;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 42, 56, 0.1);
+}
+
+.metric-insight.is-open {
+  display: grid;
+}
+
+.metric-insight p {
+  margin: 0 0 2px;
+  color: var(--text-soft);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.metric-insight div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.metric-insight span {
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.metric-insight strong {
+  color: var(--ink);
+  font-family: var(--serif-display);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.metric-insight i {
+  grid-column: 1 / 3;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(31, 42, 56, 0.08);
+}
+
+.metric-insight b {
+  display: block;
+  height: 100%;
+  background: #7b0008;
+}
+
+.metric-insight div:last-child b {
+  background: rgba(31, 42, 56, 0.42);
 }
 
 .fatality-toggle {
