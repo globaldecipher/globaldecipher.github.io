@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T06:06:35.954Z",
+  "last_updated": "2026-05-23T08:30:00.507Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-35-bannu",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T08:30:00.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation / Clash reported in Bannu",
+      "district": "Bannu",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.99,
+      "lng": 70.6,
+      "category": "Counterterrorism Operation / Clash",
+      "actor": "Security Forces / Ittehad-ul-Mujahideen Pakistan (IMP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 8,
+      "injuries": 1,
+      "summary": "According to Bannu Police, a major terror plot was foiled in the Merian area. Eight terrorists were killed during the operation, while one official was martyred and another injured. The Monitoring Desk added that, in official statements, Ittehad-ul-Mujahideen Pakistan (IMP) confirmed the clashes.",
+      "source": "Bannu Police",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-34-bannu",
       "date": "2026-05-23",
