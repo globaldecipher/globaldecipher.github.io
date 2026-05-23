@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-22T08:04:10.112Z",
+  "last_updated": "2026-05-23T05:46:08.902Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-05-22",
+  "current_day": "2026-05-23",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-23-telegram--1003994704651-31-north-waziristan",
+      "date": "2026-05-23",
+      "reported_at": "2026-05-23T05:46:08.000Z",
+      "time_label": "From Telegram feed",
+      "title": "IED Recovery / Defusal reported in North Waziristan",
+      "district": "North Waziristan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.98,
+      "lng": 70.13,
+      "category": "IED Recovery / Defusal",
+      "actor": "Unidentified Militants",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Bannu Police successfully defused a 10-kilogram remote-controlled explosive device planted near Gul Zaman Mosque on the Bannu–Miranshah Road in Khyber Pakhtunkhwa, preventing a major potential attack.",
+      "source": "Police Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-22-telegram--1003994704651-30-khyber",
       "date": "2026-05-22",
