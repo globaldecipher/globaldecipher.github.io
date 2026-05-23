@@ -165,6 +165,10 @@
   background: #fff;
 }
 
+.tracker-metric:has(.fatality-toggle) {
+  position: relative;
+}
+
 .metric-label {
   display: block;
   color: var(--muted);
@@ -188,6 +192,97 @@
   margin-top: 10px;
   color: var(--text-soft);
   font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.fatality-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  margin-top: 12px;
+  border: 1px solid rgba(123, 0, 8, 0.22);
+  background: #fff;
+  color: #7b0008;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.fatality-toggle:hover,
+.fatality-toggle:focus-visible {
+  outline: 2px solid rgba(183, 28, 28, 0.18);
+  background: var(--paper-2);
+}
+
+.fatality-breakdown {
+  display: none;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(31, 42, 56, 0.1);
+}
+
+.fatality-breakdown.is-open {
+  display: grid;
+}
+
+.fatality-row,
+.archive-split-row {
+  display: grid;
+  grid-template-columns: minmax(78px, 1fr) 34px;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.fatality-row i,
+.archive-split-row i {
+  grid-column: 1 / 3;
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  background: rgba(31, 42, 56, 0.08);
+}
+
+.fatality-row b,
+.archive-split-row b {
+  display: block;
+  height: 100%;
+  background: #7b0008;
+}
+
+.fatality-row:nth-child(2) b,
+.archive-split-row:nth-child(2) b {
+  background: #1f2a38;
+}
+
+.fatality-row:nth-child(3) b,
+.archive-split-row:nth-child(3) b {
+  background: #c33a3d;
+}
+
+.fatality-row strong,
+.archive-split-row strong {
+  color: var(--ink);
+  font-family: var(--serif-display);
+  font-size: 1.02rem;
+  line-height: 1;
+}
+
+.fatality-breakdown p {
+  margin: 2px 0 0;
+  color: var(--text-soft);
+  font-size: 0.74rem;
   line-height: 1.35;
 }
 
@@ -567,10 +662,53 @@
   font-size: 0.7rem;
 }
 
-.weekly-chart-grid {
+.archive-mode-switch {
+  display: inline-flex;
+  border: 1px solid rgba(31, 42, 56, 0.14);
+  background: #fff;
+}
+
+.archive-mode-switch button {
+  min-height: 32px;
+  border: 0;
+  border-right: 1px solid rgba(31, 42, 56, 0.12);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.62rem;
+  cursor: pointer;
+  padding: 0 11px;
+}
+
+.archive-mode-switch button:last-child {
+  border-right: 0;
+}
+
+.archive-mode-switch button.is-active,
+.archive-mode-switch button:hover,
+.archive-mode-switch button:focus-visible {
+  outline: 0;
+  background: #7b0008;
+  color: #fff;
+}
+
+.archive-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.1fr 1.1fr 0.9fr;
   gap: 12px;
+}
+
+.archive-panel.show-weekly .monthly-archive,
+.archive-panel.show-weekly .monthly-heat {
+  display: none;
+}
+
+.archive-panel.show-monthly .weekly-bars {
+  display: none;
+}
+
+.archive-panel.show-monthly {
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr) minmax(260px, 0.8fr);
 }
 
 .weekly-chart-card {
@@ -669,14 +807,131 @@
   gap: 6px;
 }
 
+.weekly-focus .weekly-split {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .weekly-focus span {
   display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   padding: 5px 7px;
   background: var(--paper-2);
   color: var(--muted);
   font-size: 0.62rem;
   font-weight: 950;
   letter-spacing: 0.05em;
+}
+
+.weekly-focus span b {
+  color: var(--ink);
+  font-family: var(--serif-display);
+  font-size: 1rem;
+}
+
+.monthly-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 6px 10px;
+}
+
+.monthly-summary strong {
+  color: #7b0008;
+  font-family: var(--serif-display);
+  font-size: 2.4rem;
+  line-height: 0.9;
+}
+
+.monthly-summary span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.archive-split {
+  display: grid;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.monthly-heat {
+  grid-column: span 2;
+}
+
+.month-heat-grid {
+  display: grid;
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 220px;
+}
+
+.month-heat-grid button {
+  position: relative;
+  display: grid;
+  align-content: end;
+  min-height: 98px;
+  overflow: hidden;
+  border: 1px solid rgba(31, 42, 56, 0.1);
+  background: var(--paper-2);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.month-heat-grid button:hover,
+.month-heat-grid button:focus-visible,
+.month-heat-grid button.is-active {
+  outline: 2px solid rgba(123, 0, 8, 0.2);
+  border-color: rgba(123, 0, 8, 0.5);
+  background: #fff;
+}
+
+.month-heat-grid i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  min-height: 4px;
+  background: rgba(123, 0, 8, 0.78);
+}
+
+.month-heat-grid span,
+.month-heat-grid strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  justify-self: center;
+  background: rgba(255, 255, 255, 0.72);
+  text-align: center;
+}
+
+.month-heat-grid span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.54rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-transform: uppercase;
+  padding: 1px 3px;
+  white-space: pre-line;
+}
+
+.month-heat-grid strong {
+  margin-top: 7px;
+  color: var(--ink);
+  font-family: var(--serif-display);
+  font-size: 1rem;
+  line-height: 1;
+  min-width: 20px;
+  padding: 1px 3px 2px;
 }
 
 .weekly-rank {
@@ -849,8 +1104,13 @@
 @media (max-width: 1100px) {
   .incident-dashboard-head,
   .tracker-command,
-  .weekly-chart-grid {
+  .archive-panel,
+  .archive-panel.show-monthly {
     grid-template-columns: 1fr;
+  }
+
+  .monthly-heat {
+    grid-column: auto;
   }
 
   .map-hero-panel {
@@ -889,6 +1149,11 @@
 
   .breakdown-status {
     justify-items: start;
+  }
+
+  .weekly-chart-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .map-hero-panel {
@@ -933,5 +1198,13 @@
 
   .weekly-bar-row {
     grid-template-columns: 76px minmax(70px, 1fr) 36px;
+  }
+
+  .month-heat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .weekly-focus .weekly-split {
+    grid-template-columns: 1fr;
   }
 }

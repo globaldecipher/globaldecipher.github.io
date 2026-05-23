@@ -8,7 +8,7 @@ summary: "A public-source incident tracker for security events monitored by The 
 ---
 
 <style>
-@import url("/assets/incident-map.css?v=20260522-dashboard");
+@import url("/assets/incident-map.css?v=20260524-fatality-archive");
 </style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
@@ -195,6 +195,11 @@ summary: "A public-source incident tracker for security events monitored by The 
       status: /^unclaimed$/i.test(claim) ? "Imported record" : "Claimed / recorded",
       severity: fatalities > 0 || injuries >= 3 || abductions > 0 ? "High" : injuries > 0 || (assets && !/^none$/i.test(assets)) ? "Medium" : "Low",
       fatalities,
+      fatality_breakdown: {
+        civilians: number(row.Civilian_Casualties),
+        terrorists: number(row.Militants_Casualties),
+        forces: number(row.Forces_Casualties)
+      },
       injuries,
       summary: clean(row["Incident Description"]) || clean(row["Casualty Description"]) || `${type} reported in ${place.district}.`,
       source: "TGD weekly dataset",
@@ -243,4 +248,4 @@ summary: "A public-source incident tracker for security events monitored by The 
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260522-dashboard" defer></script>
+<script src="/assets/incident-map.js?v=20260524-fatality-archive" defer></script>

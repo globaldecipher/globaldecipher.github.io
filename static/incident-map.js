@@ -6,6 +6,11 @@
   const TZ = "Asia/Karachi";
   const ARCHIVE_DAYS = 31;
   const DAY_MS = 86400000;
+  const FATALITY_GROUPS = [
+    ["forces", "Forces"],
+    ["terrorists", "Terrorists"],
+    ["civilians", "Civilians"]
+  ];
 
   const PROVINCES = [
     ["balochistan", "Balochistan"],
@@ -34,6 +39,8 @@
     date: pkToday(),
     mode: "date",
     week: "",
+    archiveMode: "weekly",
+    fatalityBreakdownOpen: false,
     activeView: "daily",
     selectedProvince: "",
     selectedIncident: "",
@@ -68,6 +75,10 @@
     return text(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function count(value) { return new Intl.NumberFormat("en").format(Number(value || 0)); }
+  function number(value) {
+    const valueNumber = Number(value || 0);
+    return Number.isFinite(valueNumber) ? valueNumber : 0;
+  }
   function pkToday() {
     const parts = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
     const byType = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
@@ -142,6 +153,7 @@
   function topLabels(map, limit = 3) { return top(map, limit).map(([label]) => label); }
   function rangeLabel() {
     if (state.mode === "last7") return "LAST 7 DAYS";
+    if (state.mode === "last30") return "LAST 30 DAYS";
     if (state.mode === "week") return state.week.toUpperCase();
     return formatDay(state.date).toUpperCase();
   }
@@ -157,6 +169,11 @@
   function selectedRange() {
     if (state.mode === "last7") {
       const start = ms(addDays(state.today, -6));
+      const end = ms(state.today);
+      return state.archive.filter((incident) => ms(incident.date) >= start && ms(incident.date) <= end);
+    }
+    if (state.mode === "last30") {
+      const start = ms(addDays(state.today, -29));
       const end = ms(state.today);
       return state.archive.filter((incident) => ms(incident.date) >= start && ms(incident.date) <= end);
     }
@@ -204,6 +221,49 @@
     if (cats.includes("ied") || cats.includes("explosion")) return "Explosive incidents are prominent.";
     return "Comparatively limited activity in the selected feed.";
   }
+  function sourceBreakdown(incident) {
+    const source = incident.fatality_breakdown || incident.fatalities_breakdown || incident.fatalities_by || {};
+    return {
+      forces: number(source.forces ?? source.security_forces ?? source.force ?? source.forces_casualties),
+      terrorists: number(source.terrorists ?? source.militants ?? source.militant ?? source.militants_casualties),
+      civilians: number(source.civilians ?? source.civilian ?? source.civilian_casualties)
+    };
+  }
+  function inferFatalityGroup(incident) {
+    const total = number(incident.fatalities);
+    if (!total) return "";
+    const body = norm([incident.title, incident.summary, incident.category, incident.actor, incident.status].join(" "));
+    if ((body.includes("security operation") || body.includes("counterterrorism") || body.includes("security forces")) && /\b(terrorist|militant|insurgent|ttp|iskp|commander)\b/.test(body)) return "terrorists";
+    if (/\b(police|policeman|constable|fc|ctd|soldier|sepoy|security personnel|security official|frontier corps|levies)\b/.test(body)) return "forces";
+    if (/\b(civilian|student|child|children|tribal elder|teacher|principal|road worker|labourer|laborer|resident|people|person)\b/.test(body)) return "civilians";
+    if (/\b(terrorist|militant|insurgent|ttp|iskp|commander)\b/.test(body) && /\b(killed|dead|death)\b/.test(body)) return "terrorists";
+    return "";
+  }
+  function fatalityBreakdown(incident) {
+    const total = number(incident.fatalities);
+    const split = sourceBreakdown(incident);
+    const classified = split.forces + split.terrorists + split.civilians;
+    if (!classified && total) {
+      const group = inferFatalityGroup(incident);
+      if (group) split[group] = total;
+    }
+    split.total = total;
+    split.classified = Math.min(total || classified, split.forces + split.terrorists + split.civilians);
+    split.unclassified = Math.max(0, total - split.classified);
+    return split;
+  }
+  function fatalityTotals(items = state.filtered) {
+    return items.reduce((totals, incident) => {
+      const split = fatalityBreakdown(incident);
+      totals.forces += split.forces;
+      totals.terrorists += split.terrorists;
+      totals.civilians += split.civilians;
+      totals.total += split.total;
+      totals.classified += split.classified;
+      totals.unclassified += split.unclassified;
+      return totals;
+    }, { forces: 0, terrorists: 0, civilians: 0, total: 0, classified: 0, unclassified: 0 });
+  }
 
   function fillSelect(select, values, allLabel) {
     const current = select.value;
@@ -232,37 +292,50 @@
       ["Today", "date", state.today],
       ["Yesterday", "date", addDays(state.today, -1)],
       ["Last 7 days", "last7", "last7"],
+      ["Last 30 days", "last30", "last30"],
       ...dates.map((date) => [formatDay(date, true), "date", date])
     ];
     els.timeline.innerHTML = buttons.map(([label, mode, value]) => {
-      const active = (mode === "last7" && state.mode === "last7") || (mode === "date" && state.mode === "date" && state.date === value);
+      const active = (mode === "last7" && state.mode === "last7") || (mode === "last30" && state.mode === "last30") || (mode === "date" && state.mode === "date" && state.date === value);
       return `<button type="button" class="${active ? "is-active" : ""}" data-timeline-mode="${esc(mode)}" data-timeline-value="${esc(value)}">${esc(label)}</button>`;
     }).join("");
   }
   function renderMetrics() {
     const fatalities = state.filtered.reduce((sum, item) => sum + Number(item.fatalities || 0), 0);
+    const fatalitySplit = fatalityTotals();
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
     const districts = new Set(state.filtered.map((item) => item.district).filter(Boolean)).size;
     const topProvince = topLabels(countBy(state.filtered, "province"), 1)[0] || "None";
     const high = state.filtered.filter((item) => severityClass(item.severity) === "high").length;
+    const metric = (label, value, note, extra = "") => `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span>${extra}</article>`;
+    const splitRows = FATALITY_GROUPS.map(([key, label]) => {
+      const value = fatalitySplit[key];
+      const width = fatalitySplit.total ? Math.round(value / fatalitySplit.total * 100) : 0;
+      return `<div class="fatality-row"><span>${esc(label)}</span><strong>${count(value)}</strong><i><b style="width:${Math.max(value ? 8 : 0, width)}%"></b></i></div>`;
+    }).join("");
+    const splitNote = fatalitySplit.unclassified ? `<p>${count(fatalitySplit.unclassified)} fatalit${fatalitySplit.unclassified === 1 ? "y" : "ies"} not classified in source rows.</p>` : "";
     els.metrics.innerHTML = [
       ["Incidents", state.filtered.length, rangeLabel()],
-      ["Fatalities", fatalities, "Reported in feed"],
+      ["Fatalities", fatalities, "Click for Forces / Terrorists / Civilians", `<button class="fatality-toggle" type="button" data-fatality-toggle aria-expanded="${state.fatalityBreakdownOpen ? "true" : "false"}">Breakdown</button><div class="fatality-breakdown${state.fatalityBreakdownOpen ? " is-open" : ""}">${splitRows}${splitNote}</div>`],
       ["Injuries", injuries, "Reported in feed"],
       ["Districts", districts, topProvince],
       ["High severity", high, "Marked for review"]
-    ].map(([label, value, note]) => `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span></article>`).join("");
+    ].map(([label, value, note, extra]) => metric(label, value, note, extra)).join("");
   }
 
   function renderWeekly() {
     const weekMap = new Map();
     state.archive.forEach((incident) => {
       const label = weekLabel(incident);
-      if (!weekMap.has(label)) weekMap.set(label, { label, count: 0, fatalities: 0, injuries: 0, provinces: new Map(), districts: new Map(), actors: new Map(), categories: new Map() });
+      if (!weekMap.has(label)) weekMap.set(label, { label, count: 0, fatalities: 0, injuries: 0, provinces: new Map(), districts: new Map(), actors: new Map(), categories: new Map(), split: { forces: 0, terrorists: 0, civilians: 0 } });
       const group = weekMap.get(label);
+      const split = fatalityBreakdown(incident);
       group.count += 1;
       group.fatalities += Number(incident.fatalities || 0);
       group.injuries += Number(incident.injuries || 0);
+      group.split.forces += split.forces;
+      group.split.terrorists += split.terrorists;
+      group.split.civilians += split.civilians;
       addCount(group.provinces, incident.province || "Unspecified");
       addCount(group.districts, incident.district || "Unspecified");
       addCount(group.actors, incident.actor || "Unspecified");
@@ -274,17 +347,40 @@
     const maxFatalities = Math.max(...weeks.map((week) => week.fatalities), 1);
     const selected = weeks.find((week) => week.label === state.week) || weeks[weeks.length - 1];
     const weekItems = state.archive.filter((incident) => weekLabel(incident) === selected.label);
-    const row = (week, value, max, detail, type) => `<button type="button" class="weekly-bar-row ${type}${state.mode === "week" && state.week === week.label ? " is-active" : ""}" data-week-select="${esc(week.label)}"><span class="weekly-bar-label">${esc(week.label)}</span><span class="weekly-bar-track"><span style="width:${Math.max(5, Math.round(value / max * 100))}%"></span></span><strong>${count(value)}</strong><em>${esc(detail)}</em></button>`;
-    const mini = (title, entries) => `<article class="weekly-chart-card"><h3>${esc(title)}</h3>${entries.length ? entries.map(([label, value]) => `<div class="weekly-rank"><span>${esc(label)}</span><strong>${count(value)}</strong></div>`).join("") : `<p class="weekly-empty">No entries</p>`}</article>`;
+    const monthStart = addDays(state.today, -29);
+    const monthDays = Array.from({ length: 30 }, (_item, index) => addDays(monthStart, index));
+    const byDate = new Map(monthDays.map((date) => [date, { date, count: 0, fatalities: 0, injuries: 0 }]));
+    state.archive.forEach((incident) => {
+      if (!byDate.has(incident.date)) return;
+      const day = byDate.get(incident.date);
+      day.count += 1;
+      day.fatalities += number(incident.fatalities);
+      day.injuries += number(incident.injuries);
+    });
+    const monthStats = Array.from(byDate.values());
+    const monthItems = state.archive.filter((incident) => ms(incident.date) >= ms(monthStart) && ms(incident.date) <= ms(state.today));
+    const maxDaily = Math.max(...monthStats.map((day) => day.count), 1);
+    const monthSplit = fatalityTotals(monthItems);
+    const selectedSplit = FATALITY_GROUPS.map(([key, label]) => `<span><b>${count(selected.split[key])}</b>${esc(label)}</span>`).join("");
+    const splitStrip = (split) => FATALITY_GROUPS.map(([key, label]) => {
+      const value = split[key];
+      const width = split.total ? Math.round(value / split.total * 100) : 0;
+      return `<div class="archive-split-row"><span>${esc(label)}</span><strong>${count(value)}</strong><i><b style="width:${Math.max(value ? 8 : 0, width)}%"></b></i></div>`;
+    }).join("");
+    const row = (week, value, max, detail, type) => `<button type="button" class="weekly-bar-row ${type}${state.mode === "week" && state.week === week.label ? " is-active" : ""}" data-week-select="${esc(week.label)}"><span class="weekly-bar-label">${esc(week.label)}</span><span class="weekly-bar-track"><span style="width:${Math.max(value ? 8 : 0, Math.round(value / max * 100))}%"></span></span><strong>${count(value)}</strong><em>${esc(detail)}</em></button>`;
+    const monthHeat = monthStats.map((day) => {
+      const active = state.mode === "date" && state.date === day.date;
+      const intensity = day.count ? Math.max(18, Math.round(day.count / maxDaily * 100)) : 0;
+      return `<button type="button" class="${active ? "is-active" : ""}" data-archive-day="${esc(day.date)}" title="${esc(formatDay(day.date))}: ${count(day.count)} incidents"><span>${esc(formatDay(day.date, true).replace(" ", "\n"))}</span><i style="height:${intensity}%"></i><strong>${count(day.count)}</strong></button>`;
+    }).join("");
     els.weekly.innerHTML = `
-      <div class="weekly-chart-head"><span>Weekly archive graphs</span><strong>${esc(formatDay(archiveStart(), true))} to ${esc(formatDay(state.today, true))}</strong></div>
-      <div class="weekly-chart-grid">
-        <article class="weekly-chart-card"><h3>Incident volume</h3>${weeks.map((week) => row(week, week.count, maxIncidents, topLabels(week.provinces, 1)[0] || "No province", "incident")).join("")}</article>
-        <article class="weekly-chart-card"><h3>Fatalities by week</h3>${weeks.map((week) => row(week, week.fatalities, maxFatalities, `${count(week.injuries)} injured`, "fatality")).join("")}</article>
-        <article class="weekly-chart-card weekly-focus"><h3>${esc(selected.label)} profile</h3><strong>${count(selected.count)}</strong><p>${count(selected.fatalities)} fatalities, ${count(selected.injuries)} injuries across ${count(selected.provinces.size)} province${selected.provinces.size === 1 ? "" : "s"}.</p><div>${topLabels(selected.categories, 5).map((label) => `<span>${esc(label)}</span>`).join("")}</div></article>
-        ${mini("Province spread", top(countBy(weekItems, "province"), 5))}
-        ${mini("Top districts", top(countBy(weekItems, "district"), 5))}
-        ${mini("Top actors", top(countBy(weekItems, "actor"), 5))}
+      <div class="weekly-chart-head"><span>Archive graphs</span><strong>${esc(formatDay(archiveStart(), true))} to ${esc(formatDay(state.today, true))}</strong><div class="archive-mode-switch"><button type="button" class="${state.archiveMode === "weekly" ? "is-active" : ""}" data-archive-mode="weekly">Weekly</button><button type="button" class="${state.archiveMode === "monthly" ? "is-active" : ""}" data-archive-mode="monthly">30 days</button></div></div>
+      <div class="archive-panel ${state.archiveMode === "monthly" ? "show-monthly" : "show-weekly"}">
+        <article class="weekly-chart-card weekly-bars"><h3>Weekly pace</h3>${weeks.map((week) => row(week, week.count, maxIncidents, topLabels(week.provinces, 1)[0] || "No province", "incident")).join("")}</article>
+        <article class="weekly-chart-card weekly-bars"><h3>Weekly fatalities</h3>${weeks.map((week) => row(week, week.fatalities, maxFatalities, `${count(week.injuries)} injured`, "fatality")).join("")}</article>
+        <article class="weekly-chart-card weekly-focus"><h3>${esc(selected.label)} profile</h3><strong>${count(selected.count)}</strong><p>${count(selected.fatalities)} fatalities, ${count(selected.injuries)} injuries across ${count(selected.provinces.size)} province${selected.provinces.size === 1 ? "" : "s"}.</p><div class="weekly-split">${selectedSplit}</div><div>${topLabels(selected.categories, 3).map((label) => `<span>${esc(label)}</span>`).join("")}</div></article>
+        <article class="weekly-chart-card monthly-archive"><h3>Last 30 days</h3><div class="monthly-summary"><strong>${count(monthItems.length)}</strong><span>incidents</span><strong>${count(monthSplit.total)}</strong><span>fatalities</span></div><div class="archive-split">${splitStrip(monthSplit)}</div></article>
+        <article class="weekly-chart-card monthly-heat"><h3>Daily archive</h3><div class="month-heat-grid">${monthHeat}</div></article>
       </div>`;
   }
 
@@ -431,14 +527,39 @@
         state.mode = "last7";
         state.week = "";
         state.selectedIncident = "";
+      } else if (timeline.dataset.timelineMode === "last30") {
+        state.mode = "last30";
+        state.week = "";
+        state.selectedIncident = "";
       } else setDate(timeline.dataset.timelineValue);
       render();
+      return;
+    }
+    const fatalityToggle = event.target.closest("[data-fatality-toggle]");
+    if (fatalityToggle) {
+      state.fatalityBreakdownOpen = !state.fatalityBreakdownOpen;
+      renderMetrics();
+      return;
+    }
+    const archiveMode = event.target.closest("[data-archive-mode]");
+    if (archiveMode) {
+      state.archiveMode = archiveMode.dataset.archiveMode === "monthly" ? "monthly" : "weekly";
+      renderWeekly();
+      return;
+    }
+    const archiveDay = event.target.closest("[data-archive-day]");
+    if (archiveDay) {
+      setDate(archiveDay.dataset.archiveDay);
+      state.activeView = "daily";
+      render();
+      qs("[data-view-panel='daily']")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     const week = event.target.closest("[data-week-select]");
     if (week) {
       state.mode = "week";
       state.week = week.dataset.weekSelect;
+      state.archiveMode = "weekly";
       state.selectedIncident = "";
       state.activeView = "daily";
       render();
