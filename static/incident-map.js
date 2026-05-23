@@ -42,7 +42,6 @@
     week: "",
     archiveMode: "weekly",
     fatalityBreakdownOpen: false,
-    metricInsight: "incidents",
     playback: false,
     activeView: "daily",
     selectedProvince: "",
@@ -281,49 +280,6 @@
       return totals;
     }, { forces: 0, terrorists: 0, civilians: 0, total: 0, classified: 0, unclassified: 0 });
   }
-  function stats(items) {
-    return {
-      incidents: items.length,
-      fatalities: items.reduce((sum, item) => sum + number(item.fatalities), 0),
-      injuries: items.reduce((sum, item) => sum + number(item.injuries), 0),
-      districts: new Set(items.map((item) => item.district).filter(Boolean)).size,
-      high: items.filter((item) => severityClass(item.severity) === "high").length
-    };
-  }
-  function comparisonStats() {
-    const fallbackEnd = ms(state.date || state.today);
-    const rangeTimes = state.range.map((incident) => ms(incident.date)).filter(Number.isFinite);
-    const end = rangeTimes.length ? Math.max(...rangeTimes) : (Number.isFinite(fallbackEnd) ? fallbackEnd : ms(state.today));
-    const currentStart = end - 6 * DAY_MS;
-    const previousEnd = currentStart - DAY_MS;
-    const previousStart = previousEnd - 6 * DAY_MS;
-    const currentItems = state.archive.filter((incident) => {
-      const value = ms(incident.date);
-      return Number.isFinite(value) && value >= currentStart && value <= end && matches(incident);
-    });
-    const previousItems = state.archive.filter((incident) => {
-      const value = ms(incident.date);
-      return Number.isFinite(value) && value >= previousStart && value <= previousEnd && matches(incident);
-    });
-    return { current: stats(currentItems), previous: stats(previousItems) };
-  }
-  function trendBadge(key, label) {
-    const compare = comparisonStats();
-    const current = compare.current[key] || 0;
-    const previous = compare.previous[key] || 0;
-    const max = Math.max(current, previous, 1);
-    const base = {
-      current,
-      previous,
-      currentWidth: Math.max(current ? 8 : 0, Math.round(current / max * 100)),
-      previousWidth: Math.max(previous ? 8 : 0, Math.round(previous / max * 100))
-    };
-    if (!current && !previous) return { ...base, className: "flat", label: "Steady", value: "0", summary: `${label} stayed quiet in both 7-day windows.` };
-    if (!previous) return { ...base, className: "up", label: "New rise", value: `+${count(current)}`, summary: `${label} appeared in the current 7-day window after no previous reading.` };
-    const change = Math.round(((current - previous) / previous) * 100);
-    if (Math.abs(change) < 5) return { ...base, className: "flat", label: "Steady", value: `${change > 0 ? "+" : ""}${change}%`, summary: `${label} is broadly unchanged from the previous 7 days.` };
-    return { ...base, className: change > 0 ? "up" : "down", label: change > 0 ? "Rising" : "Lower", value: `${change > 0 ? "+" : ""}${change}%`, summary: `${label} is ${change > 0 ? "higher" : "lower"} than the previous 7 days.` };
-  }
   function confidence(incident) {
     const status = norm(incident.status);
     const source = norm(incident.source);
@@ -380,11 +336,7 @@
     const districts = new Set(state.filtered.map((item) => item.district).filter(Boolean)).size;
     const topProvince = topLabels(countBy(state.filtered, "province"), 1)[0] || "None";
     const high = state.filtered.filter((item) => severityClass(item.severity) === "high").length;
-    const metric = (label, value, note, trendKey, extra = "") => {
-      const trend = trendBadge(trendKey, label);
-      const open = state.metricInsight === trendKey;
-      return `<article class="tracker-metric${open ? " insight-open" : ""}"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span><button class="metric-trend ${esc(trend.className)}" type="button" data-metric-trend="${esc(trendKey)}" aria-expanded="${open ? "true" : "false"}"><span>${esc(trend.label)}</span><strong>${esc(trend.value)}</strong><em>vs previous 7 days</em></button><div class="metric-insight${open ? " is-open" : ""}"><p>${esc(trend.summary)}</p><div><span>Current 7d</span><strong>${count(trend.current)}</strong><i><b style="width:${trend.currentWidth}%"></b></i></div><div><span>Previous 7d</span><strong>${count(trend.previous)}</strong><i><b style="width:${trend.previousWidth}%"></b></i></div></div>${extra}</article>`;
-    };
+    const metric = (label, value, note, extra = "") => `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span>${extra}</article>`;
     const splitRows = FATALITY_GROUPS.map(([key, label]) => {
       const value = fatalitySplit[key];
       const width = fatalitySplit.total ? Math.round(value / fatalitySplit.total * 100) : 0;
@@ -392,12 +344,12 @@
     }).join("");
     const splitNote = fatalitySplit.unclassified ? `<p>${count(fatalitySplit.unclassified)} fatalit${fatalitySplit.unclassified === 1 ? "y" : "ies"} not classified in source rows.</p>` : "";
     els.metrics.innerHTML = [
-      ["Incidents", state.filtered.length, rangeLabel(), "incidents"],
-      ["Fatalities", fatalities, "Click for Forces / Terrorists / Civilians", "fatalities", `<button class="fatality-toggle" type="button" data-fatality-toggle aria-expanded="${state.fatalityBreakdownOpen ? "true" : "false"}">Breakdown</button><div class="fatality-breakdown${state.fatalityBreakdownOpen ? " is-open" : ""}">${splitRows}${splitNote}</div>`],
-      ["Injuries", injuries, "Reported in feed", "injuries"],
-      ["Districts", districts, topProvince, "districts"],
-      ["High severity", high, "Marked for review", "high"]
-    ].map(([label, value, note, trendKey, extra]) => metric(label, value, note, trendKey, extra)).join("");
+      ["Incidents", state.filtered.length, rangeLabel()],
+      ["Fatalities", fatalities, "Click for Forces / Terrorists / Civilians", `<button class="fatality-toggle" type="button" data-fatality-toggle aria-expanded="${state.fatalityBreakdownOpen ? "true" : "false"}">Breakdown</button><div class="fatality-breakdown${state.fatalityBreakdownOpen ? " is-open" : ""}">${splitRows}${splitNote}</div>`],
+      ["Injuries", injuries, "Reported in feed"],
+      ["Districts", districts, topProvince],
+      ["High severity", high, "Marked for review"]
+    ].map(([label, value, note, extra]) => metric(label, value, note, extra)).join("");
   }
 
   function renderWeekly() {
@@ -660,12 +612,6 @@
     const fatalityToggle = event.target.closest("[data-fatality-toggle]");
     if (fatalityToggle) {
       state.fatalityBreakdownOpen = !state.fatalityBreakdownOpen;
-      renderMetrics();
-      return;
-    }
-    const metricTrend = event.target.closest("[data-metric-trend]");
-    if (metricTrend) {
-      state.metricInsight = state.metricInsight === metricTrend.dataset.metricTrend ? "" : metricTrend.dataset.metricTrend;
       renderMetrics();
       return;
     }
