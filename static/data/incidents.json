@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-23T14:14:00.196Z",
+  "last_updated": "2026-05-24T05:52:36.794Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-05-23",
+  "current_day": "2026-05-24",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-24-telegram--1003994704651-40-quetta",
+      "date": "2026-05-24",
+      "reported_at": "2026-05-24T05:52:36.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Suicide Bombing / Explosion reported in Quetta",
+      "district": "Quetta",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 30.3,
+      "lng": 67.2,
+      "category": "Suicide Bombing / Explosion",
+      "actor": "Unidentified Terrorists",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 23,
+      "injuries": 47,
+      "summary": "A powerful explosion occurred near a paramilitary installation close to a passing train in Quetta, Balochistan, derailing two bogeys. According to police, more than 30 kilograms of explosives were used in the suspected suicide bombing. The death toll has risen to 23, while around 47 others were injured. Rescue operations are still underway, and officials say the figures may rise further. Initial investigations suggest the train had stopped near the installation to attach additional bogeys for families of security personnel returning home for Eid. Most of the casualties were reportedly women and children.",
+      "source": "Police and Local Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-23-telegram--1003994704651-39-lahore",
       "date": "2026-05-23",
