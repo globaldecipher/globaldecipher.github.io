@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-24T06:33:12.168Z",
+  "last_updated": "2026-05-24T12:28:16.340Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-24",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-24-telegram--1003994704651-42-north-waziristan",
+      "date": "2026-05-24",
+      "reported_at": "2026-05-24T12:28:15.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Counterterrorism Operation reported in North Waziristan",
+      "district": "North Waziristan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.98,
+      "lng": 70.13,
+      "category": "Counterterrorism Operation",
+      "actor": "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 11,
+      "injuries": 0,
+      "summary": "According to Pakistan military media wing Inter-Services Public Relations (ISPR), security forces killed 11 terrorists affiliated with the Pakistani Taliban during intelligence-based operations in Datta Khel, North Waziristan, over the last 48 hours.",
+      "source": "ISPR",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-24-telegram--1003994704651-41-dera-ismail-khan",
       "date": "2026-05-24",
