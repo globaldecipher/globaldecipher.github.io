@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-25T06:14:33.457Z",
+  "last_updated": "2026-05-25T08:37:16.701Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-25",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-25-telegram--1003994704651-45-kech",
+      "date": "2026-05-25",
+      "reported_at": "2026-05-25T08:37:16.000Z",
+      "time_label": "From Telegram feed",
+      "title": "IED Recovery / Defusal reported in Kech",
+      "district": "Kech",
+      "province": "Balochistan",
+      "country": "Pakistan",
+      "lat": 26,
+      "lng": 63.05,
+      "category": "IED Recovery / Defusal",
+      "actor": "Security Forces / Unidentified Terrorists",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Security forces successfully recovered and neutralized a 20-kilogram explosive device in Turbat district of Balochistan, preventing a major terror incident.",
+      "source": "Security Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-25-telegram--1003994704651-44-tank",
       "date": "2026-05-25",
