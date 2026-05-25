@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-24T12:28:51.843Z",
+  "last_updated": "2026-05-25T06:14:33.457Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-05-24",
+  "current_day": "2026-05-25",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-25-telegram--1003994704651-44-tank",
+      "date": "2026-05-25",
+      "reported_at": "2026-05-25T06:14:30.000Z",
+      "time_label": "From Telegram feed",
+      "title": "IED / Explosion reported in Tank",
+      "district": "Tank",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 32.22,
+      "lng": 70.38,
+      "category": "IED / Explosion",
+      "actor": "Terrorists",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "According to local sources, terrorists blew up a Basic Health Unit (BHU) and a Government Middle School for Boys in the Chesan Kach area within the limits of Saddar Police Station in Tank district of Khyber Pakhtunkhwa using explosive materials. No casualties were reported in the incident.",
+      "source": "Local Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-24-telegram--1003994704651-43-north-waziristan",
       "date": "2026-05-24",
