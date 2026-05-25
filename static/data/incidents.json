@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-25T08:37:16.701Z",
+  "last_updated": "2026-05-25T13:21:11.404Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-05-25",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-25-telegram--1003994704651-46-dera-ismail-khan",
+      "date": "2026-05-25",
+      "reported_at": "2026-05-25T13:21:10.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Intelligence-Based Operation reported in Dera Ismail Khan",
+      "district": "Dera Ismail Khan",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 31.83,
+      "lng": 70.9,
+      "category": "Intelligence-Based Operation",
+      "actor": "Security Forces / Terrorists",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 3,
+      "injuries": 4,
+      "summary": "Security forces conducted an intelligence-based operation in the Loni village of Kulachi, Dera Ismail Khan, after receiving reports of terrorist presence. During the operation, security forces killed three terrorists and injured four others. According to sources, security forces have cordoned off the area and intensified a search operation to track down any remaining militants.",
+      "source": "Local and Security Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-25-telegram--1003994704651-45-kech",
       "date": "2026-05-25",
