@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-05-25T13:21:11.404Z",
+  "last_updated": "2026-05-26T06:09:15.225Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-05-25",
+  "current_day": "2026-05-26",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-05-26-telegram--1003994704651-47-mohmand",
+      "date": "2026-05-26",
+      "reported_at": "2026-05-26T06:09:14.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Clash / Counterterrorism Operation reported in Mohmand",
+      "district": "Mohmand",
+      "province": "Khyber Pakhtunkhwa",
+      "country": "Pakistan",
+      "lat": 30.3753,
+      "lng": 69.3451,
+      "category": "Clash / Counterterrorism Operation",
+      "actor": "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+      "status": "Initial report",
+      "severity": "High",
+      "fatalities": 4,
+      "injuries": 2,
+      "summary": "A clash erupted between security forces and terrorists affiliated with the Tehreek-e-Taliban Pakistan (TTP) in the Rambat area of Ambar tehsil, Mohmand district in Khyber Pakhtunkhwa. According to security sources, security forces foiled an infiltration attempt by the militants and killed four terrorists, while two others escaped injured. A search operation in the area is still underway.",
+      "source": "Security Sources",
+      "source_url": "",
+      "verified": false
+    },
     {
       "id": "2026-05-25-telegram--1003994704651-46-dera-ismail-khan",
       "date": "2026-05-25",
