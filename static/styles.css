@@ -152,6 +152,7 @@ input:focus-visible {
   display: block;
   transition: height 220ms var(--ease), transform 320ms var(--ease);
 }
+.brand-picture .brand-logo-dark { display: none; }
 .brand:hover .brand-logo { transform: scale(1.03); }
 .site-header.is-scrolled .brand-logo { height: 58px; }
 
