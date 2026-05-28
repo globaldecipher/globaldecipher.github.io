@@ -509,10 +509,13 @@ function brandMark(prefix = "", variant = "header") {
   const file = variant === "footer" ? "tgd-logo-footer.png" : "tgd-logo-header.png";
   const small = variant === "footer" ? "tgd-logo-footer-420.png" : "tgd-logo-header-420.png";
   const large = variant === "footer" ? "tgd-logo-footer-840.png" : "tgd-logo-header-840.png";
-  return `<picture class="brand-picture">
-    <source media="(prefers-color-scheme: dark)" srcset="${prefix}assets/brand/tgd-logo-footer-420.png 420w, ${prefix}assets/brand/tgd-logo-footer-840.png 840w, ${prefix}assets/brand/tgd-logo-footer.png 1800w">
-    <img class="brand-logo" src="${prefix}assets/brand/${small}" srcset="${prefix}assets/brand/${small} 420w, ${prefix}assets/brand/${large} 840w, ${prefix}assets/brand/${file} 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
-  </picture>`;
+  if (variant === "footer") {
+    return `<img class="brand-logo" src="${prefix}assets/brand/${small}" srcset="${prefix}assets/brand/${small} 420w, ${prefix}assets/brand/${large} 840w, ${prefix}assets/brand/${file} 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">`;
+  }
+  return `<span class="brand-picture">
+    <img class="brand-logo brand-logo-light" src="${prefix}assets/brand/tgd-logo-header-420.png" srcset="${prefix}assets/brand/tgd-logo-header-420.png 420w, ${prefix}assets/brand/tgd-logo-header-840.png 840w, ${prefix}assets/brand/tgd-logo-header.png 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
+    <img class="brand-logo brand-logo-dark" src="${prefix}assets/brand/tgd-logo-footer-420.png" srcset="${prefix}assets/brand/tgd-logo-footer-420.png 420w, ${prefix}assets/brand/tgd-logo-footer-840.png 840w, ${prefix}assets/brand/tgd-logo-footer.png 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
+  </span>`;
 }
 
 function icon(name) {
@@ -521,7 +524,9 @@ function icon(name) {
     x: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
     mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 6l9 7 9-7"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h11a4 4 0 014 4v12H8a4 4 0 01-4-4V4z"/><path d="M4 16a4 4 0 014-4h11"/></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A8.7 8.7 0 1111.2 3a6.8 6.8 0 009.8 9.8z"/></svg>'
   };
   return icons[name] || "";
 }
@@ -546,7 +551,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <title>${escapeHtml(pageTitle)}</title>
   <meta name="description" content="${escapeHtml(pageDescription)}">
   ${noindex ? '<meta name="robots" content="noindex, follow">' : ""}
-  <meta name="theme-color" content="#fafaf7">
+  <meta name="theme-color" content="#fafaf7" id="theme-color-meta">
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
   <meta property="og:title" content="${escapeHtml(pageTitle)}">
   <meta property="og:description" content="${escapeHtml(pageDescription)}">
@@ -565,6 +570,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
+  <script>(function(){try{var theme=localStorage.getItem("tgd-theme");if(theme==="light"||theme==="dark"){document.documentElement.dataset.theme=theme;}}catch(_error){}})();</script>
   <link rel="stylesheet" href="${assetPrefix}assets/styles.css">
   ${extraHead}
 </head>
@@ -577,6 +583,10 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </a>
       <nav class="site-nav" id="site-nav" aria-label="Primary navigation">${nav}</nav>
       <div class="header-cta">
+        <button class="theme-toggle" type="button" aria-label="Switch color theme" data-theme-toggle>
+          <span class="theme-icon theme-sun" aria-hidden="true">${icon("sun")}</span>
+          <span class="theme-icon theme-moon" aria-hidden="true">${icon("moon")}</span>
+        </button>
         <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
         <a class="pitch-cta" href="${linkFor("/contact/", pagePath)}">Pitch us</a>
       </div>

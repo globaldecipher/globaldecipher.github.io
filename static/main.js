@@ -6,6 +6,46 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+  /* ---------- reader color theme ---------- */
+  const themeToggle = $("[data-theme-toggle]");
+  const themeMeta = $("#theme-color-meta");
+  const themeMedia = window.matchMedia?.("(prefers-color-scheme: dark)");
+  const themeKey = "tgd-theme";
+
+  const storedTheme = () => {
+    try {
+      const value = window.localStorage.getItem(themeKey);
+      return value === "light" || value === "dark" ? value : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const effectiveTheme = () => storedTheme() || (themeMedia?.matches ? "dark" : "light");
+
+  const renderThemeToggle = () => {
+    const theme = effectiveTheme();
+    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#0f1318" : "#fafaf7");
+    if (!themeToggle) return;
+    themeToggle.dataset.currentTheme = theme;
+    themeToggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    themeToggle.title = theme === "dark" ? "Light mode" : "Dark mode";
+  };
+
+  renderThemeToggle();
+  themeMedia?.addEventListener?.("change", () => {
+    if (!storedTheme()) renderThemeToggle();
+  });
+
+  themeToggle?.addEventListener("click", () => {
+    const nextTheme = effectiveTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    try {
+      window.localStorage.setItem(themeKey, nextTheme);
+    } catch {}
+    renderThemeToggle();
+  });
+
   /* ---------- nav toggle ---------- */
   const navToggle = $("[data-nav-toggle]");
   const nav = $("#site-nav");
