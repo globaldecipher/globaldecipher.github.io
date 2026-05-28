@@ -577,7 +577,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </a>
       <nav class="site-nav" id="site-nav" aria-label="Primary navigation">${nav}</nav>
       <div class="header-cta">
-        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}<span class="search-shortcut" aria-hidden="true">⌘K</span></button>
+        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
         <a class="pitch-cta" href="${linkFor("/contact/", pagePath)}">Pitch us</a>
       </div>
       <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
