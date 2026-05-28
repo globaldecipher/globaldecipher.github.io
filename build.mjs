@@ -13,10 +13,11 @@ const SITE = {
   description:
     "Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.",
   url: "https://globaldecipher.github.io",
+  defaultImage: "/assets/brand/tgd-og-default.png",
   email: "globaldecipher@gmail.com",
   x: "https://x.com/Global_Decipher",
   whatsapp: "https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31",
-  substack: "https://substack.com/@theglobaldecipher?utm_source=user-menu"
+  substack: "https://theglobaldecipher.substack.com/"
 };
 
 const NAV = [
@@ -462,6 +463,7 @@ function extractPdfLinks(markdown = "") {
 }
 
 function depthFor(urlPath) {
+  if (/^\/[^/]+\.html$/.test(urlPath)) return 0;
   if (urlPath === "/") return 0;
   return urlPath.replace(/^\/|\/$/g, "").split("/").filter(Boolean).length;
 }
@@ -477,6 +479,26 @@ function linkFor(url, currentPath = "/") {
   return `${prefix}${url.replace(/^\/|\/$/g, "")}/index.html`;
 }
 
+function absoluteUrl(url = "/") {
+  if (/^https?:\/\//.test(url)) return url;
+  const clean = url.startsWith("/") ? url : `/${url}`;
+  return `${SITE.url}${clean}`;
+}
+
+function canonicalFor(pagePath = "/") {
+  if (pagePath === "/") return `${SITE.url}/`;
+  return absoluteUrl(pagePath);
+}
+
+function escapeXml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 function accessLabel(item) {
   if (item.access === "premium-preview") return '<span class="badge badge-premium">Premium preview</span>';
   if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Research sensitive</span>';
@@ -485,7 +507,12 @@ function accessLabel(item) {
 
 function brandMark(prefix = "", variant = "header") {
   const file = variant === "footer" ? "tgd-logo-footer.png" : "tgd-logo-header.png";
-  return `<img class="brand-logo" src="${prefix}assets/brand/${file}" alt="The Global Decipher" width="1800" height="600">`;
+  const small = variant === "footer" ? "tgd-logo-footer-420.png" : "tgd-logo-header-420.png";
+  const large = variant === "footer" ? "tgd-logo-footer-840.png" : "tgd-logo-header-840.png";
+  return `<picture class="brand-picture">
+    <source media="(prefers-color-scheme: dark)" srcset="${prefix}assets/brand/tgd-logo-footer-420.png 420w, ${prefix}assets/brand/tgd-logo-footer-840.png 840w, ${prefix}assets/brand/tgd-logo-footer.png 1800w">
+    <img class="brand-logo" src="${prefix}assets/brand/${small}" srcset="${prefix}assets/brand/${small} 420w, ${prefix}assets/brand/${large} 840w, ${prefix}assets/brand/${file} 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
+  </picture>`;
 }
 
 function icon(name) {
@@ -499,9 +526,12 @@ function icon(name) {
   return icons[name] || "";
 }
 
-function shell({ title, description, body, current = "", pagePath = "/", extraHead = "" }) {
+function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false }) {
   const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
   const assetPrefix = prefixFor(pagePath);
+  const pageDescription = description || SITE.description;
+  const canonicalUrl = canonicalFor(pagePath);
+  const ogImage = absoluteUrl(image || SITE.defaultImage);
   const nav = NAV.map(([label, href]) => {
     const active = current === href || (href !== "/" && pagePath.startsWith(href)) ? ' aria-current="page"' : "";
     return `<a${active} href="${linkFor(href, pagePath)}">${label}</a>`;
@@ -514,12 +544,24 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(pageTitle)}</title>
-  <meta name="description" content="${escapeHtml(description || SITE.description)}">
+  <meta name="description" content="${escapeHtml(pageDescription)}">
+  ${noindex ? '<meta name="robots" content="noindex, follow">' : ""}
   <meta name="theme-color" content="#fafaf7">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
   <meta property="og:title" content="${escapeHtml(pageTitle)}">
-  <meta property="og:description" content="${escapeHtml(description || SITE.description)}">
-  <meta property="og:type" content="website">
+  <meta property="og:description" content="${escapeHtml(pageDescription)}">
+  <meta property="og:type" content="${escapeHtml(ogType)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="${escapeHtml(SITE.title)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(pageTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(pageDescription)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="icon" href="${assetPrefix}assets/tgd-mark.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="${escapeHtml(SITE.title)} RSS" href="${SITE.url}/rss.xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
@@ -535,7 +577,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </a>
       <nav class="site-nav" id="site-nav" aria-label="Primary navigation">${nav}</nav>
       <div class="header-cta">
-        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
+        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}<span class="search-shortcut" aria-hidden="true">⌘K</span></button>
         <a class="pitch-cta" href="${linkFor("/contact/", pagePath)}">Pitch us</a>
       </div>
       <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
@@ -705,14 +747,15 @@ function heroMapSvg() {
 }
 
 function tickerStrip(items) {
-  const lines = items.slice(0, 8).map((item) => {
+  const latest = items.filter((item) => !["profiles", "pages"].includes(item.type));
+  const lines = latest.slice(0, 8).map((item) => {
     return `<a href="${linkFor(item.url, "/")}"><span class="region">${escapeHtml(item.region || item.category || "Global")}</span><strong>${escapeHtml(item.title)}</strong></a>`;
   });
   if (!lines.length) return "";
   const doubled = [...lines, ...lines].join("");
   return `<div class="ticker-bar">
     <div class="container ticker-row">
-      <span class="ticker-label"><span class="live-dot"></span> Latest research</span>
+      <span class="ticker-label"><span class="live-dot"></span> Latest briefings</span>
       <div class="ticker-track">
         <div class="ticker-strip">${doubled}</div>
       </div>
@@ -772,9 +815,12 @@ function homepage(items) {
     .slice(0, 5);
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
-  const heroTitle = lead?.type === "reports"
+  const heroTitle = lead?.hero_title || (lead?.type === "reports"
     ? lead.title
-    : "Militant actor profiles and security research in one place";
+    : "Militant actor profiles and security research in one place");
+  const reportPeriod = lead?.date
+    ? new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${lead.date}T00:00:00Z`))
+    : "Latest monthly";
   if (!lead) {
     return shell({
       title: SITE.title,
@@ -799,9 +845,9 @@ function homepage(items) {
     ["Profiles", profiles.length, "Research profiles live"],
     ["Regions", profileRegions.size, "Actor database coverage"],
     ["Reports", reports.length, "Published assessments"],
-    metricMap.get("Militant attacks reported") ? ["Attacks", metricMap.get("Militant attacks reported"), "Latest monthly report"] : null,
-    metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), "Latest monthly report"] : null,
-    metricMap.get("Injuries") ? ["Injuries", metricMap.get("Injuries"), "Latest monthly report"] : null
+    metricMap.get("Militant attacks reported") ? ["Attacks", metricMap.get("Militant attacks reported"), `${reportPeriod} report`] : null,
+    metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), `${reportPeriod} report`] : null,
+    metricMap.get("Injuries") ? ["Injuries", metricMap.get("Injuries"), `${reportPeriod} report`] : null
   ].filter(Boolean).slice(0, 6);
 
   const body = `
@@ -899,6 +945,21 @@ function homepage(items) {
   return shell({ title: SITE.title, description: SITE.description, body, current: "/", pagePath: currentPath });
 }
 
+function sparseListingCta({ title, current, count }) {
+  if (count >= 2 || current === "/profiles/") return "";
+  return `<aside class="listing-cta">
+    <div>
+      <span>Editorial desk</span>
+      <strong>${escapeHtml(title)} is being built out.</strong>
+      <p>New briefings will appear here as the desk publishes. Follow the WhatsApp channel or pitch the desk with relevant public-source material.</p>
+    </div>
+    <div class="listing-cta-actions">
+      <a class="button primary" href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp channel</a>
+      <a class="button secondary" href="${linkFor("/contact/", current)}">Pitch the desk</a>
+    </div>
+  </aside>`;
+}
+
 function listingPage({ title, eyebrow, summary, current, items, filters }) {
   const hasItems = items.length > 0;
   const body = `${sectionHero(title, eyebrow, summary)}
@@ -909,6 +970,7 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
         ${items.map((item) => card(item, current)).join("")}
       </div>
       <p class="empty-state" data-empty-state${hasItems ? " hidden" : ""}>${hasItems ? "No matching briefings found." : "No published items yet. New uploads will appear here."}</p>
+      ${sparseListingCta({ title, current, count: items.length })}
     </div>
   </section>`;
   return shell({ title, description: summary, body, current, pagePath: current });
@@ -921,7 +983,15 @@ function pageTemplate(page) {
       <article class="article-body">${page.html}</article>
     </div>
   </section>`;
-  return shell({ title: page.title, description: page.summary || SITE.description, body, current: page.url, pagePath: page.url });
+  return shell({
+    title: page.title,
+    description: page.summary || SITE.description,
+    body,
+    current: page.url,
+    pagePath: page.url,
+    extraHead: page.extra_head || "",
+    image: page.og_image || page.image || SITE.defaultImage
+  });
 }
 
 function articleSidebar(item) {
@@ -973,7 +1043,12 @@ function articleSidebar(item) {
       </div>`
     : "";
 
-  const blocks = [metricBlock, factBlock, tocBlock, pdfBlock, tagBlock, researchBlock].filter(Boolean).join("");
+  const shareBlock = `<div class="article-side-panel share-panel">
+        <h2>Share</h2>
+        <button type="button" class="copy-link" data-copy-link="${escapeHtml(absoluteUrl(item.url))}">Copy link</button>
+      </div>`;
+
+  const blocks = [shareBlock, metricBlock, factBlock, tocBlock, pdfBlock, tagBlock, researchBlock].filter(Boolean).join("");
   return blocks ? `<aside class="article-sidebar">${blocks}</aside>` : "";
 }
 
@@ -1018,7 +1093,15 @@ function articleTemplate(item, allItems) {
     </div>
     <div class="container card-grid">${related.map((candidate) => card(candidate, item.url, { compact: true })).join("")}</div>
   </section>` : ""}`;
-  return shell({ title: item.title, description: item.summary || SITE.description, body, current: routeForType(item.type), pagePath: item.url });
+  return shell({
+    title: item.title,
+    description: item.summary || SITE.description,
+    body,
+    current: routeForType(item.type),
+    pagePath: item.url,
+    image: item.og_image || item.image || SITE.defaultImage,
+    ogType: "article"
+  });
 }
 
 function writePage(urlPath, html) {
@@ -1026,6 +1109,55 @@ function writePage(urlPath, html) {
   const dir = path.join(OUT_DIR, clean);
   ensureDir(dir);
   fs.writeFileSync(path.join(dir, "index.html"), html);
+}
+
+function writeRootFile(fileName, html) {
+  fs.writeFileSync(path.join(OUT_DIR, fileName), html);
+}
+
+function notFoundPage() {
+  const body = `<section class="section-hero not-found-hero">
+    <div class="container">
+      <p class="eyebrow">404</p>
+      <h1>This page is not in the archive.</h1>
+      <p>The link may have moved, or the briefing may not have been published yet.</p>
+      <div class="not-found-actions">
+        <a class="button primary" href="index.html">Return home</a>
+        <a class="button secondary" href="contact/index.html">Contact the desk</a>
+      </div>
+    </div>
+  </section>`;
+  return shell({ title: "Page not found", description: "The requested TGD page could not be found.", body, pagePath: "/404.html", noindex: true });
+}
+
+function writeRssFeed(items) {
+  const feedItems = items
+    .filter((item) => !["profiles"].includes(item.type))
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, 30);
+  const updated = feedItems[0]?.date ? new Date(`${feedItems[0].date}T00:00:00Z`).toUTCString() : new Date().toUTCString();
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(SITE.title)}</title>
+    <link>${SITE.url}/</link>
+    <atom:link href="${SITE.url}/rss.xml" rel="self" type="application/rss+xml"/>
+    <description>${escapeXml(SITE.description)}</description>
+    <language>en</language>
+    <lastBuildDate>${escapeXml(updated)}</lastBuildDate>
+${feedItems.map((item) => `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(absoluteUrl(item.url))}</link>
+      <guid isPermaLink="true">${escapeXml(absoluteUrl(item.url))}</guid>
+      <pubDate>${escapeXml(new Date(`${item.date || "1970-01-01"}T00:00:00Z`).toUTCString())}</pubDate>
+      <category>${escapeXml(typeLabel(item.type))}</category>
+      <description>${escapeXml(item.summary || firstParagraph(item.body) || SITE.description)}</description>
+    </item>`).join("\n")}
+  </channel>
+</rss>
+`;
+  fs.writeFileSync(path.join(OUT_DIR, "rss.xml"), xml);
+  fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), xml);
 }
 
 function writeStaticFiles(items, pages) {
@@ -1053,6 +1185,7 @@ ${urls
     `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`
   );
   fs.writeFileSync(path.join(OUT_DIR, ".nojekyll"), "");
+  writeRssFeed(items);
   fs.writeFileSync(
     path.join(OUT_DIR, "search-index.json"),
     JSON.stringify(
@@ -1172,6 +1305,7 @@ function main() {
 
   for (const item of allContent) writePage(item.url, articleTemplate(item, allContent));
   for (const page of pages) writePage(page.url, pageTemplate(page));
+  writeRootFile("404.html", notFoundPage());
   writeStaticFiles(allContent, pages);
 
   console.log(`Built ${allContent.length + pages.length + 6} pages into ${path.relative(ROOT, OUT_DIR)}`);

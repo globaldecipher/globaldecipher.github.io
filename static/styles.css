@@ -142,6 +142,7 @@ input:focus-visible {
   color: inherit; text-decoration: none;
 }
 .brand:hover, .footer-brand:hover { color: inherit; }
+.brand-picture { display: inline-flex; align-items: center; }
 
 .brand-logo {
   height: 70px;
@@ -180,16 +181,25 @@ input:focus-visible {
 
 .header-cta { display: inline-flex; align-items: center; gap: 12px; }
 .search-btn {
-  width: 38px; height: 38px;
-  display: inline-grid; place-items: center;
+  min-width: 74px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   border: 1px solid var(--line-2);
   background: transparent;
   color: var(--ink);
-  border-radius: 50%;
+  border-radius: 999px;
   cursor: pointer;
   transition: border-color 180ms var(--ease), color 180ms var(--ease);
 }
 .search-btn:hover { color: var(--red); border-color: var(--red); }
+.search-btn svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.search-shortcut {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.search-btn:hover .search-shortcut { color: var(--red); }
 
 .pitch-cta {
   display: inline-flex; align-items: center;
@@ -390,7 +400,7 @@ input:focus-visible {
   font-weight: 800;
   font-size: clamp(2.4rem, 5.2vw, 4.4rem);
   line-height: 1;
-  letter-spacing: -0.024em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .hero h1 a {
@@ -663,7 +673,7 @@ input:focus-visible {
   font-weight: 800;
   font-size: 1.5rem;
   color: var(--ink);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1;
 }
 .pillar .label {
@@ -715,7 +725,7 @@ input:focus-visible {
   font-weight: 900;
   font-size: clamp(2.4rem, 4.4vw, 3.6rem);
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   color: var(--ink);
   max-width: 820px;
 }
@@ -780,7 +790,7 @@ input:focus-visible {
   font-weight: 800;
   font-size: 1.5rem;
   line-height: 1.15;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .content-card h2 a {
@@ -878,7 +888,7 @@ input:focus-visible {
   font-family: var(--serif-display);
   font-weight: 800;
   font-size: 1.6rem;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--ink);
   margin-bottom: 8px;
 }
@@ -925,7 +935,7 @@ input:focus-visible {
   font-family: var(--serif-display);
   font-weight: 900;
   font-size: clamp(2.4rem, 4.4vw, 3.6rem);
-  line-height: 1; letter-spacing: -0.025em;
+  line-height: 1; letter-spacing: 0;
   color: #fff;
 }
 .desk-grid-pro h2 em { font-style: italic; color: var(--red); font-weight: 500; }
@@ -996,7 +1006,7 @@ input:focus-visible {
   font-family: var(--serif-display);
   font-weight: 800;
   font-size: clamp(2rem, 3.4vw, 2.6rem);
-  line-height: 1.05; letter-spacing: -0.02em;
+  line-height: 1.05; letter-spacing: 0;
   color: var(--ink);
 }
 .method-grid h2 em { font-style: italic; color: var(--red); font-weight: 500; }
@@ -1049,7 +1059,7 @@ input:focus-visible {
   font-weight: 900;
   font-size: clamp(2.4rem, 4.4vw, 3.6rem);
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .pitch-grid h2 em { font-style: italic; color: var(--red); font-weight: 500; }
@@ -1123,7 +1133,7 @@ input:focus-visible {
   font-family: var(--serif-display);
   font-weight: 800;
   font-size: clamp(2.4rem, 5.2vw, 4rem);
-  line-height: 1.02; letter-spacing: -0.022em;
+  line-height: 1.02; letter-spacing: 0;
   color: var(--ink);
 }
 .section-hero p, .article-head p {
@@ -1191,6 +1201,45 @@ input:focus-visible {
   background: var(--paper-2);
   color: var(--muted);
   font-family: var(--mono); font-size: 0.88rem;
+}
+
+.listing-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  margin-top: 42px;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--line);
+}
+.listing-cta span {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.listing-cta strong {
+  display: block;
+  font-family: var(--serif-display);
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.listing-cta p {
+  max-width: 660px;
+  margin: 10px 0 0;
+  font-family: var(--serif);
+  color: var(--text-soft);
+}
+.listing-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 /* ============ ARTICLE ============ */
@@ -1301,6 +1350,24 @@ input:focus-visible {
   font-weight: 700;
 }
 .file-link:hover { background: var(--ink); color: #fff; }
+.copy-link {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 180ms var(--ease), border-color 180ms var(--ease), color 180ms var(--ease);
+}
+.copy-link:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
 .article-body {
   font-family: var(--serif);
   color: var(--text);
@@ -1318,7 +1385,7 @@ input:focus-visible {
   margin: 44px 0 14px;
   font-family: var(--serif-display);
   font-weight: 800;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .article-body h2 {
@@ -1519,6 +1586,13 @@ input:focus-visible {
   margin: 0 0 18px;
 }
 
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
 /* ============ REVEAL ============ */
 .reveal {
   opacity: 0;
@@ -1579,6 +1653,78 @@ input:focus-visible {
   color: rgba(213,210,200,0.7); text-transform: uppercase;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1318;
+    --paper-2: #171d24;
+    --paper-3: #202832;
+    --ink: #f2f0ea;
+    --ink-2: #e5e0d5;
+    --ink-3: #cfc7b8;
+    --text: #ede9df;
+    --text-soft: #cac2b4;
+    --muted: #9e9588;
+    --dim: #756f66;
+    --line: #303843;
+    --line-2: #46505c;
+    --line-3: #69727c;
+    --red: #ff6b7a;
+    --red-dark: #e5485b;
+    --red-soft: rgba(255, 107, 122, 0.14);
+    --gold: #d4a852;
+    --green: #57c785;
+    --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.36);
+    --shadow-2: 0 18px 42px rgba(0, 0, 0, 0.42);
+    --shadow-3: 0 26px 70px rgba(0, 0, 0, 0.52);
+  }
+
+  .site-header,
+  .site-header.is-scrolled,
+  .site-search-panel {
+    background: rgba(15, 19, 24, 0.94);
+  }
+
+  .snapshot-strip,
+  .site-footer,
+  .desk-section {
+    background: #090c10;
+  }
+
+  .button.primary,
+  .rail-cta,
+  .filter-buttons button.active,
+  .copy-link {
+    background: #f2f0ea;
+    color: #0f1318;
+    border-color: #f2f0ea;
+  }
+
+  .button.primary:hover,
+  .rail-cta:hover,
+  .copy-link:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: #090c10;
+  }
+
+  .pitch-cta,
+  .file-link {
+    color: #090c10;
+  }
+
+  .ticker-bar::before { background: linear-gradient(90deg, var(--paper-2), transparent); }
+  .ticker-bar::after { background: linear-gradient(270deg, var(--paper-2), transparent); }
+  .article-table thead,
+  .article-table tbody tr:hover td,
+  .article-body code,
+  .article-body a[href$=".pdf"],
+  .article-body a[href$=".xlsx"],
+  .article-body a[href$=".csv"],
+  .article-body a[href$=".zip"] {
+    background: var(--paper-3);
+  }
+}
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1080px) {
   .hero-grid { grid-template-columns: 1fr; gap: 48px; }
@@ -1631,6 +1777,8 @@ input:focus-visible {
   .feature-grid { grid-template-columns: 1fr; gap: 0; }
   .feature-grid .content-card { border-top: 1px solid var(--line-2); padding-top: 22px; margin-top: 22px; }
   .content-toolbar { grid-template-columns: 1fr; }
+  .listing-cta { grid-template-columns: 1fr; align-items: start; }
+  .listing-cta-actions { justify-content: flex-start; }
   .article-sidebar { gap: 14px; }
   .split-heading { grid-template-columns: 1fr; align-items: start; gap: 16px; }
   .split-heading > a { justify-self: start; }
@@ -1718,3 +1866,7 @@ input:focus-visible {
 
 /* Header tweak: sticky shadow becomes more visible on scroll */
 .site-header.is-scrolled { background: rgba(250, 250, 247, 0.97); }
+
+@media (prefers-color-scheme: dark) {
+  .site-header.is-scrolled { background: rgba(15, 19, 24, 0.97); }
+}

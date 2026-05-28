@@ -158,6 +158,32 @@
     }
   }
 
+  /* ---------- article copy link ---------- */
+  for (const button of $$("[data-copy-link]")) {
+    const original = button.textContent;
+    button.addEventListener("click", async () => {
+      const url = button.dataset.copyLink || window.location.href;
+      try {
+        await navigator.clipboard.writeText(url);
+        button.textContent = "Copied";
+      } catch {
+        const field = document.createElement("input");
+        field.value = url;
+        field.setAttribute("readonly", "");
+        field.style.position = "fixed";
+        field.style.left = "-9999px";
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand("copy");
+        field.remove();
+        button.textContent = "Copied";
+      }
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 1800);
+    });
+  }
+
   /* ---------- reveal on scroll ---------- */
   if ("IntersectionObserver" in window) {
     const targets = $$(

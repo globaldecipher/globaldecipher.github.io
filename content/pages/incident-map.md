@@ -5,11 +5,8 @@ author: "TGD Monitoring Desk"
 type: "page"
 eyebrow: "Live tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
+extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-clean-metrics">'
 ---
-
-<style>
-@import url("/assets/incident-map.css?v=20260524-clean-metrics");
-</style>
 
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-dashboard-head">

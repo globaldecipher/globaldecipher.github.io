@@ -5,6 +5,19 @@
 
 .article-body:has(.incident-tracker-shell) {
   font-family: var(--sans);
+  --paper: #fafaf7;
+  --paper-2: #f3efe6;
+  --paper-3: #ebe6d8;
+  --ink: #0d1b2a;
+  --text: #1a1a1a;
+  --text-soft: #3a3a3a;
+  --muted: #6b6b66;
+  --line: #d8d3c5;
+  --line-2: #c0baa9;
+  --red: #b91c2c;
+  --red-soft: rgba(185, 28, 44, 0.08);
+  --gold: #a17328;
+  --green: #14532d;
 }
 
 .article-body .article-embed:has(.incident-tracker-shell),

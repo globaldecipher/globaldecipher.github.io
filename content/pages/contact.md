@@ -16,7 +16,7 @@ For Monitoring Desk access, report requests, institutional subscriptions, partne
 
 - [X / Twitter](https://x.com/Global_Decipher)
 - [WhatsApp Channel](https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31)
-- [Substack](https://substack.com/@theglobaldecipher?utm_source=user-menu)
+- [Substack](https://theglobaldecipher.substack.com/)
 
 ## Submissions
 

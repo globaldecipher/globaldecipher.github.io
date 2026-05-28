@@ -1,5 +1,6 @@
 ---
 title: "Pakistan Monthly Terrorism & Counter-Terrorism Assessment - April 2026"
+hero_title: "Pakistan's April security picture"
 date: "2026-04-30"
 author: "TGD Research Desk"
 type: "reports"
