@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-07T07:41:35.481Z",
+  "checked_at": "2026-06-07T09:51:13.844Z",
   "current_day_pakistan": "2026-06-07",
   "archive_days": 30,
   "archive_start": "2026-05-09",
@@ -7,7 +7,7 @@
     "may-2026-weeks-1-4.csv"
   ],
   "imported_count": 45,
-  "removed_test_count": 6,
+  "removed_test_count": 0,
   "time_zone": "Asia/Karachi",
   "offset": 828254861,
   "expected_chat_id": "-1003994704651",
