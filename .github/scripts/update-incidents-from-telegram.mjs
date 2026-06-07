@@ -368,6 +368,29 @@ async function telegram(method, body = {}) {
   return data.result;
 }
 
+function isWebhookConflict(description = '') {
+  return /webhook is active/i.test(String(description));
+}
+
+async function getUpdatesWithWebhookRecovery(body) {
+  const firstAttempt = await telegramRaw('getUpdates', body);
+  if (firstAttempt.ok) return firstAttempt.result;
+
+  if (!isWebhookConflict(firstAttempt.description)) {
+    throw new Error(`Telegram getUpdates failed: ${firstAttempt.description || 'unknown error'}`);
+  }
+
+  console.log('Telegram webhook is active; deleting webhook before polling for updates.');
+  const deleteResult = await telegramRaw('deleteWebhook', { drop_pending_updates: false });
+  if (!deleteResult.ok) {
+    throw new Error(`Telegram deleteWebhook failed: ${deleteResult.description || 'unknown error'}`);
+  }
+
+  const retry = await telegramRaw('getUpdates', body);
+  if (!retry.ok) throw new Error(`Telegram getUpdates failed after deleteWebhook: ${retry.description || 'unknown error'}`);
+  return retry.result;
+}
+
 async function telegramSafe(method, body = {}) {
   const data = await telegramRaw(method, body);
   if (!data.ok) return { ok: false, error: data.description || 'unknown error' };
@@ -419,7 +442,7 @@ async function main() {
     botCheck = await telegramSafe('getMe');
     chatCheck = await telegramSafe('getChat', { chat_id: CHAT_ID });
     memberCheck = botCheck.ok ? await telegramSafe('getChatMember', { chat_id: CHAT_ID, user_id: botCheck.result.id }) : { ok: false, error: 'bot unavailable' };
-    updates = await telegram('getUpdates', {
+    updates = await getUpdatesWithWebhookRecovery({
       offset,
       timeout: 0,
       allowed_updates: ['message', 'edited_message', 'channel_post', 'edited_channel_post']
