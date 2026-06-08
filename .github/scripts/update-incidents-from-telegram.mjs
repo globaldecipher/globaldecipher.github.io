@@ -391,6 +391,17 @@ async function getUpdatesWithWebhookRecovery(body) {
   return retry.result;
 }
 
+async function clearWebhookBeforePolling() {
+  const webhook = await telegramSafe('getWebhookInfo');
+  const info = webhook.ok ? webhook.result : null;
+  if (!info?.url) return webhook;
+
+  console.log('Telegram webhook is configured; deleting webhook before polling for updates.');
+  const deleted = await telegramSafe('deleteWebhook', { drop_pending_updates: false });
+  if (!deleted.ok) throw new Error(`Telegram deleteWebhook failed: ${deleted.error}`);
+  return telegramSafe('getWebhookInfo');
+}
+
 async function telegramSafe(method, body = {}) {
   const data = await telegramRaw(method, body);
   if (!data.ok) return { ok: false, error: data.description || 'unknown error' };
@@ -437,11 +448,13 @@ async function main() {
   let botCheck = { ok: false, error: 'TELEGRAM_BOT_TOKEN not configured' };
   let chatCheck = { ok: false, error: 'TELEGRAM_CHAT_ID not configured' };
   let memberCheck = { ok: false, error: 'bot unavailable' };
+  let webhookCheck = { ok: false, error: 'bot unavailable' };
 
   if (TOKEN && CHAT_ID) {
     botCheck = await telegramSafe('getMe');
     chatCheck = await telegramSafe('getChat', { chat_id: CHAT_ID });
     memberCheck = botCheck.ok ? await telegramSafe('getChatMember', { chat_id: CHAT_ID, user_id: botCheck.result.id }) : { ok: false, error: 'bot unavailable' };
+    webhookCheck = botCheck.ok ? await clearWebhookBeforePolling() : { ok: false, error: 'bot unavailable' };
     updates = await getUpdatesWithWebhookRecovery({
       offset,
       timeout: 0,
@@ -463,9 +476,20 @@ async function main() {
     time_zone: PAKISTAN_TIME_ZONE,
     offset,
     expected_chat_id: CHAT_ID,
-    bot: botCheck.ok ? { id: botCheck.result.id, username: botCheck.result.username } : { error: botCheck.error },
+    bot: botCheck.ok ? {
+      id: botCheck.result.id,
+      username: botCheck.result.username,
+      can_join_groups: botCheck.result.can_join_groups,
+      can_read_all_group_messages: botCheck.result.can_read_all_group_messages
+    } : { error: botCheck.error },
     chat: chatCheck.ok ? { id: String(chatCheck.result.id), type: chatCheck.result.type, title: chatCheck.result.title || '', username: chatCheck.result.username || '' } : { error: chatCheck.error },
     bot_member: memberCheck.ok ? { status: memberCheck.result.status, can_post_messages: Boolean(memberCheck.result.can_post_messages) } : { error: memberCheck.error },
+    webhook: webhookCheck.ok ? {
+      active: Boolean(webhookCheck.result.url),
+      pending_update_count: webhookCheck.result.pending_update_count,
+      last_error_date: webhookCheck.result.last_error_date || 0,
+      last_error_message: webhookCheck.result.last_error_message || ''
+    } : { error: webhookCheck.error },
     updates_count: updates.length,
     results: []
   };
@@ -541,6 +565,11 @@ async function main() {
   else console.log(`Telegram chat check failed: ${chatCheck.error}`);
   if (memberCheck.ok) console.log(`Bot member status: ${memberCheck.result.status}`);
   else console.log(`Bot member check failed: ${memberCheck.error}`);
+  if (botCheck.ok && botCheck.result.can_read_all_group_messages === false && chatCheck.ok && /group$/i.test(chatCheck.result.type || '')) {
+    console.log('Bot privacy appears enabled; disable privacy in BotFather if normal group messages should become tracker updates.');
+  }
+  if (webhookCheck.ok) console.log(`Telegram webhook active after recovery: ${Boolean(webhookCheck.result.url)}; pending updates: ${webhookCheck.result.pending_update_count}`);
+  else console.log(`Telegram webhook check failed: ${webhookCheck.error}`);
   setOutput('added_count', added.length);
 }
 
