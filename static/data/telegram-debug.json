@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-08T08:28:26.206Z",
+  "checked_at": "2026-06-08T09:57:18.490Z",
   "current_day_pakistan": "2026-06-08",
   "archive_days": 30,
   "archive_start": "2026-05-10",
@@ -9,7 +9,7 @@
   "imported_count": 42,
   "removed_test_count": 0,
   "time_zone": "Asia/Karachi",
-  "offset": 828254861,
+  "offset": 828254903,
   "expected_chat_id": "-1003994704651",
   "bot": {
     "id": 8885884978,
@@ -33,49 +33,6 @@
     "last_error_date": 0,
     "last_error_message": ""
   },
-  "updates_count": 2,
-  "results": [
-    {
-      "update_id": 828254901,
-      "type": "message",
-      "reason": "added",
-      "chat_id": "-1003994704651",
-      "chat_type": "supergroup",
-      "message_id": 50,
-      "message_date_utc": "2026-06-08T08:07:49.000Z",
-      "message_date_pakistan": "2026-06-08",
-      "has_text": true,
-      "field_keys": [
-        "district",
-        "province",
-        "type",
-        "killed",
-        "injured",
-        "actor",
-        "summary",
-        "source"
-      ]
-    },
-    {
-      "update_id": 828254902,
-      "type": "message",
-      "reason": "added",
-      "chat_id": "-1003994704651",
-      "chat_type": "supergroup",
-      "message_id": 51,
-      "message_date_utc": "2026-06-08T08:10:45.000Z",
-      "message_date_pakistan": "2026-06-08",
-      "has_text": true,
-      "field_keys": [
-        "district",
-        "province",
-        "type",
-        "killed",
-        "injured",
-        "actor",
-        "summary",
-        "source"
-      ]
-    }
-  ]
+  "updates_count": 0,
+  "results": []
 }
