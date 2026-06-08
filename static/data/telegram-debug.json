@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-08T05:10:32.739Z",
+  "checked_at": "2026-06-08T08:28:26.206Z",
   "current_day_pakistan": "2026-06-08",
   "archive_days": 30,
   "archive_start": "2026-05-10",
@@ -13,7 +13,9 @@
   "expected_chat_id": "-1003994704651",
   "bot": {
     "id": 8885884978,
-    "username": "TGDIncidentFeedBot"
+    "username": "TGDIncidentFeedBot",
+    "can_join_groups": true,
+    "can_read_all_group_messages": false
   },
   "chat": {
     "id": "-1003994704651",
@@ -25,6 +27,55 @@
     "status": "administrator",
     "can_post_messages": false
   },
-  "updates_count": 0,
-  "results": []
+  "webhook": {
+    "active": false,
+    "pending_update_count": 2,
+    "last_error_date": 0,
+    "last_error_message": ""
+  },
+  "updates_count": 2,
+  "results": [
+    {
+      "update_id": 828254901,
+      "type": "message",
+      "reason": "added",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 50,
+      "message_date_utc": "2026-06-08T08:07:49.000Z",
+      "message_date_pakistan": "2026-06-08",
+      "has_text": true,
+      "field_keys": [
+        "district",
+        "province",
+        "type",
+        "killed",
+        "injured",
+        "actor",
+        "summary",
+        "source"
+      ]
+    },
+    {
+      "update_id": 828254902,
+      "type": "message",
+      "reason": "added",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 51,
+      "message_date_utc": "2026-06-08T08:10:45.000Z",
+      "message_date_pakistan": "2026-06-08",
+      "has_text": true,
+      "field_keys": [
+        "district",
+        "province",
+        "type",
+        "killed",
+        "injured",
+        "actor",
+        "summary",
+        "source"
+      ]
+    }
+  ]
 }
