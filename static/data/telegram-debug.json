@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-08T09:57:18.490Z",
+  "checked_at": "2026-06-08T14:17:56.455Z",
   "current_day_pakistan": "2026-06-08",
   "archive_days": 30,
   "archive_start": "2026-05-10",
@@ -29,7 +29,7 @@
   },
   "webhook": {
     "active": false,
-    "pending_update_count": 2,
+    "pending_update_count": 0,
     "last_error_date": 0,
     "last_error_message": ""
   },
