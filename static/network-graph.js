@@ -28,36 +28,48 @@
 
   const STORY_MODES = {
     overview: {
+      label: 'Overview',
       note: 'Each circle is an actor or organisation. Lines show leadership, affiliation, rivalry, operational links, and succession. Click any node to open the profile context.',
       summary: 'Start with the overview, then choose a guided view to follow one network at a time.',
+      action: 'Click a circle to open profile context. Use guided views to follow one network at a time.',
     },
     alqaeda: {
+      label: 'Al-Qaeda network',
       note: 'This guided view highlights al-Qaeda, its senior figures, affiliates, and linked theatres.',
       summary: 'Al-Qaeda view: founders, command relationships, affiliates, and linked movements.',
+      action: 'Follow founder, command, affiliate, and regional extension lines around al-Qaeda.',
       seeds: ['org-al-qaeda'],
       terms: ['al-qaeda', 'aq ', 'aqi', 'jnim', 'al-shabaab', 'zawahiri', 'bin laden'],
     },
     'islamic-state': {
+      label: 'Islamic State',
       note: 'This guided view follows Islamic State, ISKP, predecessor links, and rival recruitment spaces.',
       summary: 'Islamic State view: central command, ISKP, precursor links, and contested networks.',
+      action: 'Look for predecessor, province, command, and rivalry lines around IS and ISKP.',
       seeds: ['org-islamic-state', 'org-iskp'],
       terms: ['islamic state', 'iskp', 'isis', 'khorasan', 'baghdadi', 'zarqawi'],
     },
     'south-asia': {
+      label: 'Pakistan / South Asia',
       note: 'This guided view narrows the map to Pakistan, Afghanistan, and the South Asia threat ecosystem.',
       summary: 'South Asia view: Pakistan-focused groups, ISKP, TTP, BLA, and regional links.',
+      action: 'Compare Pakistan-focused organisations, ISKP links, and rivalry patterns.',
       regions: ['South Asia'],
       terms: ['pakistan', 'afghanistan', 'ttp', 'iskp', 'balochistan', 'kashmir', 'jem', 'lashkar'],
     },
     africa: {
+      label: 'African theatres',
       note: 'This guided view follows African theatres, including al-Shabaab, JNIM, Boko Haram, and LRA links.',
       summary: 'African theatres: Horn of Africa, West Africa, Central Africa, and affiliate relationships.',
+      action: 'Use the affiliate and command lines to compare theatres across the continent.',
       regions: ['Horn of Africa', 'West Africa', 'Central Africa'],
       terms: ['al-shabaab', 'jnim', 'boko haram', 'lra', 'somalia', 'sahel', 'mali', 'uganda'],
     },
     'lone-actors': {
+      label: 'Lone actors',
       note: 'This guided view isolates lone-actor and inspiration links in the public profile database.',
       summary: 'Lone actor view: individual attack profiles and inspiration pathways.',
+      action: 'Open individual profiles to read the inspiration pathway and status context.',
       terms: ['lone actor', 'far-right', 'mcveigh', 'breivik', 'inspiration'],
     },
   };
@@ -1015,10 +1027,20 @@
 
     function updateStats() {
       const el = root.querySelector('[data-network-stats]');
-      if (!el) return;
       const vn = nodes.filter(n => n._visible).length;
       const ve = edges.filter(e => e._visible).length;
-      el.textContent = `${vn} actors · ${ve} connections · Live`;
+      if (el) el.textContent = `${vn} actors · ${ve} connections · Live`;
+      updateCanvasCallout(vn, ve);
+    }
+
+    function updateCanvasCallout(vn, ve) {
+      const cfg = STORY_MODES[activeStory] || STORY_MODES.overview;
+      const kicker = root.querySelector('[data-network-callout-kicker]');
+      const title = root.querySelector('[data-network-callout-title]');
+      const body = root.querySelector('[data-network-callout-body]');
+      if (kicker) kicker.textContent = cfg.label || 'Overview';
+      if (title) title.textContent = `${vn} actors · ${ve} connections visible`;
+      if (body) body.textContent = cfg.action || STORY_MODES.overview.action;
     }
 
     function focusVisibleNodes() {

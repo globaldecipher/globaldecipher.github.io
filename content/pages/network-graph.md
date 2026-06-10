@@ -61,6 +61,11 @@ extra_head: '<link rel="stylesheet" href="/assets/network-graph.css">'
       </div>
     </div>
     <div class="network-canvas-wrap">
+      <div class="network-canvas-callout" data-network-canvas-callout>
+        <span data-network-callout-kicker>Overview</span>
+        <strong data-network-callout-title>29 actors · 34 connections visible</strong>
+        <p data-network-callout-body>Click a circle to open profile context. Use guided views to follow one network at a time.</p>
+      </div>
       <canvas id="network-canvas"></canvas>
       <div class="network-tooltip" data-network-tooltip hidden></div>
       <div class="network-minimap"><canvas id="network-minimap-canvas"></canvas></div>
