@@ -25,6 +25,7 @@ const NAV = [
   ["Opinion", "/opinion/"],
   ["Monitoring", "/monitoring/"],
   ["Incident Map", "/incident-map/"],
+  ["Network Graph", "/network-graph/"],
   ["Reports", "/reports/"],
   ["Profiles", "/profiles/"],
   ["Contact", "/contact/"]
