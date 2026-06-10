@@ -13,11 +13,11 @@ extra_head: '<link rel="stylesheet" href="/assets/network-graph.css?v=20260610-g
     <div>
       <p class="network-kicker">TGD NETWORK INTELLIGENCE</p>
       <h2>READ THE NETWORK</h2>
-      <p class="network-note" data-network-note>Each circle is an actor or organisation. Lines show leadership, affiliation, rivalry, operational links, and succession. Click any node to open the profile context.</p>
+      <p class="network-note" id="network-description" data-network-note>Each circle is an actor or organisation. Lines show leadership, affiliation, rivalry, operational links, and succession. Click any node to open the profile context.</p>
       <div class="network-credibility">Built from TGD public-source profile records. Public research only; no operational guidance.</div>
     </div>
     <div class="network-live-stack">
-      <div class="network-status"><span class="network-pulse"></span><span data-network-stats>Initializing</span></div>
+      <div class="network-status" role="status" aria-live="polite"><span class="network-pulse"></span><span data-network-stats>Initializing</span></div>
       <p data-network-story-summary>Start with the overview, then choose a guided view to follow one network at a time.</p>
     </div>
   </div>
@@ -66,7 +66,7 @@ extra_head: '<link rel="stylesheet" href="/assets/network-graph.css?v=20260610-g
         <strong data-network-callout-title>29 actors · 34 connections visible</strong>
         <p data-network-callout-body>Click a circle to open profile context. Use guided views to follow one network at a time.</p>
       </div>
-      <canvas id="network-canvas"></canvas>
+      <canvas id="network-canvas" role="img" aria-describedby="network-description" aria-label="Interactive network graph of militant actors and organisations"></canvas>
       <div class="network-tooltip" data-network-tooltip hidden></div>
       <div class="network-minimap"><canvas id="network-minimap-canvas"></canvas></div>
       <div class="network-zoom-controls">

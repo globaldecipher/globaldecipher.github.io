@@ -139,6 +139,7 @@ function inlineMarkdown(text) {
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  out = out.replace(/\[([^\]]+)\]\((mailto:[^)]+)\)/g, '<a href="$2">$1</a>');
   out = out.replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2">$1</a>');
   // Re-allow stored image tags to keep raw src/alt (escapeHtml only ran on text input).
   return out;
@@ -310,7 +311,8 @@ function readCollection(collection) {
     .map((file) => {
       const filePath = path.join(dir, file);
       const parsed = parseFrontMatter(filePath);
-      const slug = parsed.data.slug || slugify(file.replace(/\.md$/, ""));
+      const slug = slugify(parsed.data.slug || file.replace(/\.md$/, ""));
+      if (!slug) throw new Error(`Could not create a valid slug for ${filePath}`);
       return {
         ...parsed.data,
         collection,
@@ -618,6 +620,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </div>
       <div>
         <h2>Editorial</h2>
+        <a href="${linkFor("/methodology/", pagePath)}">Methodology</a>
         <a href="${linkFor("/corrections-policy/", pagePath)}">Corrections</a>
         <a href="${linkFor("/privacy-policy/", pagePath)}">Privacy</a>
       </div>
@@ -686,10 +689,10 @@ function filterToolbar(types = []) {
 
 function pillarStrip() {
   const items = [
-    { icon: "whatsapp", num: "1,770+", label: "WhatsApp subscribers", url: SITE.whatsapp },
-    { icon: "x", num: "533", label: "Followers on X", url: SITE.x },
+    { icon: "whatsapp", num: "WhatsApp", label: "Briefing channel", url: SITE.whatsapp },
+    { icon: "x", num: "X", label: "Public updates", url: SITE.x },
     { icon: "book", num: "Substack", label: "Long-form analysis", url: SITE.substack },
-    { icon: "mail", num: "Pitch us", label: "globaldecipher@gmail.com", url: `mailto:${SITE.email}?subject=TGD%20pitch` }
+    { icon: "mail", num: "Pitch us", label: "Contact the desk", url: linkFor("/contact/", "/") }
   ];
   const cells = items.map(
     (s) => `<a class="pillar" href="${s.url}"${/^https?:\/\//.test(s.url) ? ' target="_blank" rel="noopener"' : ""}>
@@ -796,7 +799,7 @@ function pitchBand() {
         <p class="band-eyebrow">Pitch the desk</p>
         <h2>Got a <em>tip</em>, document, or story?</h2>
         <p>We work with researchers, journalists, and on-the-ground sources. Source identities are protected. We verify before we publish.</p>
-        <a class="button primary" href="mailto:${SITE.email}?subject=TGD%20pitch">Email the desk <span class="arrow">→</span></a>
+        <a class="button primary" href="${linkFor("/contact/", "/")}">Contact the desk <span class="arrow">→</span></a>
       </div>
       <aside class="pitch-card">
         <p class="label">Pitch &amp; contact</p>
@@ -1072,7 +1075,7 @@ function articleTemplate(item, allItems) {
       ? `<aside class="premium-cta">
           <h2>Request full access</h2>
           <p>This is a public preview. Full Monitoring Desk notes and premium reports are handled manually for subscribers and institutional clients.</p>
-          <a class="button primary" href="mailto:${SITE.email}?subject=TGD%20Premium%20Access%20Request">Contact TGD</a>
+          <a class="button primary" href="${linkFor("/contact/", item.url)}">Contact TGD</a>
         </aside>`
       : "";
   const body = `<section class="article-hero">
@@ -1200,7 +1203,7 @@ ${urls
   fs.writeFileSync(
     path.join(OUT_DIR, "search-index.json"),
     JSON.stringify(
-      items.map(({ title, summary, type, region, category, tags, url, date, access }) => ({
+      [...items, ...pages].map(({ title, summary, type, region, category, tags, url, date, access }) => ({
         title,
         summary,
         type,

@@ -50,9 +50,19 @@
   const navToggle = $("[data-nav-toggle]");
   const nav = $("#site-nav");
   if (navToggle && nav) {
-    navToggle.addEventListener("click", () => {
-      const open = nav.classList.toggle("open");
+    const setNavOpen = (open) => {
+      nav.classList.toggle("open", open);
       navToggle.setAttribute("aria-expanded", String(open));
+      navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    };
+    navToggle.addEventListener("click", () => {
+      setNavOpen(!nav.classList.contains("open"));
+    });
+    nav.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setNavOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && nav.classList.contains("open")) setNavOpen(false);
     });
   }
 
@@ -64,6 +74,14 @@
     const results = $("[data-site-search-results]", searchPanel);
     let index = [];
     let loaded = false;
+
+    const escapeHtml = (value = "") =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 
     const linkFor = (url) => {
       const base = searchPanel.dataset.searchIndex || "search-index.json";
@@ -84,10 +102,10 @@
         })
         .filter((entry) => entry.hit)
         .slice(0, 8)
-        .map(({ item }) => `<a href="${linkFor(item.url)}">
-          <span>${item.type || "item"} · ${item.region || item.category || "Global"}</span>
-          <strong>${item.title}</strong>
-          <small>${item.summary || ""}</small>
+        .map(({ item }) => `<a href="${escapeHtml(linkFor(item.url))}">
+          <span>${escapeHtml(item.type || "item")} · ${escapeHtml(item.region || item.category || "Global")}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.summary || "")}</small>
         </a>`)
         .join("");
       results.innerHTML = matches || `<p>No matching research found.</p>`;
@@ -98,6 +116,7 @@
       loaded = true;
       try {
         const res = await fetch(searchPanel.dataset.searchIndex || "search-index.json");
+        if (!res.ok) throw new Error(`Search index returned ${res.status}`);
         index = await res.json();
       } catch {
         index = [];

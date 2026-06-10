@@ -1029,7 +1029,7 @@
       const el = root.querySelector('[data-network-stats]');
       const vn = nodes.filter(n => n._visible).length;
       const ve = edges.filter(e => e._visible).length;
-      if (el) el.textContent = `${vn} actors · ${ve} connections · Live`;
+      if (el) el.textContent = `${vn} actors · ${ve} connections · Interactive`;
       updateCanvasCallout(vn, ve);
     }
 

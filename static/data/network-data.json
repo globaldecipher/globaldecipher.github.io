@@ -108,7 +108,7 @@
       "type": "individual",
       "org": "Jaish-e-Mohammed",
       "region": "South Asia",
-      "status": "Wanted",
+      "status": "Uncertain",
       "role": "JeM Founder",
       "summary": "Founder of Jaish-e-Mohammed. Linked to the 2001 Indian Parliament attack and the 2019 Pulwama attack.",
       "url": "/profiles/masood-azhar/",
@@ -122,9 +122,9 @@
       "region": "South Asia",
       "status": "In custody",
       "role": "ISKP Cell Commander",
-      "summary": "Arrested in connection with ISKP-linked attack planning in the U.S. Highlights Islamic State's reach into South Asian diaspora networks.",
+      "summary": "Afghan ISIS-K operative captured in Pakistan in 2025 and convicted in U.S. federal court in April 2026 for participating in a material-support conspiracy tied to the Abbey Gate attack and other ISIS-K operations.",
       "url": "/profiles/mohammad-sharifullah/",
-      "tags": ["ISKP", "Islamic State", "United States", "Bangladesh"]
+      "tags": ["ISIS-K", "Abbey Gate", "Pakistan", "United States"]
     },
     {
       "id": "sanaullah-ghafari",
@@ -132,7 +132,7 @@
       "type": "individual",
       "org": "ISKP",
       "region": "South Asia",
-      "status": "Wanted",
+      "status": "Uncertain",
       "role": "ISKP Emir",
       "summary": "Appointed emir of Islamic State Khorasan Province around mid-2020. Subject to U.S. Rewards for Justice bounty.",
       "url": "/profiles/sanaullah-ghafari-shahab-al-muhajir/",
