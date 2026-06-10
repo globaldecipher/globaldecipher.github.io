@@ -1,14 +1,35 @@
 /* ══════════════════════════════════════════════════════════
-   TGD Network Graph v3 — Full-width immersive layout
+   TGD Network Graph v4 - Guided public intelligence map
    ══════════════════════════════════════════════════════════ */
+
+/* ── Make the graph the page, not a buried embed ── */
+.section-hero:has(+ .article-band .network-graph-shell) {
+  padding: 16px 0 10px;
+}
+.section-hero:has(+ .article-band .network-graph-shell) h1 {
+  margin: 6px 0;
+  font-size: 2.45rem;
+}
+.section-hero:has(+ .article-band .network-graph-shell) p {
+  max-width: 880px;
+  font-size: 0.95rem;
+}
+.article-band:has(.network-graph-shell) {
+  padding: 10px 0 80px;
+}
 
 /* ── Break out of article constraints ── */
 .article-shell:has(.network-graph-shell) {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 1400px;
+  max-width: 1480px;
 }
 .article-body:has(.network-graph-shell) {
   font-family: var(--sans);
+}
+.article-body:has(.network-graph-shell) > p:first-of-type::first-letter {
+  content: none;
+  float: none;
+  padding: 0;
 }
 .article-body .article-embed:has(.network-graph-shell),
 .article-body .article-embed:has(.network-graph-shell) + .article-embed {
@@ -18,37 +39,69 @@
   margin: 0; padding: 0; border: 0;
   color: var(--fg);
   font-family: var(--sans);
-  font-size: clamp(2.2rem, 5vw, 5rem);
+  font-size: 2.55rem;
   font-weight: 950;
   line-height: 0.9;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 /* ── Shell ── */
 .network-graph-shell {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   color: var(--fg);
+}
+
+/* ── Primary tool layout ── */
+.network-workbench {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.network-control-rail {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.network-control-rail .network-reader-guide {
+  grid-template-columns: 1fr;
+}
+.network-control-rail .network-reader-guide div {
+  min-height: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+}
+.network-control-rail .network-reader-guide div:last-child { border-bottom: 0; }
+.network-control-rail .network-stats-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.network-control-rail .network-story-panel,
+.network-control-rail .network-toolbar {
+  grid-template-columns: 1fr;
+}
+.network-control-rail .network-legend-strip {
+  max-width: none;
 }
 
 /* ── Dashboard header ── */
 .network-dashboard-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(200px, 300px);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 340px);
+  gap: 20px;
   align-items: end;
-  min-height: 180px;
-  padding: 28px 24px 24px;
+  min-height: 104px;
+  padding: 14px;
   border: 1px solid var(--border);
   background:
-    linear-gradient(135deg, rgba(99, 102, 241, 0.06), transparent 48%),
+    linear-gradient(135deg, rgba(220, 38, 38, 0.08), transparent 52%),
     var(--surface);
 }
 html[data-theme="dark"] .network-dashboard-head {
   background:
-    linear-gradient(135deg, rgba(99, 102, 241, 0.08), transparent 48%),
-    rgba(15, 17, 23, 0.95);
+    linear-gradient(135deg, rgba(220, 38, 38, 0.12), transparent 52%),
+    rgba(12, 14, 20, 0.96);
 }
 .network-kicker {
   margin: 0 0 10px;
@@ -60,17 +113,34 @@ html[data-theme="dark"] .network-dashboard-head {
   text-transform: uppercase;
 }
 .network-note {
-  max-width: 700px;
-  margin: 14px 0 0;
+  max-width: 760px;
+  margin: 8px 0 0;
   color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.55;
+}
+.network-credibility {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  color: var(--fg);
+  background: rgba(220, 38, 38, 0.06);
   font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 1.7;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
   text-transform: uppercase;
 }
-.network-live-stack { display: grid; gap: 8px; }
+.network-live-stack {
+  display: grid;
+  gap: 8px;
+  align-content: end;
+}
 .network-status {
   display: inline-flex;
   align-items: center;
@@ -90,6 +160,12 @@ html[data-theme="dark"] .network-dashboard-head {
 html[data-theme="dark"] .network-status {
   background: rgba(30, 32, 40, 0.8);
 }
+.network-live-stack p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
 .network-pulse {
   width: 10px; height: 10px;
   flex: 0 0 auto;
@@ -103,6 +179,40 @@ html[data-theme="dark"] .network-status {
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
+/* ── Plain-language reader guide ── */
+.network-reader-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+html[data-theme="dark"] .network-reader-guide {
+  background: rgba(18, 20, 28, 0.9);
+}
+.network-reader-guide div {
+  min-height: 74px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+}
+.network-reader-guide div:last-child { border-right: 0; }
+.network-reader-guide strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.network-reader-guide span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 /* ── Stats strip ── */
 .network-stats-strip {
   display: grid;
@@ -110,8 +220,8 @@ html[data-theme="dark"] .network-status {
   gap: 10px;
 }
 .network-metric {
-  min-height: 85px;
-  padding: 14px;
+  min-height: 76px;
+  padding: 13px 14px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
@@ -132,7 +242,7 @@ html[data-theme="dark"] .network-metric {
   margin-top: 8px;
   color: var(--fg);
   font-family: var(--serif, 'Source Serif 4');
-  font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+  font-size: 2rem;
   font-weight: 950;
   line-height: 0.9;
 }
@@ -144,16 +254,72 @@ html[data-theme="dark"] .network-metric {
   line-height: 1.3;
 }
 
+/* ── Guided story modes ── */
+.network-story-panel {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 13px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+html[data-theme="dark"] .network-story-panel {
+  background: rgba(16, 18, 26, 0.9);
+}
+.network-story-panel strong {
+  display: block;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+.network-story-kicker {
+  margin: 0 0 4px;
+  color: var(--accent, #dc2626);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.network-story-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.network-story-buttons button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.network-story-buttons button:hover {
+  border-color: var(--accent, #dc2626);
+}
+.network-story-buttons button.is-active {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--bg);
+}
+
 /* ══════════════════════════════════════
    TOOLBAR — filters, tabs, legend
    All OUTSIDE the canvas
    ══════════════════════════════════════ */
 .network-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 16px;
   align-items: start;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
@@ -170,6 +336,7 @@ html[data-theme="dark"] .network-toolbar {
 .network-view-tabs {
   display: inline-flex;
   border: 1px solid var(--border);
+  width: fit-content;
 }
 .network-view-tabs button {
   min-height: 36px;
@@ -179,7 +346,7 @@ html[data-theme="dark"] .network-toolbar {
   background: transparent;
   color: var(--fg);
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -210,7 +377,7 @@ html[data-theme="dark"] .network-toolbar {
   text-transform: uppercase;
   color: var(--muted);
   min-width: 120px;
-  flex: 0 1 160px;
+  flex: 1 1 150px;
 }
 .network-filters-row select,
 .network-filters-row input {
@@ -241,7 +408,7 @@ html[data-theme="dark"] .network-filters-row input {
   gap: 4px 14px;
   align-items: center;
   align-content: start;
-  max-width: 320px;
+  max-width: 360px;
 }
 .network-legend-title {
   width: 100%;
@@ -284,17 +451,20 @@ html[data-theme="dark"] .network-filters-row input {
    ══════════════════════════════════════ */
 .network-canvas-wrap {
   position: relative;
-  height: clamp(500px, 75vh, 1000px);
+  height: clamp(520px, 68vh, 900px);
   overflow: hidden;
   border: 1px solid var(--border);
   background:
+    linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0.12)),
     radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 0.5px, transparent 0.5px);
   background-size: 28px 28px;
 }
 html[data-theme="dark"] .network-canvas-wrap {
   background:
-    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 0.5px, transparent 0.5px);
-  background-size: 28px 28px;
+    linear-gradient(180deg, rgba(17, 24, 39, 0.5), rgba(9, 12, 16, 0.2)),
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 0.5px, transparent 0.5px),
+    #090c10;
+  background-size: auto, 28px 28px, auto;
   border-color: rgba(255,255,255,0.06);
 }
 #network-canvas {
@@ -367,8 +537,8 @@ html[data-theme="dark"] .network-zoom-controls button {
   position: absolute;
   z-index: 30;
   min-width: 170px;
-  max-width: 280px;
-  padding: 10px 14px;
+  max-width: 320px;
+  padding: 11px 14px;
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(16px);
@@ -386,6 +556,11 @@ html[data-theme="dark"] .network-tooltip {
   box-shadow: 0 8px 32px rgba(0,0,0,0.55);
 }
 .network-tooltip strong { font-weight: 700; font-size: 0.88rem; }
+.network-tooltip span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
 .network-tooltip em {
   font-style: normal;
   font-family: var(--mono);
@@ -446,14 +621,43 @@ html[data-theme="dark"] .network-detail-panel.is-open {
   padding: 16px 18px;
   border-bottom: 1px solid var(--border);
 }
+.network-detail-panel .detail-section:first-of-type {
+  padding-top: 20px;
+}
 .network-detail-panel h3 {
   font-family: var(--sans);
-  font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+  font-size: 1.55rem;
   font-weight: 950;
   line-height: 1.05;
   margin: 0 0 8px;
   padding-right: 2.5rem;
   color: var(--fg);
+}
+.network-detail-type {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent, #dc2626);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.network-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.network-detail-tags span {
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ── Status badges ── */
@@ -503,6 +707,16 @@ html[data-theme="dark"] .network-detail-panel dl > div {
   color: var(--muted);
   margin: 0;
 }
+.network-detail-summary strong {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 .network-detail-panel h4 {
   font-family: var(--mono);
   font-size: 0.6rem; font-weight: 950;
@@ -516,8 +730,8 @@ html[data-theme="dark"] .network-detail-panel dl > div {
   display: grid; gap: 0;
 }
 .network-detail-connections li {
-  display: grid; gap: 2px;
-  padding: 6px 0;
+  display: grid; gap: 5px;
+  padding: 9px 0;
   border-bottom: 1px solid rgba(0,0,0,0.04);
 }
 html[data-theme="dark"] .network-detail-connections li {
@@ -531,7 +745,7 @@ html[data-theme="dark"] .network-detail-connections li {
   cursor: pointer; text-align: left;
   transition: color 0.12s;
 }
-.network-detail-link:hover { color: var(--accent, #6366f1); }
+.network-detail-link:hover { color: var(--accent, #dc2626); }
 .network-detail-connections small {
   font-family: var(--mono);
   font-size: 0.6rem; font-weight: 700;
@@ -539,10 +753,17 @@ html[data-theme="dark"] .network-detail-connections li {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.network-relationship-context {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
 .network-detail-profile {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 40px;
+  width: 100%;
   font-family: var(--mono);
   font-size: 0.7rem; font-weight: 950;
   letter-spacing: 0.08em;
@@ -559,17 +780,61 @@ html[data-theme="dark"] .network-detail-connections li {
    RESPONSIVE
    ══════════════════════════════ */
 @media (max-width: 900px) {
+  .section-hero:has(+ .article-band .network-graph-shell) {
+    display: none;
+  }
+  .section-hero:has(+ .article-band .network-graph-shell) h1 {
+    font-size: 2.7rem;
+  }
+  .article-band:has(.network-graph-shell) {
+    padding-top: 12px;
+  }
   .network-dashboard-head {
     grid-template-columns: 1fr;
     min-height: auto;
     padding: 18px;
     gap: 14px;
   }
+  .network-workbench {
+    grid-template-columns: 1fr;
+  }
+  .network-canvas-wrap {
+    order: -1;
+  }
   .network-stats-strip {
     grid-template-columns: repeat(2, 1fr);
   }
+  .network-reader-guide {
+    grid-template-columns: 1fr;
+  }
+  .network-reader-guide div {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .network-reader-guide div:last-child { border-bottom: 0; }
+  .network-story-panel {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .network-story-buttons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .network-story-buttons button {
+    flex: 0 0 auto;
+  }
   .network-toolbar {
     grid-template-columns: 1fr;
+  }
+  .network-view-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+  }
+  .network-view-tabs button {
+    padding: 0 8px;
   }
   .network-legend-strip {
     max-width: none;
@@ -596,7 +861,20 @@ html[data-theme="dark"] .network-detail-connections li {
     grid-template-columns: 1fr 1fr;
   }
   .article-body:has(.network-graph-shell) h2 {
-    font-size: clamp(1.5rem, 8vw, 2.4rem);
+    font-size: 2rem;
+    line-height: 1;
+  }
+  .network-dashboard-head {
+    padding: 16px;
+  }
+  .network-note {
+    font-size: 0.92rem;
+  }
+  .network-credibility {
+    width: auto;
+  }
+  .network-filters-row label {
+    flex-basis: 100%;
   }
   .network-minimap { display: none; }
 }

@@ -1,5 +1,5 @@
 /**
- * TGD Network Graph v3 – Spread-out, full-width force-directed graph
+ * TGD Network Graph v4 - guided public intelligence map
  * Vanilla JS · No dependencies · Retina-ready
  * ──────────────────────────────────────────────────────── */
 ;(function () {
@@ -23,23 +23,59 @@
   const PARTICLE_SPEED = 0.35;
   const PARTICLE_COUNT = 2;
 
-  const ORG_RADIUS  = { min: 32, max: 38 };
-  const IND_RADIUS  = { min: 18, max: 22 };
+  const ORG_RADIUS  = { min: 34, max: 42 };
+  const IND_RADIUS  = { min: 18, max: 23 };
+
+  const STORY_MODES = {
+    overview: {
+      note: 'Each circle is an actor or organisation. Lines show leadership, affiliation, rivalry, operational links, and succession. Click any node to open the profile context.',
+      summary: 'Start with the overview, then choose a guided view to follow one network at a time.',
+    },
+    alqaeda: {
+      note: 'This guided view highlights al-Qaeda, its senior figures, affiliates, and linked theatres.',
+      summary: 'Al-Qaeda view: founders, command relationships, affiliates, and linked movements.',
+      seeds: ['org-al-qaeda'],
+      terms: ['al-qaeda', 'aq ', 'aqi', 'jnim', 'al-shabaab', 'zawahiri', 'bin laden'],
+    },
+    'islamic-state': {
+      note: 'This guided view follows Islamic State, ISKP, predecessor links, and rival recruitment spaces.',
+      summary: 'Islamic State view: central command, ISKP, precursor links, and contested networks.',
+      seeds: ['org-islamic-state', 'org-iskp'],
+      terms: ['islamic state', 'iskp', 'isis', 'khorasan', 'baghdadi', 'zarqawi'],
+    },
+    'south-asia': {
+      note: 'This guided view narrows the map to Pakistan, Afghanistan, and the South Asia threat ecosystem.',
+      summary: 'South Asia view: Pakistan-focused groups, ISKP, TTP, BLA, and regional links.',
+      regions: ['South Asia'],
+      terms: ['pakistan', 'afghanistan', 'ttp', 'iskp', 'balochistan', 'kashmir', 'jem', 'lashkar'],
+    },
+    africa: {
+      note: 'This guided view follows African theatres, including al-Shabaab, JNIM, Boko Haram, and LRA links.',
+      summary: 'African theatres: Horn of Africa, West Africa, Central Africa, and affiliate relationships.',
+      regions: ['Horn of Africa', 'West Africa', 'Central Africa'],
+      terms: ['al-shabaab', 'jnim', 'boko haram', 'lra', 'somalia', 'sahel', 'mali', 'uganda'],
+    },
+    'lone-actors': {
+      note: 'This guided view isolates lone-actor and inspiration links in the public profile database.',
+      summary: 'Lone actor view: individual attack profiles and inspiration pathways.',
+      terms: ['lone actor', 'far-right', 'mcveigh', 'breivik', 'inspiration'],
+    },
+  };
 
   /* ───────── theme palettes ───────── */
   const THEMES = {
     light: {
-      bg: '#fafaf7', dot: 'rgba(0,0,0,0.045)', text: '#1a1a1a',
+      bg: '#fbfaf6', dot: 'rgba(0,0,0,0.04)', text: '#1a1a1a',
       muted: '#6b7280', border: '#d1d5db', surface: '#ffffff',
-      dimAlpha: 0.06, labelFill: '#1a1a1a', edgeAlpha: 0.4,
-      selGlow: 'rgba(99,102,241,0.35)', hoverRing: 'rgba(99,102,241,0.5)',
+      dimAlpha: 0.08, labelFill: '#1a1a1a', edgeAlpha: 0.34,
+      selGlow: 'rgba(220,38,38,0.35)', hoverRing: 'rgba(220,38,38,0.5)',
       particleAlpha: 0.6,
     },
     dark: {
-      bg: '#0d0f14', dot: 'rgba(255,255,255,0.03)', text: '#e5e7eb',
+      bg: '#090c10', dot: 'rgba(255,255,255,0.035)', text: '#e5e7eb',
       muted: '#9ca3af', border: '#374151', surface: '#1a1c24',
-      dimAlpha: 0.06, labelFill: '#e5e7eb', edgeAlpha: 0.45,
-      selGlow: 'rgba(129,140,248,0.4)', hoverRing: 'rgba(129,140,248,0.55)',
+      dimAlpha: 0.08, labelFill: '#e5e7eb', edgeAlpha: 0.5,
+      selGlow: 'rgba(248,113,113,0.4)', hoverRing: 'rgba(248,113,113,0.55)',
       particleAlpha: 0.75,
     },
   };
@@ -101,8 +137,9 @@
     let pointerDown = false, pointerMoved = false;
     let lastPointerPos = { x: 0, y: 0 };
     let theme = getTheme();
-    let viewMode = 'force';
+    let viewMode = 'clustered';
     let filterRegion = '', filterStatus = '', filterEdgeType = '', searchQuery = '';
+    let activeStory = 'overview';
     let layoutTransitionProgress = 1;
     let layoutTargets = null;
     const spatialHash = new SpatialHash(GRID_SIZE);
@@ -186,7 +223,9 @@
       buildLegend(data);
       populateStats();
       updateStats();
+      syncStoryButtons();
       applyFilters();
+      applyLayout(viewMode, true);
     }
 
     function initParticles() {
@@ -328,6 +367,7 @@
 
       temperature *= COOL_RATE;
       if (temperature < 0.008) temperature = 0.008;
+      if (viewMode !== 'force' && layoutTransitionProgress >= 1 && !layoutTargets && !dragNode) simRunning = false;
       if (totalEnergy < MIN_ENERGY && viewMode === 'force' && layoutTransitionProgress >= 1) simRunning = false;
     }
 
@@ -430,6 +470,7 @@
       ctx.stroke();
 
       drawArrow(a, b, bez.cpx, bez.cpy, color, alpha * p.edgeAlpha);
+      if (e === hoveredEdge) drawEdgeLabel(e, bez, p);
       ctx.setLineDash([]);
       ctx.restore();
     }
@@ -440,6 +481,31 @@
       const d = Math.sqrt(dx*dx+dy*dy) || 1;
       const off = Math.min(d*0.1, 40);
       return { cpx: mx + (-dy/d)*off, cpy: my + (dx/d)*off };
+    }
+
+    function drawEdgeLabel(e, bez, p) {
+      const label = edgeTypeMap[e.type]?.label || e.type || 'Relationship';
+      const full = e.label || label;
+      const text = full.length > 34 ? full.slice(0, 32) + '...' : full;
+      ctx.save();
+      ctx.font = "700 10px 'IBM Plex Mono', ui-monospace, monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const padX = 8;
+      const tw = ctx.measureText(text).width;
+      const boxW = Math.min(tw + padX * 2, 240);
+      const boxH = 24;
+      const x = bez.cpx;
+      const y = bez.cpy;
+      ctx.globalAlpha = 0.94;
+      ctx.fillStyle = p.surface;
+      ctx.strokeStyle = p.border;
+      ctx.lineWidth = 1;
+      ctx.fillRect(x - boxW / 2, y - boxH / 2, boxW, boxH);
+      ctx.strokeRect(x - boxW / 2, y - boxH / 2, boxW, boxH);
+      ctx.fillStyle = p.text;
+      ctx.fillText(text, x, y + 0.5, boxW - padX * 2);
+      ctx.restore();
     }
 
     function drawArrow(a, b, cpx, cpy, color, alpha) {
@@ -760,10 +826,11 @@
        ══════════════════════════════ */
     function updateTooltip(pos, node, edge) {
       if (node) {
-        tooltip.innerHTML = `<strong>${esc(node.label)}</strong>${node.org ? `<br><span style="opacity:.6">${esc(node.org)}</span>` : ''}${node.region ? `<br><span style="opacity:.5">${esc(node.region)}</span>` : ''}${node.status ? `<br><em>${esc(node.status)}</em>` : ''}`;
+        tooltip.innerHTML = `<strong>${esc(node.label)}</strong>${node.org ? `<span>${esc(node.org)}</span>` : ''}${node.region ? `<span>${esc(node.region)}</span>` : ''}${node.status ? `<br><em>${esc(node.status)}</em>` : ''}`;
         positionTooltip(pos); tooltip.style.display = 'block';
       } else if (edge) {
-        tooltip.innerHTML = `<strong>${esc(edge.label || edge.type)}</strong>`;
+        const relation = edgeTypeMap[edge.type]?.label || edge.type || 'Relationship';
+        tooltip.innerHTML = `<strong>${esc(edge.label || relation)}</strong><span>${esc(edge.sourceNode.label)} to ${esc(edge.targetNode.label)}</span><br><em>${esc(relation)}</em>`;
         positionTooltip(pos); tooltip.style.display = 'block';
       } else hideTooltip();
     }
@@ -788,32 +855,48 @@
         const other = e.sourceNode === n ? e.targetNode : e.sourceNode;
         connected.push({ node: other, edge: e });
       }
+      connected.sort((a, b) => {
+        const aOrg = a.node.type === 'organisation' ? 0 : 1;
+        const bOrg = b.node.type === 'organisation' ? 0 : 1;
+        return aOrg - bOrg || a.node.label.localeCompare(b.node.label);
+      });
       const statusClass = (n.status||'').toLowerCase().replace(/\s+/g,'-');
+      const typeLabel = n.type === 'organisation' ? 'Organisation' : 'Actor profile';
+      const relationTypes = [...new Set(connected.map(c => edgeTypeMap[c.edge.type]?.label || c.edge.type).filter(Boolean))].slice(0, 4);
+      const tags = Array.isArray(n.tags) ? n.tags.slice(0, 5) : [];
 
       detailPanel.innerHTML = `
         <button class="network-detail-close" aria-label="Close">&times;</button>
         <div class="detail-section">
+          <span class="network-detail-type">${esc(typeLabel)}</span>
           <h3>${esc(n.label)}</h3>
           ${n.status ? `<span class="network-status-badge status-${statusClass}">${esc(n.status)}</span>` : ''}
+          ${tags.length ? `<div class="network-detail-tags">${tags.map(tag => `<span>${esc(tag)}</span>`).join('')}</div>` : ''}
         </div>
         <div class="detail-section">
           <dl>
             ${n.org ? `<div><dt>Organisation</dt><dd>${esc(n.org)}</dd></div>` : ''}
             ${n.region ? `<div><dt>Region</dt><dd>${esc(n.region)}</dd></div>` : ''}
             ${n.role ? `<div><dt>Role</dt><dd>${esc(n.role)}</dd></div>` : ''}
+            <div><dt>Mapped links</dt><dd>${connected.length}</dd></div>
           </dl>
         </div>
-        ${n.summary ? `<div class="detail-section"><p class="network-detail-summary">${esc(n.summary)}</p></div>` : ''}
+        ${n.summary ? `<div class="detail-section"><p class="network-detail-summary"><strong>Why it matters</strong>${esc(n.summary)}</p></div>` : ''}
+        ${relationTypes.length ? `<div class="detail-section"><p class="network-detail-summary"><strong>Relationship types</strong>${relationTypes.map(esc).join(', ')}</p></div>` : ''}
         ${connected.length ? `<div class="detail-section">
           <h4>Connections (${connected.length})</h4>
           <ul class="network-detail-connections">
-            ${connected.map(c => `<li>
+            ${connected.slice(0, 9).map(c => {
+              const relation = edgeTypeMap[c.edge.type]?.label || c.edge.type || 'Relationship';
+              return `<li>
               <button class="network-detail-link" data-node-id="${esc(c.node.id)}">${esc(c.node.label)}</button>
-              <small>${esc(c.edge.label || c.edge.type)}</small>
-            </li>`).join('')}
+              <small>${esc(relation)}</small>
+              ${c.edge.label ? `<span class="network-relationship-context">${esc(c.edge.label)}</span>` : ''}
+            </li>`;
+            }).join('')}
           </ul>
         </div>` : ''}
-        ${n.url ? `<div class="detail-section"><a class="network-detail-profile" href="${esc(n.url)}">View full profile →</a></div>` : ''}
+        ${n.url ? `<div class="detail-section"><a class="network-detail-profile" href="${esc(n.url)}">Open full profile</a></div>` : ''}
       `;
 
       detailPanel.classList.add('is-open');
@@ -843,11 +926,72 @@
     const searchInput = root.querySelector('[data-network-search]');
     if (searchInput) searchInput.addEventListener('input', debounce(() => { searchQuery = searchInput.value.trim().toLowerCase(); applyFilters(); }, 200));
 
+    root.querySelectorAll('[data-story-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeStory = btn.dataset.storyMode || 'overview';
+        clearManualFilters();
+        syncStoryButtons();
+        applyFilters();
+        applyLayout('clustered');
+        focusVisibleNodes();
+      });
+    });
+
+    function clearManualFilters() {
+      filterRegion = '';
+      filterStatus = '';
+      filterEdgeType = '';
+      searchQuery = '';
+      root.querySelectorAll('[data-filter]').forEach(el => { el.value = ''; });
+      if (searchInput) searchInput.value = '';
+    }
+
+    function syncStoryButtons() {
+      root.querySelectorAll('[data-story-mode]').forEach(btn => {
+        btn.classList.toggle('is-active', (btn.dataset.storyMode || 'overview') === activeStory);
+      });
+      updateStoryCopy();
+    }
+
+    function updateStoryCopy() {
+      const cfg = STORY_MODES[activeStory] || STORY_MODES.overview;
+      const note = root.querySelector('[data-network-note]');
+      const summary = root.querySelector('[data-network-story-summary]');
+      if (note) note.textContent = cfg.note;
+      if (summary) summary.textContent = cfg.summary;
+    }
+
+    function storyNodeIds() {
+      const cfg = STORY_MODES[activeStory];
+      if (!cfg || activeStory === 'overview') return null;
+      const ids = new Set();
+      for (const n of nodes) {
+        if (nodeMatchesStory(n, cfg)) ids.add(n.id);
+      }
+      for (const e of edges) {
+        if (ids.has(e.source) || ids.has(e.target)) {
+          ids.add(e.source);
+          ids.add(e.target);
+        }
+      }
+      return ids;
+    }
+
+    function nodeMatchesStory(n, cfg) {
+      if ((cfg.seeds || []).includes(n.id)) return true;
+      if ((cfg.regions || []).includes(n.region)) return true;
+      const hay = `${n.id} ${n.label} ${n.org || ''} ${n.region || ''} ${n.role || ''} ${n.summary || ''} ${(n.tags || []).join(' ')}`.toLowerCase();
+      return (cfg.terms || []).some(term => hay.includes(term.toLowerCase()));
+    }
+
     function applyFilters() {
-      const has = filterRegion || filterStatus || filterEdgeType || searchQuery;
+      const storyIds = storyNodeIds();
+      const hasStory = !!storyIds;
+      const has = hasStory || filterRegion || filterStatus || filterEdgeType || searchQuery;
       for (const n of nodes) {
         if (!has) { n._visible = true; n._alpha = 1; continue; }
         let match = true;
+        if (hasStory && !storyIds.has(n.id)) match = false;
         if (filterRegion && (n.region||'').toLowerCase() !== filterRegion.toLowerCase()) match = false;
         if (filterStatus && (n.status||'').toLowerCase() !== filterStatus.toLowerCase()) match = false;
         if (searchQuery) {
@@ -860,11 +1004,13 @@
       for (const e of edges) {
         if (!has) { e._visible = true; e._alpha = 1; continue; }
         let m = e.sourceNode._visible && e.targetNode._visible;
+        if (hasStory) m = storyIds.has(e.source) && storyIds.has(e.target);
         if (filterEdgeType && e.type !== filterEdgeType) m = false;
         e._visible = m;
         e._alpha = m ? 1 : THEMES[theme].dimAlpha;
       }
       updateStats();
+      updateStoryCopy();
     }
 
     function updateStats() {
@@ -873,6 +1019,17 @@
       const vn = nodes.filter(n => n._visible).length;
       const ve = edges.filter(e => e._visible).length;
       el.textContent = `${vn} actors · ${ve} connections · Live`;
+    }
+
+    function focusVisibleNodes() {
+      const visible = nodes.filter(n => n._visible);
+      if (!visible.length) return;
+      const cx = visible.reduce((sum, n) => sum + (layoutTargets?.[n.id]?.x || n.x), 0) / visible.length;
+      const cy = visible.reduce((sum, n) => sum + (layoutTargets?.[n.id]?.y || n.y), 0) / visible.length;
+      panX = -(cx - W/2);
+      panY = -(cy - H/2);
+      targetZoom = visible.length <= 8 ? 1.24 : 1;
+      reheat();
     }
 
     /* ══════════════════════════════
@@ -889,37 +1046,85 @@
       });
     });
 
-    function applyLayout(mode) {
+    function applyLayout(mode, immediate = false) {
+      viewMode = mode;
+      root.querySelectorAll('[data-view-mode]').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.viewMode === mode);
+      });
       layoutTargets = {};
-      layoutTransitionProgress = 0;
-      if (mode === 'hierarchical') layoutHierarchical();
-      else if (mode === 'radial') layoutRadial();
+      layoutTransitionProgress = immediate ? 1 : 0;
+      if (mode === 'clustered' || mode === 'hierarchical') layoutClustered();
+      else if (mode === 'regional' || mode === 'radial') layoutRadial();
       else { for (const n of nodes) n.pinned = false; layoutTargets = null; layoutTransitionProgress = 1; temperature = 0.8; simRunning = true; return; }
+      for (const n of nodes) n.pinned = true;
+      if (immediate) {
+        for (const n of nodes) {
+          const target = layoutTargets[n.id];
+          if (!target) continue;
+          n.x = target.x;
+          n.y = target.y;
+          n.vx = 0;
+          n.vy = 0;
+        }
+        layoutTargets = null;
+      }
       simRunning = true;
       temperature = 0.008;
     }
 
-    function layoutHierarchical() {
-      const orgs = nodes.filter(n => n.type === 'organisation');
+    function layoutClustered() {
+      const orgs = nodes
+        .filter(n => n.type === 'organisation')
+        .sort((a, b) => b._connections.length - a._connections.length);
       const inds = nodes.filter(n => n.type !== 'organisation');
       const cx = W/2, cy = H/2;
       orgs.forEach((n, i) => {
-        const a = (2*Math.PI*i)/(orgs.length||1);
-        const r = Math.min(W,H)*0.18;
-        layoutTargets[n.id] = { x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r };
+        if (i === 0) {
+          layoutTargets[n.id] = { x: cx, y: cy };
+          return;
+        }
+        const a = -Math.PI/2 + (2*Math.PI*(i-1))/(Math.max(1, orgs.length-1));
+        const r = Math.min(W,H)*0.26;
+        layoutTargets[n.id] = { x: cx+Math.cos(a)*r*1.35, y: cy+Math.sin(a)*r*0.82 };
       });
-      const groups = {};
-      inds.forEach(n => { const k = n.org||'__none__'; if (!groups[k]) groups[k]=[]; groups[k].push(n); });
-      Object.entries(groups).forEach(([key, members]) => {
-        let ocx = cx, ocy = cy;
-        const orgNode = nodes.find(o => o.type === 'organisation' && o.label === key);
-        if (orgNode && layoutTargets[orgNode.id]) { ocx = layoutTargets[orgNode.id].x; ocy = layoutTargets[orgNode.id].y; }
-        const ring = Math.min(W,H)*0.32;
+
+      const groups = new Map();
+      const loose = [];
+      inds.forEach(n => {
+        const orgNode = primaryOrgFor(n, orgs);
+        if (!orgNode) { loose.push(n); return; }
+        if (!groups.has(orgNode.id)) groups.set(orgNode.id, []);
+        groups.get(orgNode.id).push(n);
+      });
+
+      groups.forEach((members, orgId) => {
+        const orgTarget = layoutTargets[orgId] || { x: cx, y: cy };
+        const ring = clamp(Math.min(W,H)*0.16 + members.length * 8, 110, 210);
         members.forEach((n, i) => {
           const a = (2*Math.PI*i)/members.length;
-          layoutTargets[n.id] = { x: ocx+Math.cos(a)*ring, y: ocy+Math.sin(a)*ring };
+          layoutTargets[n.id] = { x: orgTarget.x+Math.cos(a)*ring, y: orgTarget.y+Math.sin(a)*ring*0.75 };
         });
       });
+
+      loose.forEach((n, i) => {
+        const a = (2*Math.PI*i)/(loose.length || 1);
+        const r = Math.min(W,H)*0.39;
+        layoutTargets[n.id] = { x: cx+Math.cos(a)*r*1.2, y: cy+Math.sin(a)*r };
+      });
+    }
+
+    function primaryOrgFor(n, orgs) {
+      const connectedOrgs = n._connections
+        .map(e => e.sourceNode === n ? e.targetNode : e.sourceNode)
+        .filter(other => other.type === 'organisation')
+        .sort((a, b) => b._connections.length - a._connections.length);
+      if (connectedOrgs.length) return connectedOrgs[0];
+      const orgText = (n.org || '').toLowerCase();
+      if (!orgText) return null;
+      return orgs.find(o => {
+        const label = (o.label || '').toLowerCase();
+        return label && (orgText.includes(label) || label.includes(orgText));
+      }) || null;
     }
 
     function layoutRadial() {
