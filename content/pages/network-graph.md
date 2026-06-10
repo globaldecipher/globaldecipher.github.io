@@ -5,7 +5,7 @@ author: "TGD Research Desk"
 type: "page"
 eyebrow: "Intelligence tool"
 summary: "Interactive force-directed network visualization of militant actors, organisations, and their relationships — built from TGD's research profile database."
-extra_head: '<link rel="stylesheet" href="/assets/network-graph.css">'
+extra_head: '<link rel="stylesheet" href="/assets/network-graph.css?v=20260610-guidance">'
 ---
 
 <section class="network-graph-shell is-loading" data-network-graph>
@@ -79,4 +79,4 @@ extra_head: '<link rel="stylesheet" href="/assets/network-graph.css">'
   </div>
 </section>
 
-<script src="/assets/network-graph.js" defer></script>
+<script src="/assets/network-graph.js?v=20260610-guidance" defer></script>
