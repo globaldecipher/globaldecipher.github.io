@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-06-12T18:01:10.721Z",
-  "current_day_pakistan": "2026-06-12",
+  "checked_at": "2026-06-12T20:22:34.260Z",
+  "current_day_pakistan": "2026-06-13",
   "archive_days": 30,
-  "archive_start": "2026-05-14",
+  "archive_start": "2026-05-15",
   "import_sources": [
     "may-2026-weeks-1-4.csv"
   ],
-  "imported_count": 31,
+  "imported_count": 30,
   "removed_test_count": 0,
   "time_zone": "Asia/Karachi",
   "offset": 828254903,

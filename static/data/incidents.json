@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-06-11T20:40:27.087Z",
+  "last_updated": "2026-06-12T20:22:34.261Z",
   "time_zone": "Asia/Karachi",
-  "current_day": "2026-06-12",
+  "current_day": "2026-06-13",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
     {
@@ -1885,40 +1885,10 @@
       "assets_damaged": "None",
       "abductions": 4,
       "casualty_note": "2 terrorists killed; 4 laborers abducted."
-    },
-    {
-      "id": "import-pk-kpk-baj-2026-may14-01",
-      "date": "2026-05-14",
-      "reported_at": "2026-05-14T12:00:00.000Z",
-      "time_label": "3rd week",
-      "title": "Counterterrorism Operation reported in Bajaur",
-      "district": "Bajaur",
-      "province": "Khyber Pakhtunkhwa",
-      "country": "Pakistan",
-      "lat": 34.72,
-      "lng": 71.5,
-      "category": "Counterterrorism Operation",
-      "actor": "TTP",
-      "status": "Claimed / recorded",
-      "severity": "High",
-      "fatalities": 9,
-      "injuries": 3,
-      "summary": "An infiltration attempt at a Scouts camp was foiled by forces leading to a clearance operation.",
-      "source": "TGD weekly dataset",
-      "source_url": "",
-      "verified": false,
-      "imported": true,
-      "import_source": "may-2026-weeks-1-4.csv",
-      "incident_uid": "PK-KPK-BAJ-2026-MAY14-01",
-      "week_label": "3rd week",
-      "target_type": "Militants",
-      "assets_damaged": "None",
-      "abductions": 0,
-      "casualty_note": "9 attackers killed; 3 security personnel injured."
     }
   ],
   "archive_days": 30,
-  "archive_start": "2026-05-14",
+  "archive_start": "2026-05-15",
   "import_sources": [
     "may-2026-weeks-1-4.csv"
   ]
