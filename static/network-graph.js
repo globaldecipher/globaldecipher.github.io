@@ -190,7 +190,14 @@
     fetch('/assets/data/network-data.json')
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => { buildGraph(data); root.classList.remove('is-loading'); loop(); })
-      .catch(err => console.error('[network-graph]', err));
+      .catch(err => {
+        root.classList.remove('is-loading');
+        const status = root.querySelector('[data-network-stats]');
+        const error = root.querySelector('[data-network-error]');
+        if (status) status.textContent = 'Network temporarily unavailable';
+        if (error) error.hidden = false;
+        console.error('[network-graph]', err);
+      });
 
     function buildGraph(data) {
       (data.regions || []).forEach(r => { regionMap[r.id] = r; regionMap[r.label] = r; });
@@ -234,6 +241,7 @@
       populateFilters(data);
       buildLegend(data);
       populateStats();
+      buildProfileIndex();
       updateStats();
       syncStoryButtons();
       applyFilters();
@@ -306,6 +314,19 @@
         <div class="network-metric"><span class="network-metric-label">Connections</span><strong class="network-metric-value">${edges.length}</strong><span class="network-metric-note">Mapped relationships</span></div>
         <div class="network-metric"><span class="network-metric-label">Regions</span><strong class="network-metric-value">${regionCount}</strong><span class="network-metric-note">Operating theatres</span></div>
       `;
+    }
+
+    function buildProfileIndex() {
+      const index = root.querySelector('[data-network-profile-index]');
+      if (!index) return;
+      index.innerHTML = nodes
+        .slice()
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map((node) => `<a href="${esc(node.url || '#')}">
+          <strong>${esc(node.label)}</strong>
+          <span>${esc([node.region, node.status].filter(Boolean).join(' · '))}</span>
+        </a>`)
+        .join('');
     }
 
     /* ══════════════════════════════
@@ -878,7 +899,7 @@
       const tags = Array.isArray(n.tags) ? n.tags.slice(0, 5) : [];
 
       detailPanel.innerHTML = `
-        <button class="network-detail-close" aria-label="Close">&times;</button>
+        <button class="network-detail-close" aria-label="Close profile panel">&times;</button>
         <div class="detail-section">
           <span class="network-detail-type">${esc(typeLabel)}</span>
           <h3>${esc(n.label)}</h3>
@@ -960,7 +981,9 @@
 
     function syncStoryButtons() {
       root.querySelectorAll('[data-story-mode]').forEach(btn => {
-        btn.classList.toggle('is-active', (btn.dataset.storyMode || 'overview') === activeStory);
+        const active = (btn.dataset.storyMode || 'overview') === activeStory;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
       });
       updateStoryCopy();
     }
@@ -1061,8 +1084,6 @@
       btn.addEventListener('click', () => {
         const mode = btn.dataset.viewMode;
         if (mode === viewMode) return;
-        root.querySelectorAll('[data-view-mode]').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
         viewMode = mode;
         applyLayout(mode);
       });
@@ -1071,7 +1092,9 @@
     function applyLayout(mode, immediate = false) {
       viewMode = mode;
       root.querySelectorAll('[data-view-mode]').forEach(btn => {
-        btn.classList.toggle('is-active', btn.dataset.viewMode === mode);
+        const active = btn.dataset.viewMode === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
       });
       layoutTargets = {};
       layoutTransitionProgress = immediate ? 1 : 0;

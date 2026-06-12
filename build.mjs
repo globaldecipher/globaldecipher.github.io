@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "content");
 const STATIC_DIR = path.join(ROOT, "static");
 const OUT_DIR = path.join(ROOT, "site");
+const SITE_URL = String(process.env.SITE_URL || "https://globaldecipher.github.io").replace(/\/$/, "");
 
 const SITE = {
   title: "The Global Decipher",
@@ -12,13 +13,24 @@ const SITE = {
   tagline: "Tracking terror threats in Pakistan and the wider region.",
   description:
     "Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.",
-  url: "https://globaldecipher.github.io",
+  url: SITE_URL,
   defaultImage: "/assets/brand/tgd-og-default.png",
   email: "globaldecipher@gmail.com",
   x: "https://x.com/Global_Decipher",
   whatsapp: "https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31",
   substack: "https://theglobaldecipher.substack.com/"
 };
+
+function readJson(filePath, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+const INCIDENT_DATA = readJson(path.join(STATIC_DIR, "data", "incidents.json"), { incidents: [] });
+const NETWORK_DATA = readJson(path.join(STATIC_DIR, "data", "network-data.json"), { nodes: [], edges: [] });
 
 const NAV = [
   ["News", "/news/"],
@@ -87,6 +99,15 @@ function plainTextFromHtml(value = "") {
     .replace(/&gt;/g, ">")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function jsonLd(value) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function readingTime(markdown = "") {
+  const words = stripMarkdown(markdown).split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 220));
 }
 
 function parseValue(raw) {
@@ -479,6 +500,7 @@ function linkFor(url, currentPath = "/") {
   if (/^https?:\/\//.test(url) || url.startsWith("mailto:")) return url;
   const prefix = prefixFor(currentPath);
   if (url === "/") return `${prefix}index.html`;
+  if (/^\/[^/]+\.[a-z0-9]+$/i.test(url)) return `${prefix}${url.replace(/^\//, "")}`;
   return `${prefix}${url.replace(/^\/|\/$/g, "")}/index.html`;
 }
 
@@ -504,7 +526,7 @@ function escapeXml(value = "") {
 
 function accessLabel(item) {
   if (item.access === "premium-preview") return '<span class="badge badge-premium">Premium preview</span>';
-  if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Research sensitive</span>';
+  if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Public source</span>';
   return '<span class="badge badge-free">Free</span>';
 }
 
@@ -534,7 +556,23 @@ function icon(name) {
   return icons[name] || "";
 }
 
-function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false }) {
+function shell({
+  title,
+  description,
+  body,
+  current = "",
+  pagePath = "/",
+  extraHead = "",
+  image = SITE.defaultImage,
+  ogType = "website",
+  noindex = false,
+  publishedDate = "",
+  modifiedDate = "",
+  author = "",
+  section = "",
+  tags = [],
+  structuredData = []
+}) {
   const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
   const assetPrefix = prefixFor(pagePath);
   const pageDescription = description || SITE.description;
@@ -545,6 +583,29 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
     return `<a${active} href="${linkFor(href, pagePath)}">${label}</a>`;
   }).join("");
   const year = new Date().getUTCFullYear();
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE.url}/#organization`,
+        name: SITE.title,
+        url: `${SITE.url}/`,
+        logo: absoluteUrl(SITE.defaultImage),
+        sameAs: [SITE.x, SITE.whatsapp, SITE.substack]
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE.url}/#website`,
+        name: SITE.title,
+        url: `${SITE.url}/`,
+        description: SITE.description,
+        publisher: { "@id": `${SITE.url}/#organization` },
+        inLanguage: "en"
+      },
+      ...structuredData
+    ]
+  };
 
   return `<!doctype html>
 <html lang="en">
@@ -564,6 +625,11 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="${escapeHtml(SITE.title)}">
+  ${publishedDate ? `<meta property="article:published_time" content="${escapeHtml(publishedDate)}">` : ""}
+  ${modifiedDate ? `<meta property="article:modified_time" content="${escapeHtml(modifiedDate)}">` : ""}
+  ${author ? `<meta property="article:author" content="${escapeHtml(author)}">` : ""}
+  ${section ? `<meta property="article:section" content="${escapeHtml(section)}">` : ""}
+  ${(Array.isArray(tags) ? tags : []).map((tag) => `<meta property="article:tag" content="${escapeHtml(tag)}">`).join("\n  ")}
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(pageTitle)}">
   <meta name="twitter:description" content="${escapeHtml(pageDescription)}">
@@ -575,6 +641,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
   <script>(function(){try{var theme=localStorage.getItem("tgd-theme");if(theme==="light"||theme==="dark"){document.documentElement.dataset.theme=theme;}}catch(_error){}})();</script>
   <link rel="stylesheet" href="${assetPrefix}assets/styles.css">
+  <script type="application/ld+json">${jsonLd(schema)}</script>
   ${extraHead}
 </head>
 <body>
@@ -601,7 +668,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
           <span>Search TGD</span>
           <input type="search" data-site-search-input placeholder="Search reports, profiles, regions, groups, or themes" autocomplete="off">
         </label>
-        <div class="site-search-results" data-site-search-results></div>
+        <div class="site-search-results" data-site-search-results aria-live="polite"></div>
       </div>
     </section>
   </header>
@@ -617,6 +684,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
         <a href="${SITE.x}" target="_blank" rel="noopener">X / Twitter</a>
         <a href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp Channel</a>
         <a href="${SITE.substack}" target="_blank" rel="noopener">Substack</a>
+        <a href="${linkFor("/rss.xml", pagePath)}">RSS feed</a>
       </div>
       <div>
         <h2>Editorial</h2>
@@ -673,7 +741,7 @@ function sectionHero(title, eyebrow, summary) {
 
 function filterToolbar(types = []) {
   const buttons = types
-    .map(([label, value]) => `<button type="button" data-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>`)
+    .map(([label, value]) => `<button type="button" data-filter="${escapeHtml(value)}" aria-pressed="false">${escapeHtml(label)}</button>`)
     .join("");
   return `<div class="content-toolbar" data-content-tools>
     <label>
@@ -681,7 +749,7 @@ function filterToolbar(types = []) {
       <input type="search" data-search-input placeholder="Search by region, actor, theme, or report">
     </label>
     <div class="filter-buttons" data-filter-buttons>
-      <button type="button" data-filter="all" class="active">All</button>
+      <button type="button" data-filter="all" class="active" aria-pressed="true">All</button>
       ${buttons}
     </div>
   </div>`;
@@ -763,15 +831,19 @@ function heroMapSvg() {
 function tickerStrip(items) {
   const latest = items.filter((item) => !["profiles", "pages"].includes(item.type));
   const lines = latest.slice(0, 8).map((item) => {
-    return `<a href="${linkFor(item.url, "/")}"><span class="region">${escapeHtml(item.region || item.category || "Global")}</span><strong>${escapeHtml(item.title)}</strong></a>`;
+    const region = escapeHtml(item.region || item.category || "Global");
+    const title = escapeHtml(item.title);
+    return {
+      link: `<a href="${linkFor(item.url, "/")}"><span class="region">${region}</span><strong>${title}</strong></a>`,
+      copy: `<span class="ticker-copy-item"><span class="region">${region}</span><strong>${title}</strong></span>`
+    };
   });
   if (!lines.length) return "";
-  const doubled = [...lines, ...lines].join("");
   return `<div class="ticker-bar">
     <div class="container ticker-row">
       <span class="ticker-label"><span class="live-dot"></span> Latest briefings</span>
       <div class="ticker-track">
-        <div class="ticker-strip">${doubled}</div>
+        <div class="ticker-strip">${lines.map((line) => line.link).join("")}<span class="ticker-copy" aria-hidden="true">${lines.map((line) => line.copy).join("")}</span></div>
       </div>
     </div>
   </div>`;
@@ -810,7 +882,7 @@ function pitchBand() {
           <li>Institutional access requests</li>
           <li>Press &amp; speaking inquiries</li>
         </ul>
-        <p style="margin:0;color:var(--muted);font-family:var(--mono);font-size:0.74rem;letter-spacing:0.08em;text-transform:uppercase;">Response within 48 hours</p>
+        <p class="pitch-note">Please use public-source material and explain why it matters.</p>
       </aside>
     </div>
   </section>`;
@@ -820,20 +892,25 @@ function homepage(items) {
   const currentPath = "/";
   const reports = items.filter((item) => item.type === "reports");
   const profiles = items.filter((item) => item.type === "profiles");
-  const lead = reports[0] || profiles[0] || items[0];
-  const metrics = lead?.type === "reports" ? extractReportMetrics(lead.body) : [];
+  const editorial = items
+    .filter((item) => !["profiles", "pages"].includes(item.type))
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const lead = editorial[0] || reports[0] || profiles[0] || items[0];
+  const latestReport = reports[0];
+  const metrics = latestReport ? extractReportMetrics(latestReport.body) : [];
   const metricMap = new Map(metrics);
-  const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
-  const railItems = [...reports.slice(1), ...profiles]
+  const railItems = [...editorial, ...profiles]
     .filter((item) => item && item.url !== lead?.url)
     .slice(0, 5);
+  const incidentItems = Array.isArray(INCIDENT_DATA.incidents) ? INCIDENT_DATA.incidents : [];
+  const latestIncidentDate = incidentItems.map((item) => item.date).filter(Boolean).sort().at(-1) || "";
+  const networkNodes = Array.isArray(NETWORK_DATA.nodes) ? NETWORK_DATA.nodes : [];
+  const networkEdges = Array.isArray(NETWORK_DATA.edges) ? NETWORK_DATA.edges : [];
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
-  const heroTitle = lead?.hero_title || (lead?.type === "reports"
-    ? lead.title
-    : "Militant actor profiles and security research in one place");
-  const reportPeriod = lead?.date
-    ? new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${lead.date}T00:00:00Z`))
+  const heroTitle = lead?.hero_title || lead.title;
+  const reportPeriod = latestReport?.date
+    ? new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${latestReport.date}T00:00:00Z`))
     : "Latest monthly";
   if (!lead) {
     return shell({
@@ -857,11 +934,11 @@ function homepage(items) {
 
   const stats = [
     ["Profiles", profiles.length, "Research profiles live"],
-    ["Regions", profileRegions.size, "Actor database coverage"],
     ["Reports", reports.length, "Published assessments"],
+    ["Incident records", incidentItems.length, latestIncidentDate ? `Archive through ${formatDate(latestIncidentDate)}` : "Public-source archive"],
+    ["Mapped actors", networkNodes.length, `${networkEdges.length} relationships`],
     metricMap.get("Militant attacks reported") ? ["Attacks", metricMap.get("Militant attacks reported"), `${reportPeriod} report`] : null,
-    metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), `${reportPeriod} report`] : null,
-    metricMap.get("Injuries") ? ["Injuries", metricMap.get("Injuries"), `${reportPeriod} report`] : null
+    metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), `${reportPeriod} report`] : null
   ].filter(Boolean).slice(0, 6);
 
   const body = `
@@ -880,13 +957,13 @@ function homepage(items) {
         </div>
         <div class="hero-actions">
           <a class="button primary" href="${linkFor(lead.url, currentPath)}">${leadCta} <span class="arrow">→</span></a>
-          <a class="button secondary" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
+          <a class="button secondary" href="${linkFor("/incident-map/", currentPath)}">Open incident map</a>
         </div>
       </div>
       <aside class="hero-rail">
         <div class="hero-rail-head">
-          <span class="title">Research queue</span>
-          <span class="status"><span class="live-dot"></span> Updated</span>
+          <span class="title">Latest from TGD</span>
+          <span class="status"><span class="live-dot"></span> Recently updated</span>
         </div>
         ${railItems.length ? railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
           <span class="num">0${i + 2}</span>
@@ -895,7 +972,7 @@ function homepage(items) {
             <strong>${escapeHtml(item.title)}</strong>
           </span>
         </a>`).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
-        <a class="rail-cta" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
+        <a class="rail-cta" href="${linkFor("/news/", currentPath)}">Browse all coverage</a>
       </aside>
     </div>
   </section>
@@ -910,7 +987,48 @@ function homepage(items) {
     </div>
   </section>
 
-  <section class="band muted">
+  <section class="band tool-band">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">Public intelligence tools</p>
+        <h2>Move from headline to evidence.</h2>
+      </div>
+      <a href="${linkFor("/methodology/", currentPath)}">Read our methodology</a>
+    </div>
+    <div class="container tool-grid">
+      <a class="tool-card" href="${linkFor("/incident-map/", currentPath)}">
+        <span>Incident map</span>
+        <strong>${escapeHtml(incidentItems.length)} public-source records</strong>
+        <p>Filter the current Pakistan archive by date, province, category, severity, and keyword.</p>
+        <small>${latestIncidentDate ? `Data through ${escapeHtml(formatDate(latestIncidentDate))}` : "Archive ready for updates"}</small>
+      </a>
+      <a class="tool-card" href="${linkFor("/network-graph/", currentPath)}">
+        <span>Network graph</span>
+        <strong>${escapeHtml(networkNodes.length)} actors · ${escapeHtml(networkEdges.length)} relationships</strong>
+        <p>Follow command, affiliation, rivalry, succession, and regional links through guided views.</p>
+        <small>Interactive public research</small>
+      </a>
+      <a class="tool-card" href="${linkFor("/methodology/", currentPath)}">
+        <span>Editorial standards</span>
+        <strong>Claims are not confirmation</strong>
+        <p>See how TGD handles public sources, uncertainty, militant claims, corrections, and sensitive material.</p>
+        <small>Methodology and safeguards</small>
+      </a>
+    </div>
+  </section>
+
+  ${editorial.length ? `<section class="band muted">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">Latest coverage</p>
+        <h2>Briefings, monitoring, and analysis</h2>
+      </div>
+      <a href="${linkFor("/news/", currentPath)}">Browse news and analysis</a>
+    </div>
+    <div class="container card-grid">${editorial.slice(0, 3).map((item) => card(item, currentPath)).join("")}</div>
+  </section>` : ""}
+
+  <section class="band">
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Start here</p>
@@ -932,7 +1050,7 @@ function homepage(items) {
     </div>
   </section>
 
-  <section class="band">
+  <section class="band muted">
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Actor database</p>
@@ -940,10 +1058,10 @@ function homepage(items) {
       </div>
       <a href="${linkFor("/profiles/", currentPath)}">View all profiles</a>
     </div>
-    <div class="container card-grid">${profiles.slice(0, 6).map((item) => card(item, currentPath)).join("")}</div>
+    <div class="container card-grid">${profiles.slice(0, 3).map((item) => card(item, currentPath)).join("")}</div>
   </section>
 
-  ${reports.length ? `<section class="band muted">
+  ${reports.length ? `<section class="band">
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Research product</p>
@@ -963,13 +1081,13 @@ function sparseListingCta({ title, current, count }) {
   if (count >= 2 || current === "/profiles/") return "";
   return `<aside class="listing-cta">
     <div>
-      <span>Editorial desk</span>
-      <strong>${escapeHtml(title)} is being built out.</strong>
-      <p>New briefings will appear here as the desk publishes. Follow the WhatsApp channel or pitch the desk with relevant public-source material.</p>
+      <span>Continue following this desk</span>
+      <strong>New work from the ${escapeHtml(title)} desk will appear here after review.</strong>
+      <p>Use the incident map for current public-source records, follow the WhatsApp channel for distribution, or send the desk relevant public material.</p>
     </div>
     <div class="listing-cta-actions">
-      <a class="button primary" href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp channel</a>
-      <a class="button secondary" href="${linkFor("/contact/", current)}">Pitch the desk</a>
+      <a class="button primary" href="${linkFor("/incident-map/", current)}">Open incident map</a>
+      <a class="button secondary" href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp channel</a>
     </div>
   </aside>`;
 }
@@ -980,6 +1098,7 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
   <section class="band">
     <div class="container">
       ${hasItems ? filterToolbar(filters) : ""}
+      ${hasItems ? `<p class="listing-result-count" data-listing-count aria-live="polite">Showing ${items.length} ${items.length === 1 ? "item" : "items"}</p>` : ""}
       <div class="listing-grid" data-content-list>
         ${items.map((item) => card(item, current)).join("")}
       </div>
@@ -1070,6 +1189,14 @@ function articleTemplate(item, allItems) {
   const related = allItems
     .filter((candidate) => candidate.url !== item.url && (candidate.type === item.type || candidate.region === item.region))
     .slice(0, 3);
+  const headings = collectHeadings(item.body).filter((heading) => heading.level === 2).slice(0, 10);
+  const mobileToc = headings.length
+    ? `<details class="mobile-article-toc">
+        <summary>On this page</summary>
+        <nav aria-label="Article sections">${headings.map((heading) => `<a href="#${heading.id}">${escapeHtml(heading.title)}</a>`).join("")}</nav>
+      </details>`
+    : "";
+  const readMinutes = readingTime(item.body);
   const premiumCta =
     item.access === "premium-preview"
       ? `<aside class="premium-cta">
@@ -1085,7 +1212,8 @@ function articleTemplate(item, allItems) {
       <p>${escapeHtml(item.summary || "")}</p>
       <div class="article-meta">
         <span class="byline">By ${escapeHtml(item.author || "TGD Desk")}</span>
-        <span>${escapeHtml(formatDate(item.date))}</span>
+        <time datetime="${escapeHtml(item.date || "")}">${escapeHtml(formatDate(item.date))}</time>
+        <span>${readMinutes} min read</span>
         <span>${escapeHtml(item.region || "Global")}</span>
         ${accessLabel(item)}
       </div>
@@ -1093,6 +1221,7 @@ function articleTemplate(item, allItems) {
   </section>
   <section class="article-band">
     <div class="container article-shell">
+      ${mobileToc}
       <article class="article-body">${item.html}</article>
       ${articleSidebar(item)}
       ${premiumCta}
@@ -1114,7 +1243,28 @@ function articleTemplate(item, allItems) {
     current: routeForType(item.type),
     pagePath: item.url,
     image: item.og_image || item.image || SITE.defaultImage,
-    ogType: "article"
+    ogType: "article",
+    publishedDate: item.date || "",
+    modifiedDate: item.updated || item.date || "",
+    author: item.author || "TGD Desk",
+    section: typeLabel(item.type),
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    structuredData: [
+      {
+        "@type": "Article",
+        headline: item.title,
+        description: item.summary || SITE.description,
+        datePublished: item.date || undefined,
+        dateModified: item.updated || item.date || undefined,
+        mainEntityOfPage: canonicalFor(item.url),
+        image: absoluteUrl(item.og_image || item.image || SITE.defaultImage),
+        author: { "@type": "Organization", name: item.author || "TGD Desk" },
+        publisher: { "@id": `${SITE.url}/#organization` },
+        articleSection: typeLabel(item.type),
+        keywords: Array.isArray(item.tags) ? item.tags.join(", ") : undefined,
+        inLanguage: "en"
+      }
+    ]
   });
 }
 
@@ -1175,21 +1325,23 @@ ${feedItems.map((item) => `    <item>
 }
 
 function writeStaticFiles(items, pages) {
+  const latestDate = items.map((item) => item.date).filter(Boolean).sort().at(-1) || "";
+  const sectionDate = (type) => items.filter((item) => item.type === type).map((item) => item.date).filter(Boolean).sort().at(-1) || "";
   const urls = [
-    "/",
-    "/news/",
-    "/opinion/",
-    "/monitoring/",
-    "/reports/",
-    "/profiles/",
-    ...items.map((item) => item.url),
-    ...pages.map((page) => page.url)
+    ["/", latestDate],
+    ["/news/", sectionDate("news")],
+    ["/opinion/", sectionDate("opinion")],
+    ["/monitoring/", sectionDate("monitoring")],
+    ["/reports/", sectionDate("reports")],
+    ["/profiles/", sectionDate("profiles")],
+    ...items.map((item) => [item.url, item.updated || item.date || ""]),
+    ...pages.map((page) => [page.url, page.updated || page.date || ""])
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
-  .map((url) => `  <url><loc>${SITE.url}${url}</loc></url>`)
+  .map(([url, lastmod]) => `  <url><loc>${SITE.url}${url}</loc>${lastmod ? `<lastmod>${escapeXml(lastmod)}</lastmod>` : ""}</url>`)
   .join("\n")}
 </urlset>`;
 

@@ -49,12 +49,20 @@
   /* ---------- nav toggle ---------- */
   const navToggle = $("[data-nav-toggle]");
   const nav = $("#site-nav");
+  const searchToggle = $("[data-search-toggle]");
+  const searchPanel = $("[data-site-search]");
+  const setNavOpen = (open) => {
+    if (!navToggle || !nav) return;
+    nav.classList.toggle("open", open);
+    navToggle.setAttribute("aria-expanded", String(open));
+    navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    if (open && searchPanel && searchToggle) {
+      searchPanel.hidden = true;
+      searchToggle.setAttribute("aria-expanded", "false");
+      searchToggle.setAttribute("aria-label", "Search");
+    }
+  };
   if (navToggle && nav) {
-    const setNavOpen = (open) => {
-      nav.classList.toggle("open", open);
-      navToggle.setAttribute("aria-expanded", String(open));
-      navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-    };
     navToggle.addEventListener("click", () => {
       setNavOpen(!nav.classList.contains("open"));
     });
@@ -64,11 +72,12 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && nav.classList.contains("open")) setNavOpen(false);
     });
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 860 && nav.classList.contains("open")) setNavOpen(false);
+    }, { passive: true });
   }
 
   /* ---------- site-wide search ---------- */
-  const searchToggle = $("[data-search-toggle]");
-  const searchPanel = $("[data-site-search]");
   if (searchToggle && searchPanel) {
     const input = $("[data-site-search-input]", searchPanel);
     const results = $("[data-site-search-results]", searchPanel);
@@ -113,27 +122,31 @@
 
     const load = async () => {
       if (loaded) return;
-      loaded = true;
       try {
         const res = await fetch(searchPanel.dataset.searchIndex || "search-index.json");
         if (!res.ok) throw new Error(`Search index returned ${res.status}`);
         index = await res.json();
+        loaded = true;
       } catch {
         index = [];
       }
     };
 
     const openSearch = async () => {
+      setNavOpen(false);
       searchPanel.hidden = false;
       searchToggle.setAttribute("aria-expanded", "true");
+      searchToggle.setAttribute("aria-label", "Close search");
       await load();
       render();
       window.requestAnimationFrame(() => input?.focus());
     };
 
-    const closeSearch = () => {
+    const closeSearch = (restoreFocus = false) => {
       searchPanel.hidden = true;
       searchToggle.setAttribute("aria-expanded", "false");
+      searchToggle.setAttribute("aria-label", "Search");
+      if (restoreFocus) searchToggle.focus();
     };
 
     searchToggle.addEventListener("click", async () => {
@@ -142,7 +155,7 @@
     });
     input?.addEventListener("input", render);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !searchPanel.hidden) closeSearch();
+      if (event.key === "Escape" && !searchPanel.hidden) closeSearch(true);
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         openSearch();
@@ -183,6 +196,7 @@
   const tools = $("[data-content-tools]");
   const listEl = $("[data-content-list]");
   const empty = $("[data-empty-state]");
+  const listingCount = $("[data-listing-count]");
   if (tools && listEl) {
     const input = $("[data-search-input]", tools);
     const buttons = $$("[data-filter]", tools);
@@ -205,13 +219,18 @@
         if (show) visible += 1;
       }
       if (empty) empty.hidden = visible !== 0;
+      if (listingCount) listingCount.textContent = `Showing ${visible} ${visible === 1 ? "item" : "items"}`;
     };
 
     if (input) input.addEventListener("input", apply);
     for (const b of buttons) {
       b.addEventListener("click", () => {
         activeFilter = b.dataset.filter;
-        for (const x of buttons) x.classList.toggle("active", x === b);
+        for (const x of buttons) {
+          const active = x === b;
+          x.classList.toggle("active", active);
+          x.setAttribute("aria-pressed", String(active));
+        }
         apply();
       });
     }

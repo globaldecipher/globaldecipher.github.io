@@ -8,9 +8,15 @@ summary: "Contact The Global Decipher for reports, Monitoring Desk access, edito
 
 ## Editorial and research inquiries
 
-For Monitoring Desk access, report requests, institutional subscriptions, partnerships, and editorial inquiries, contact:
+For report requests, Monitoring Desk inquiries, partnerships, interviews, and editorial questions, contact:
 
-[globaldecipher@gmail.com](mailto:globaldecipher@gmail.com?subject=TGD%20inquiry)
+[globaldecipher@gmail.com](mailto:globaldecipher@gmail.com?subject=TGD%20editorial%20inquiry)
+
+## Corrections
+
+To challenge a factual claim or request a correction, include the page title, the disputed passage, and a reliable public source:
+
+[Request a correction](mailto:globaldecipher@gmail.com?subject=TGD%20correction%20request)
 
 ## Public channels
 
@@ -20,4 +26,4 @@ For Monitoring Desk access, report requests, institutional subscriptions, partne
 
 ## Submissions
 
-Readers may send public-source tips, correction requests, and collaboration proposals. TGD does not accept or request private operational information, extremist material, or graphic content.
+Readers may send public-source tips and collaboration proposals. Explain what the material shows, where it came from, and why it matters. TGD does not accept or request private operational information, extremist material, or graphic content.

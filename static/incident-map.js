@@ -131,9 +131,9 @@
     const day = Number(text(incident.date).slice(8, 10));
     if (!day) return "Archive week";
     if (day <= 7) return "1st week";
-    if (day <= 10) return "2nd week";
-    if (day <= 17) return "3rd week";
-    if (day <= 24) return "4th week";
+    if (day <= 14) return "2nd week";
+    if (day <= 21) return "3rd week";
+    if (day <= 28) return "4th week";
     return "5th week";
   }
   function weekOrder(label) { return Number((norm(label).match(/\d+/) || [99])[0]); }
@@ -194,7 +194,6 @@
       (!state.filters.search || haystack.includes(norm(state.filters.search)));
   }
   function applyFilters() {
-    state.range = selectedRange();
     state.filtered = state.range.filter(matches);
     if (state.selectedProvince && !state.filtered.some((incident) => provinceLabel(incident.province) === state.selectedProvince)) state.selectedProvince = "";
     if (state.selectedIncident && !state.filtered.some((incident) => incident.id === state.selectedIncident)) state.selectedIncident = "";
@@ -325,9 +324,9 @@
       ...dates.map((date) => [formatDay(date, true), "date", date])
     ];
     els.timeline.innerHTML = buttons.map(([label, mode, value]) => {
-      if (mode === "playback") return `<button type="button" class="playback-button${state.playback ? " is-active" : ""}" data-playback-toggle>${esc(label)}</button>`;
+      if (mode === "playback") return `<button type="button" class="playback-button${state.playback ? " is-active" : ""}" data-playback-toggle aria-pressed="${state.playback ? "true" : "false"}">${esc(label)}</button>`;
       const active = (mode === "last7" && state.mode === "last7") || (mode === "last30" && state.mode === "last30") || (mode === "date" && state.mode === "date" && state.date === value);
-      return `<button type="button" class="${active ? "is-active" : ""}" data-timeline-mode="${esc(mode)}" data-timeline-value="${esc(value)}">${esc(label)}</button>`;
+      return `<button type="button" class="${active ? "is-active" : ""}" data-timeline-mode="${esc(mode)}" data-timeline-value="${esc(value)}" aria-pressed="${active ? "true" : "false"}">${esc(label)}</button>`;
     }).join("");
   }
   function renderMetrics() {
@@ -532,12 +531,17 @@
     }).join("");
   }
   function renderTabs() {
-    els.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.viewTab === state.activeView));
+    els.tabs.forEach((tab) => {
+      const active = tab.dataset.viewTab === state.activeView;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-pressed", String(active));
+    });
     els.panels.forEach((panel) => panel.classList.toggle("is-focused", panel.dataset.viewPanel === state.activeView));
   }
   function render(includeTimeline = true) {
-    applyFilters();
+    state.range = selectedRange();
     populateFilters();
+    applyFilters();
     if (includeTimeline) renderTimeline();
     renderMetrics();
     renderWeekly();

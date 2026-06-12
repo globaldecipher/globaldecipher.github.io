@@ -34,6 +34,18 @@ python3 -m http.server 4173 --directory site
 # open http://localhost:4173
 ```
 
+## Cloudflare Pages
+
+The site is ready for Cloudflare Pages with these settings:
+
+- Framework preset: `None`
+- Build command: `npm run build`
+- Build output directory: `site`
+- Production branch: `main`
+- Environment variable: `SITE_URL=https://your-domain.example`
+
+`SITE_URL` controls canonical links, social metadata, RSS links, and the sitemap. The generated `_headers` file adds conservative security and caching headers when deployed on Cloudflare Pages.
+
 ## Editorial posture
 
 - Public-source first. Claim vs. confirmation discipline.

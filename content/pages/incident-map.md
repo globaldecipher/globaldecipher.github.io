@@ -23,9 +23,9 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
   <div class="tracker-metrics" data-metrics></div>
   <div class="tracker-timeline" data-timeline aria-label="Timeline shortcuts"></div>
   <div class="tracker-view-tabs" aria-label="Tracker views">
-    <button class="is-active" type="button" data-view-tab="daily">Daily map</button>
-    <button type="button" data-view-tab="weekly">Weekly analysis</button>
-    <button type="button" data-view-tab="log">Incident log</button>
+    <button class="is-active" type="button" data-view-tab="daily" aria-pressed="true">Daily map</button>
+    <button type="button" data-view-tab="weekly" aria-pressed="false">Weekly analysis</button>
+    <button type="button" data-view-tab="log" aria-pressed="false">Incident log</button>
   </div>
   <div class="tracker-controls" aria-label="Incident filters">
     <label>Province<select data-filter="province"><option value="">All provinces</option></select></label>

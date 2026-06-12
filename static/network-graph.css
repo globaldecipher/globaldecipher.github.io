@@ -48,10 +48,61 @@
 
 /* ── Shell ── */
 .network-graph-shell {
+  --bg: var(--paper);
+  --surface: var(--paper-2);
+  --fg: var(--ink);
+  --border: var(--line);
+  --accent: var(--red);
   display: grid;
   gap: 12px;
   color: var(--fg);
 }
+
+.network-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 8;
+  width: min(420px, calc(100% - 32px));
+  margin: 0;
+  padding: 18px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--sans);
+  text-align: center;
+}
+
+.network-profile-index {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.network-profile-index summary {
+  cursor: pointer;
+  padding: 16px 18px;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.network-profile-index-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+}
+.network-profile-index-grid a {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--sans);
+}
+.network-profile-index-grid a:nth-child(3n) { border-right: 0; }
+.network-profile-index-grid a:hover { color: var(--accent); }
+.network-profile-index-grid strong { font-size: 0.9rem; }
+.network-profile-index-grid span { color: var(--muted); font-size: 0.74rem; }
 
 /* ── Primary tool layout ── */
 .network-workbench {
@@ -863,6 +914,9 @@ html[data-theme="dark"] .network-detail-connections li {
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
+  .network-profile-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .network-profile-index-grid a:nth-child(3n) { border-right: 1px solid var(--border); }
+  .network-profile-index-grid a:nth-child(2n) { border-right: 0; }
   .network-reader-guide div:last-child { border-bottom: 0; }
   .network-story-panel {
     grid-template-columns: 1fr;
@@ -943,6 +997,10 @@ html[data-theme="dark"] .network-detail-connections li {
     display: none;
   }
   .network-minimap { display: none; }
+  .network-profile-index-grid { grid-template-columns: 1fr; }
+  .network-profile-index-grid a,
+  .network-profile-index-grid a:nth-child(2n),
+  .network-profile-index-grid a:nth-child(3n) { border-right: 0; }
 }
 
 /* ── Fullscreen ── */
