@@ -3,7 +3,7 @@ title: "Incident Map"
 date: "2026-05-18"
 author: "TGD Monitoring Desk"
 type: "page"
-eyebrow: "Live tracker"
+eyebrow: "Public-source tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
 extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-clean-metrics">'
 ---
@@ -11,21 +11,21 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-dashboard-head">
     <div>
-      <p class="tracker-kicker">TGD LIVE MONITORING</p>
+      <p class="tracker-kicker">TGD PUBLIC-SOURCE MONITORING</p>
       <h2>PAKISTAN INCIDENT MAP</h2>
       <p class="tracker-note" data-source-note>Loading tracker feed.</p>
     </div>
     <div class="tracker-live-stack">
-      <div class="tracker-refresh"><span class="tracker-pulse"></span><span data-last-updated>Loading</span></div>
+      <div class="tracker-refresh"><span class="tracker-pulse"></span><span data-last-updated>Checking archive</span></div>
       <label class="tracker-date-control">Selected date<input data-filter="date" type="date" aria-label="Select archive date"></label>
     </div>
   </div>
   <div class="tracker-metrics" data-metrics></div>
   <div class="tracker-timeline" data-timeline aria-label="Timeline shortcuts"></div>
   <div class="tracker-view-tabs" aria-label="Tracker views">
-    <button class="is-active" type="button" data-view-tab="daily">Daily map</button>
-    <button type="button" data-view-tab="weekly">Weekly analysis</button>
-    <button type="button" data-view-tab="log">Incident log</button>
+    <button class="is-active" type="button" data-view-tab="daily" aria-pressed="true">Daily map</button>
+    <button type="button" data-view-tab="weekly" aria-pressed="false">Weekly analysis</button>
+    <button type="button" data-view-tab="log" aria-pressed="false">Incident log</button>
   </div>
   <div class="tracker-controls" aria-label="Incident filters">
     <label>Province<select data-filter="province"><option value="">All provinces</option></select></label>
@@ -40,7 +40,7 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
           <span class="map-label">Daily incident view</span>
           <strong data-map-title>Selected date</strong>
         </div>
-        <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Live daily feed</span></div>
+        <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Daily incident feed</span></div>
       </div>
       <div class="breakdown-map-frame" data-map>
         <object class="tracker-pakistan-map" data="/assets/pakistan-map.svg" type="image/svg+xml" aria-hidden="true" tabindex="-1"></object>
