@@ -936,8 +936,8 @@ input:focus-visible {
 }
 .tool-card {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 24px;
   align-items: center;
   padding: 28px;
   background: var(--paper);
@@ -952,23 +952,123 @@ input:focus-visible {
   transform: translateY(-3px);
   box-shadow: var(--shadow-1);
 }
-.tool-visual { display: block; }
+.tool-visual {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
 .tool-visual svg { width: 100%; height: auto; display: block; }
-.tool-map-land { fill: var(--paper-2); stroke: var(--line-2); stroke-width: 1.2; }
-.tool-map-hot { fill: var(--red); opacity: 0.88; }
-.tool-map-chip circle { fill: var(--ink); }
-.tool-map-chip text {
-  fill: var(--paper);
+.tool-map-preview {
+  position: relative;
+  display: block;
+  width: min(190px, 100%);
+  aspect-ratio: 1 / 1;
+  padding: 5px;
+  background: linear-gradient(135deg, rgba(161, 115, 40, 0.08), transparent 58%);
+}
+.tool-map-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(0.78) contrast(1.05);
+}
+.tool-map-marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tool-map-marker i {
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 1px var(--red), 0 0 0 5px rgba(185, 28, 44, 0.13);
+}
+.tool-map-marker b { font: inherit; }
+.tool-map-marker.marker-kp { top: 28%; left: 61%; }
+.tool-map-marker.marker-balochistan { top: 61%; left: 20%; }
+.tool-map-marker.marker-sindh { top: 78%; left: 50%; }
+.tool-map-window {
+  position: absolute;
+  right: 0;
+  bottom: 3px;
+  display: grid;
+  min-width: 61px;
+  padding: 7px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+}
+.tool-card .tool-map-window strong {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.tool-card .tool-map-window small {
+  margin-top: 3px;
+  color: var(--text-soft);
+  font-family: var(--mono);
+  font-size: 0.42rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
-.tool-net-edge { stroke: var(--line-3); stroke-width: 1.4; }
-.tool-net-edge.faint { opacity: 0.45; stroke-dasharray: 4 5; }
-.tool-net-node.gold { fill: var(--gold); }
-.tool-net-node.red { fill: var(--red); }
-.tool-net-node.ink { fill: var(--ink-3); }
+.tool-element-network { overflow: visible; }
+.tool-bonds line {
+  stroke: var(--line-3);
+  stroke-width: 1.6;
+}
+.tool-bonds line.dashed {
+  stroke-dasharray: 4 5;
+  opacity: 0.62;
+}
+.tool-element rect {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.tool-element .number {
+  fill: currentColor;
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+}
+.tool-element .symbol {
+  fill: currentColor;
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+.tool-element .name {
+  fill: currentColor;
+  font-family: var(--mono);
+  font-size: 5.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+}
+.tool-element.cell-red { color: #fff; }
+.tool-element.cell-red rect { fill: var(--red); stroke: var(--red-dark); }
+.tool-element.cell-gold { color: #fff; }
+.tool-element.cell-gold rect { fill: var(--gold); stroke: #79551d; }
+.tool-element.cell-ink { color: #fff; }
+.tool-element.cell-ink rect { fill: var(--ink-3); stroke: var(--ink); }
+.tool-element.cell-paper { color: var(--ink); }
+.tool-card:hover .tool-element.cell-red rect { fill: var(--red-dark); }
 .tool-body { display: block; min-width: 0; }
 .tool-card strong {
   display: block;
@@ -998,7 +1098,7 @@ input:focus-visible {
 }
 @media (max-width: 560px) {
   .tool-card { grid-template-columns: 1fr; gap: 18px; }
-  .tool-visual { max-width: 200px; }
+  .tool-visual { width: 100%; max-width: 230px; justify-self: center; }
 }
 
 /* ============ THREAT BOARD ============ */
