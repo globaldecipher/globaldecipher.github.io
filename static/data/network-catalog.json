@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "TGD country network catalogue",
+    "last_updated": "2026-06-13",
+    "coverage_note": "Country packs are curated research sets, not claims of exhaustive coverage. Legal designation, current activity, and analytical classification are stored as separate fields."
+  },
+  "countries": [
+    {
+      "id": "pakistan",
+      "label": "Pakistan",
+      "region": "South Asia",
+      "status": "Deep coverage",
+      "description": "Pakistan-focused militant organisations, factions, fronts, and key individuals drawn from official designation and sanctions sources.",
+      "data": "/assets/data/network-pakistan.json",
+      "default": true
+    },
+    {
+      "id": "afghanistan",
+      "label": "Afghanistan",
+      "region": "South Asia",
+      "status": "Planned"
+    },
+    {
+      "id": "india",
+      "label": "India",
+      "region": "South Asia",
+      "status": "Planned"
+    },
+    {
+      "id": "bangladesh",
+      "label": "Bangladesh",
+      "region": "South Asia",
+      "status": "Planned"
+    },
+    {
+      "id": "sri-lanka",
+      "label": "Sri Lanka",
+      "region": "South Asia",
+      "status": "Planned"
+    },
+    {
+      "id": "central-asia",
+      "label": "Central Asia",
+      "region": "Asia",
+      "status": "Planned"
+    },
+    {
+      "id": "southeast-asia",
+      "label": "Southeast Asia",
+      "region": "Asia",
+      "status": "Planned"
+    }
+  ]
+}
