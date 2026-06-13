@@ -58,6 +58,7 @@
   }
 
   function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function unique(values) { return [...new Set((values || []).filter(Boolean))]; }
 
   /* ───────── spatial hash ───────── */
   class SpatialHash {
@@ -91,6 +92,7 @@
     const mmCtx = mmCanvas ? mmCanvas.getContext('2d') : null;
 
     let nodes = [], edges = [], regionMap = {}, edgeTypeMap = {};
+    let sourceIndex = {}, countryCatalog = [];
     let nodeById = {};
     let W = 0, H = 0, dpr = 1;
     let panX = 0, panY = 0, zoom = 1, targetZoom = 1;
@@ -101,10 +103,11 @@
     let pointerDown = false, pointerMoved = false;
     let lastPointerPos = { x: 0, y: 0 };
     let theme = getTheme();
-    let viewMode = 'force';
-    let filterRegion = '', filterStatus = '', filterEdgeType = '', searchQuery = '';
+    let viewMode = 'country';
+    let filterCountry = '', filterRegion = '', filterStatus = '', filterEdgeType = '', searchQuery = '';
     let layoutTransitionProgress = 1;
     let layoutTargets = null;
+    let layoutGroupLabels = [];
     const spatialHash = new SpatialHash(GRID_SIZE);
     let pinchDist0 = null, pinchZoom0 = 1;
     let pulsePhase = 0;
@@ -138,12 +141,67 @@
     const detailPanel = root.querySelector('.network-detail-panel');
 
     /* ── data ── */
-    fetch('/assets/data/network-data.json')
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    function fetchJson(url) {
+      return fetch(url).then(r => { if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); });
+    }
+
+    function mergeNetworkData(datasets, catalog) {
+      const nodeMap = new Map();
+      const edgeMap = new Map();
+      const regionMapById = new Map();
+      const edgeTypeMapById = new Map();
+      const arrays = ['aliases', 'countries', 'designations', 'operatingAreas', 'sources', 'tags'];
+      const mergedSources = {};
+
+      for (const data of datasets) {
+        Object.assign(mergedSources, data.sourceIndex || {});
+        for (const node of data.nodes || []) {
+          const previous = nodeMap.get(node.id) || {};
+          const merged = { ...previous, ...node };
+          arrays.forEach(key => { merged[key] = unique([...(previous[key] || []), ...(node[key] || [])]); });
+          nodeMap.set(node.id, merged);
+        }
+        for (const edge of data.edges || []) {
+          const key = edge.id || `${edge.source}|${edge.target}|${edge.type}|${edge.label || ''}`;
+          const previous = edgeMap.get(key) || {};
+          edgeMap.set(key, { ...previous, ...edge, sources: unique([...(previous.sources || []), ...(edge.sources || [])]) });
+        }
+        for (const region of data.regions || []) regionMapById.set(region.id, region);
+        for (const type of data.edgeTypes || []) edgeTypeMapById.set(type.id, type);
+      }
+
+      return {
+        meta: datasets[0]?.meta || {},
+        nodes: [...nodeMap.values()],
+        edges: [...edgeMap.values()],
+        regions: [...regionMapById.values()],
+        edgeTypes: [...edgeTypeMapById.values()],
+        sourceIndex: mergedSources,
+        countries: catalog.countries || [],
+        coverageNote: catalog.meta?.coverage_note || '',
+      };
+    }
+
+    Promise.all([
+      fetchJson('/assets/data/network-data.json'),
+      fetchJson('/assets/data/network-catalog.json'),
+    ])
+      .then(async ([core, catalog]) => {
+        const packEntries = (catalog.countries || []).filter(country => country.data);
+        const packs = await Promise.all(packEntries.map(country => fetchJson(country.data).catch(err => {
+          console.error('[network-graph pack]', country.id, err);
+          return { nodes: [], edges: [] };
+        })));
+        return mergeNetworkData([core, ...packs], catalog);
+      })
       .then(data => { buildGraph(data); root.classList.remove('is-loading'); loop(); })
       .catch(err => console.error('[network-graph]', err));
 
     function buildGraph(data) {
+      sourceIndex = data.sourceIndex || {};
+      countryCatalog = data.countries || [];
+      const defaultCountry = countryCatalog.find(country => country.default && country.data);
+      filterCountry = defaultCountry?.label || '';
       (data.regions || []).forEach(r => { regionMap[r.id] = r; regionMap[r.label] = r; });
       (data.edgeTypes || []).forEach(e => { edgeTypeMap[e.id] = e; });
 
@@ -183,10 +241,12 @@
       simRunning = true;
       introProgress = 0;
       populateFilters(data);
+      populateCountryBrowser(data);
       buildLegend(data);
       populateStats();
       updateStats();
       applyFilters();
+      applyLayout(viewMode);
     }
 
     function initParticles() {
@@ -200,9 +260,16 @@
 
     /* ── populate filters ── */
     function populateFilters(data) {
+      const countrySel = root.querySelector('[data-filter="country"]');
       const regionSel = root.querySelector('[data-filter="region"]');
       const statusSel = root.querySelector('[data-filter="status"]');
       const edgeSel   = root.querySelector('[data-filter="edge-type"]');
+      if (countrySel) {
+        const countries = unique(nodes.flatMap(nodeCountries)).sort();
+        countrySel.innerHTML = '<option value="">All</option>' +
+          countries.map(country => `<option value="${esc(country)}">${esc(country)}</option>`).join('');
+        countrySel.value = filterCountry;
+      }
       if (regionSel) {
         const regions = [...new Set(nodes.map(n => n.region).filter(Boolean))].sort();
         regionSel.innerHTML = '<option value="">All</option>' +
@@ -218,6 +285,47 @@
         edgeSel.innerHTML = '<option value="">All</option>' +
           types.map(t => `<option value="${esc(t.id)}">${esc(t.label)}</option>`).join('');
       }
+    }
+
+    function nodeCountries(node) {
+      return unique([...(node.countries || []), node.country]);
+    }
+
+    function populateCountryBrowser() {
+      const list = root.querySelector('[data-country-list]');
+      if (!list) return;
+      list.innerHTML = countryCatalog.map(country => {
+        const available = Boolean(country.data);
+        const count = nodes.filter(node => nodeCountries(node).includes(country.label)).length;
+        return `<button type="button" class="network-country-card ${available ? 'is-available' : 'is-planned'}" data-country-value="${esc(country.label)}" ${available ? '' : 'disabled'} aria-pressed="${filterCountry === country.label}">
+          <span class="network-country-name">${esc(country.label)}</span>
+          <span class="network-country-status">${available ? `${count} records` : esc(country.status || 'Planned')}</span>
+        </button>`;
+      }).join('');
+
+      list.querySelectorAll('[data-country-value]:not(:disabled)').forEach(button => {
+        button.addEventListener('click', () => selectCountry(button.dataset.countryValue));
+      });
+      root.querySelector('[data-country-reset]')?.addEventListener('click', () => selectCountry(''));
+      updateCountryBrowser();
+    }
+
+    function updateCountryBrowser() {
+      root.querySelectorAll('[data-country-value]').forEach(button => {
+        const active = button.dataset.countryValue === filterCountry;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      root.querySelector('[data-country-reset]')?.classList.toggle('is-active', !filterCountry);
+    }
+
+    function selectCountry(country) {
+      filterCountry = country;
+      const select = root.querySelector('[data-filter="country"]');
+      if (select) select.value = country;
+      updateCountryBrowser();
+      applyFilters();
+      setViewMode('country');
     }
 
     /* ── build legend ── */
@@ -248,12 +356,12 @@
       if (!strip) return;
       const individuals = nodes.filter(n => n.type !== 'organisation').length;
       const orgs = nodes.filter(n => n.type === 'organisation').length;
-      const regionCount = new Set(nodes.map(n => n.region).filter(Boolean)).size;
+      const countryCount = new Set(nodes.flatMap(nodeCountries)).size;
       strip.innerHTML = `
-        <div class="network-metric"><span class="network-metric-label">Actors</span><strong class="network-metric-value">${individuals}</strong><span class="network-metric-note">Individual profiles</span></div>
+        <div class="network-metric"><span class="network-metric-label">People</span><strong class="network-metric-value">${individuals}</strong><span class="network-metric-note">Named individuals</span></div>
         <div class="network-metric"><span class="network-metric-label">Organisations</span><strong class="network-metric-value">${orgs}</strong><span class="network-metric-note">Networks & groups</span></div>
         <div class="network-metric"><span class="network-metric-label">Connections</span><strong class="network-metric-value">${edges.length}</strong><span class="network-metric-note">Mapped relationships</span></div>
-        <div class="network-metric"><span class="network-metric-label">Regions</span><strong class="network-metric-value">${regionCount}</strong><span class="network-metric-note">Operating theatres</span></div>
+        <div class="network-metric"><span class="network-metric-label">Countries</span><strong class="network-metric-value">${countryCount}</strong><span class="network-metric-note">Referenced jurisdictions</span></div>
       `;
     }
 
@@ -264,10 +372,11 @@
       if (!simRunning) return;
 
       spatialHash.clear();
-      for (const n of nodes) spatialHash.insert(n);
+      for (const n of nodes) if (n._visible) spatialHash.insert(n);
 
       /* repulsion */
       for (const a of nodes) {
+        if (!a._visible) continue;
         if (a.pinned || a === dragNode) continue;
         const nearby = spatialHash.query(a.x, a.y, GRID_SIZE * 3);
         for (const b of nearby) {
@@ -292,6 +401,7 @@
 
       /* springs */
       for (const e of edges) {
+        if (!e._visible) continue;
         const a = e.sourceNode, b = e.targetNode;
         let dx = b.x - a.x, dy = b.y - a.y;
         let d = Math.sqrt(dx*dx + dy*dy) || 1;
@@ -304,6 +414,7 @@
       /* integrate */
       let totalEnergy = 0;
       for (const n of nodes) {
+        if (!n._visible) { n.vx = 0; n.vy = 0; continue; }
         if (n.pinned || n === dragNode) { n.vx = 0; n.vy = 0; continue; }
         n.vx *= DAMPING; n.vy *= DAMPING;
         /* clamp max velocity */
@@ -318,6 +429,7 @@
         layoutTransitionProgress = Math.min(1, layoutTransitionProgress + 0.03);
         const t = easeInOutCubic(layoutTransitionProgress);
         for (const n of nodes) {
+          if (!n._visible) continue;
           const tgt = layoutTargets[n.id];
           if (!tgt) continue;
           n.x = lerp(n.x, tgt.x, t * 0.12);
@@ -358,6 +470,7 @@
 
       const vp = viewportBounds();
 
+      drawGroupLabels(p, vp);
       for (const e of edges) drawEdge(e, p, vp);
       updateParticles(p);
       for (const n of nodes) drawNode(n, p, vp);
@@ -400,8 +513,27 @@
              Math.max(a.y,b.y) > vp.y1 && Math.min(a.y,b.y) < vp.y2;
     }
 
+    function drawGroupLabels(p, vp) {
+      if (viewMode !== 'country') return;
+      ctx.save();
+      ctx.font = "900 10px 'IBM Plex Mono',monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const label of layoutGroupLabels) {
+        if (label.x < vp.x1 || label.x > vp.x2 || label.y < vp.y1 || label.y > vp.y2) continue;
+        const textLabel = label.text.length > 36 ? label.text.slice(0, 34) + '…' : label.text;
+        const width = ctx.measureText(textLabel.toUpperCase()).width;
+        ctx.fillStyle = hexToRGBA(p.bg, 0.9);
+        ctx.fillRect(label.x - width / 2 - 8, label.y - 10, width + 16, 20);
+        ctx.fillStyle = p.muted;
+        ctx.fillText(textLabel.toUpperCase(), label.x, label.y);
+      }
+      ctx.restore();
+    }
+
     /* ── edges ── */
     function drawEdge(e, p, vp) {
+      if (!e._visible) return;
       if (!inViewEdge(e, vp)) return;
       const a = e.sourceNode, b = e.targetNode;
       const introA = Math.min(a._introAlpha, b._introAlpha);
@@ -501,6 +633,7 @@
 
     /* ── nodes ── */
     function drawNode(n, p, vp) {
+      if (!n._visible) return;
       if (!inView(n, vp)) return;
       if (n._introAlpha < 0.01) return;
 
@@ -607,7 +740,7 @@
     }
     function isConnected(a, b) {
       return a._connections.some(e =>
-        (e.sourceNode === a && e.targetNode === b) || (e.targetNode === a && e.sourceNode === b)
+        e._visible && ((e.sourceNode === a && e.targetNode === b) || (e.targetNode === a && e.sourceNode === b))
       );
     }
 
@@ -620,9 +753,10 @@
       mmCtx.fillStyle = p.bg;
       mmCtx.fillRect(0, 0, mw, mh);
 
-      if (!nodes.length) return;
+      const visibleNodes = nodes.filter(n => n._visible);
+      if (!visibleNodes.length) return;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const n of nodes) {
+      for (const n of visibleNodes) {
         if (n.x-n.radius < minX) minX = n.x-n.radius;
         if (n.y-n.radius < minY) minY = n.y-n.radius;
         if (n.x+n.radius > maxX) maxX = n.x+n.radius;
@@ -664,12 +798,14 @@
     }
     function hitNode(wx, wy) {
       for (let i = nodes.length-1; i >= 0; i--) {
+        if (!nodes[i]._visible) continue;
         if (dist({x:wx,y:wy}, nodes[i]) < nodes[i].radius + HIT_PAD) return nodes[i];
       }
       return null;
     }
     function hitEdge(wx, wy) {
       for (const e of edges) {
+        if (!e._visible) continue;
         const a = e.sourceNode, b = e.targetNode;
         if (wx < Math.min(a.x,b.x)-12 || wx > Math.max(a.x,b.x)+12) continue;
         if (wy < Math.min(a.y,b.y)-12 || wy > Math.max(a.y,b.y)+12) continue;
@@ -761,10 +897,10 @@
     function updateTooltip(pos, node, edge) {
       if (node) {
         tooltip.innerHTML = `<strong>${esc(node.label)}</strong>${node.org ? `<br><span style="opacity:.6">${esc(node.org)}</span>` : ''}${node.region ? `<br><span style="opacity:.5">${esc(node.region)}</span>` : ''}${node.status ? `<br><em>${esc(node.status)}</em>` : ''}`;
-        positionTooltip(pos); tooltip.style.display = 'block';
+        positionTooltip(pos); tooltip.hidden = false; tooltip.style.display = 'block';
       } else if (edge) {
         tooltip.innerHTML = `<strong>${esc(edge.label || edge.type)}</strong>`;
-        positionTooltip(pos); tooltip.style.display = 'block';
+        positionTooltip(pos); tooltip.hidden = false; tooltip.style.display = 'block';
       } else hideTooltip();
     }
     function positionTooltip(pos) {
@@ -774,21 +910,28 @@
       if (ty+th > H-8) ty = pos.y-th-TOOLTIP_OFFSET;
       tooltip.style.left = Math.max(4,tx)+'px'; tooltip.style.top = Math.max(4,ty)+'px';
     }
-    function hideTooltip() { tooltip.style.display = 'none'; }
+    function hideTooltip() { tooltip.hidden = true; tooltip.style.display = 'none'; }
 
     /* ══════════════════════════════
        DETAIL PANEL
        ══════════════════════════════ */
+    function resolveSources(ids) {
+      return unique(ids).map(id => ({ id, ...(sourceIndex[id] || { label: id }) }));
+    }
+
     function selectNode(n) {
       selectedNode = n;
       if (!detailPanel) return;
 
       const connected = [];
       for (const e of n._connections) {
+        if (!e._visible) continue;
         const other = e.sourceNode === n ? e.targetNode : e.sourceNode;
         connected.push({ node: other, edge: e });
       }
       const statusClass = (n.status||'').toLowerCase().replace(/\s+/g,'-');
+      const sources = resolveSources(n.sources);
+      const countries = nodeCountries(n);
 
       detailPanel.innerHTML = `
         <button class="network-detail-close" aria-label="Close">&times;</button>
@@ -799,11 +942,17 @@
         <div class="detail-section">
           <dl>
             ${n.org ? `<div><dt>Organisation</dt><dd>${esc(n.org)}</dd></div>` : ''}
+            ${n.category ? `<div><dt>Category</dt><dd>${esc(n.category)}</dd></div>` : ''}
+            ${countries.length ? `<div><dt>Country relevance</dt><dd>${countries.map(esc).join(', ')}</dd></div>` : ''}
             ${n.region ? `<div><dt>Region</dt><dd>${esc(n.region)}</dd></div>` : ''}
+            ${n.cluster ? `<div><dt>Research cluster</dt><dd>${esc(n.cluster)}</dd></div>` : ''}
             ${n.role ? `<div><dt>Role</dt><dd>${esc(n.role)}</dd></div>` : ''}
+            ${n.operatingAreas?.length ? `<div><dt>Operating areas</dt><dd>${n.operatingAreas.map(esc).join(', ')}</dd></div>` : ''}
           </dl>
         </div>
         ${n.summary ? `<div class="detail-section"><p class="network-detail-summary">${esc(n.summary)}</p></div>` : ''}
+        ${n.aliases?.length ? `<div class="detail-section"><h4>Aliases and alternate names</h4><div class="network-detail-tags">${n.aliases.map(alias => `<span>${esc(alias)}</span>`).join('')}</div></div>` : ''}
+        ${n.designations?.length ? `<div class="detail-section"><h4>Designation records</h4><ul class="network-detail-records">${n.designations.map(item => `<li>${esc(item)}</li>`).join('')}</ul></div>` : ''}
         ${connected.length ? `<div class="detail-section">
           <h4>Connections (${connected.length})</h4>
           <ul class="network-detail-connections">
@@ -811,6 +960,12 @@
               <button class="network-detail-link" data-node-id="${esc(c.node.id)}">${esc(c.node.label)}</button>
               <small>${esc(c.edge.label || c.edge.type)}</small>
             </li>`).join('')}
+          </ul>
+        </div>` : ''}
+        ${sources.length ? `<div class="detail-section">
+          <h4>Primary sources</h4>
+          <ul class="network-detail-sources">
+            ${sources.map(source => `<li>${source.url ? `<a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a>` : esc(source.label)}</li>`).join('')}
           </ul>
         </div>` : ''}
         ${n.url ? `<div class="detail-section"><a class="network-detail-profile" href="${esc(n.url)}">View full profile →</a></div>` : ''}
@@ -834,24 +989,32 @@
     root.querySelectorAll('[data-filter]').forEach(el => {
       el.addEventListener('change', () => {
         const k = el.dataset.filter;
-        if (k === 'region') filterRegion = el.value;
+        if (k === 'country') { filterCountry = el.value; updateCountryBrowser(); }
+        else if (k === 'region') filterRegion = el.value;
         else if (k === 'status') filterStatus = el.value;
         else if (k === 'edge-type') filterEdgeType = el.value;
         applyFilters();
+        if (viewMode !== 'force') applyLayout(viewMode);
+        else reheat();
       });
     });
     const searchInput = root.querySelector('[data-network-search]');
-    if (searchInput) searchInput.addEventListener('input', debounce(() => { searchQuery = searchInput.value.trim().toLowerCase(); applyFilters(); }, 200));
+    if (searchInput) searchInput.addEventListener('input', debounce(() => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      applyFilters();
+      if (viewMode !== 'force') applyLayout(viewMode);
+    }, 200));
 
     function applyFilters() {
-      const has = filterRegion || filterStatus || filterEdgeType || searchQuery;
+      const has = filterCountry || filterRegion || filterStatus || filterEdgeType || searchQuery;
       for (const n of nodes) {
         if (!has) { n._visible = true; n._alpha = 1; continue; }
         let match = true;
+        if (filterCountry && !nodeCountries(n).some(country => country.toLowerCase() === filterCountry.toLowerCase())) match = false;
         if (filterRegion && (n.region||'').toLowerCase() !== filterRegion.toLowerCase()) match = false;
         if (filterStatus && (n.status||'').toLowerCase() !== filterStatus.toLowerCase()) match = false;
         if (searchQuery) {
-          const hay = `${n.label} ${n.org||''} ${n.role||''} ${(n.tags||[]).join(' ')}`.toLowerCase();
+          const hay = `${n.label} ${n.org||''} ${n.role||''} ${n.category||''} ${n.cluster||''} ${(n.tags||[]).join(' ')} ${(n.aliases||[]).join(' ')} ${nodeCountries(n).join(' ')} ${(n.designations||[]).join(' ')}`.toLowerCase();
           if (!hay.includes(searchQuery)) match = false;
         }
         n._visible = match;
@@ -864,6 +1027,7 @@
         e._visible = m;
         e._alpha = m ? 1 : THEMES[theme].dimAlpha;
       }
+      if (selectedNode && !selectedNode._visible) deselectNode();
       updateStats();
     }
 
@@ -872,7 +1036,7 @@
       if (!el) return;
       const vn = nodes.filter(n => n._visible).length;
       const ve = edges.filter(e => e._visible).length;
-      el.textContent = `${vn} actors · ${ve} connections · Interactive`;
+      el.textContent = `${filterCountry || 'World'} · ${vn} records · ${ve} connections`;
     }
 
     /* ══════════════════════════════
@@ -880,28 +1044,75 @@
        ══════════════════════════════ */
     root.querySelectorAll('[data-view-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const mode = btn.dataset.viewMode;
-        if (mode === viewMode) return;
-        root.querySelectorAll('[data-view-mode]').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        viewMode = mode;
-        applyLayout(mode);
+        setViewMode(btn.dataset.viewMode);
       });
     });
 
+    function setViewMode(mode) {
+      viewMode = mode;
+      root.querySelectorAll('[data-view-mode]').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.viewMode === mode);
+      });
+      applyLayout(mode);
+    }
+
     function applyLayout(mode) {
       layoutTargets = {};
+      layoutGroupLabels = [];
       layoutTransitionProgress = 0;
-      if (mode === 'hierarchical') layoutHierarchical();
+      panX = 0; panY = 0; targetZoom = 1;
+      if (mode === 'country') layoutCountry();
+      else if (mode === 'hierarchical') layoutHierarchical();
       else if (mode === 'radial') layoutRadial();
       else { for (const n of nodes) n.pinned = false; layoutTargets = null; layoutTransitionProgress = 1; temperature = 0.8; simRunning = true; return; }
       simRunning = true;
       temperature = 0.008;
     }
 
+    function layoutCountry() {
+      const visible = nodes.filter(n => n._visible);
+      const groups = new Map();
+      for (const node of visible) {
+        const key = filterCountry
+          ? (node.cluster || node.org || 'Other Pakistan-linked records')
+          : (node.country || nodeCountries(node)[0] || node.region || 'Global');
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(node);
+      }
+
+      const entries = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+      if (!entries.length) return;
+      const aspect = Math.max(0.7, W / Math.max(H, 1));
+      const cols = Math.max(1, Math.ceil(Math.sqrt(entries.length * aspect)));
+      const rows = Math.max(1, Math.ceil(entries.length / cols));
+      const cellW = W / cols;
+      const cellH = H / rows;
+
+      entries.forEach(([, members], groupIndex) => {
+        const col = groupIndex % cols;
+        const row = Math.floor(groupIndex / cols);
+        const cx = cellW * (col + 0.5);
+        const cy = cellH * (row + 0.5);
+        layoutGroupLabels.push({ text: entries[groupIndex][0], x: cx, y: cy - Math.min(cellH * 0.4, 145) });
+        const ordered = [...members].sort((a, b) => (a.type === 'organisation' ? -1 : 1) - (b.type === 'organisation' ? -1 : 1) || a.label.localeCompare(b.label));
+        ordered.forEach((node, index) => {
+          if (index === 0) {
+            layoutTargets[node.id] = { x: cx, y: cy };
+            return;
+          }
+          const ring = Math.floor((index - 1) / 8);
+          const place = (index - 1) % 8;
+          const countOnRing = Math.min(8, ordered.length - 1 - ring * 8);
+          const radius = Math.min(Math.min(cellW, cellH) * 0.38, 60 + ring * 55);
+          const angle = -Math.PI / 2 + (2 * Math.PI * place) / Math.max(countOnRing, 1);
+          layoutTargets[node.id] = { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius };
+        });
+      });
+    }
+
     function layoutHierarchical() {
-      const orgs = nodes.filter(n => n.type === 'organisation');
-      const inds = nodes.filter(n => n.type !== 'organisation');
+      const orgs = nodes.filter(n => n._visible && n.type === 'organisation');
+      const inds = nodes.filter(n => n._visible && n.type !== 'organisation');
       const cx = W/2, cy = H/2;
       orgs.forEach((n, i) => {
         const a = (2*Math.PI*i)/(orgs.length||1);
@@ -912,7 +1123,7 @@
       inds.forEach(n => { const k = n.org||'__none__'; if (!groups[k]) groups[k]=[]; groups[k].push(n); });
       Object.entries(groups).forEach(([key, members]) => {
         let ocx = cx, ocy = cy;
-        const orgNode = nodes.find(o => o.type === 'organisation' && o.label === key);
+        const orgNode = nodes.find(o => o._visible && o.type === 'organisation' && o.label === key);
         if (orgNode && layoutTargets[orgNode.id]) { ocx = layoutTargets[orgNode.id].x; ocy = layoutTargets[orgNode.id].y; }
         const ring = Math.min(W,H)*0.32;
         members.forEach((n, i) => {
@@ -925,7 +1136,7 @@
     function layoutRadial() {
       const cx = W/2, cy = H/2;
       const regionGroups = {};
-      nodes.forEach(n => { const k = n.region||'Other'; if (!regionGroups[k]) regionGroups[k]=[]; regionGroups[k].push(n); });
+      nodes.filter(n => n._visible).forEach(n => { const k = n.region||'Other'; if (!regionGroups[k]) regionGroups[k]=[]; regionGroups[k].push(n); });
       const keys = Object.keys(regionGroups);
       keys.forEach((key, ri) => {
         const ga = (2*Math.PI*ri)/keys.length;
