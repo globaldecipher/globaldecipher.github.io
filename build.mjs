@@ -764,31 +764,36 @@ function heroMapSvg() {
 }
 
 function toolsBand(currentPath = "/") {
-  const mapPreview = `<svg viewBox="0 0 168 132" aria-hidden="true">
-    <path class="tool-map-land" d="M34 122 L20 96 L30 78 L24 60 L44 50 L50 30 L72 22 L88 30 L98 16 L118 24 L124 40 L108 48 L118 60 L142 66 L148 84 L130 96 L104 100 L86 120 L58 126 Z"/>
-    <path class="tool-map-hot" d="M50 30 L72 22 L88 30 L82 48 L60 52 L44 50 Z"/>
-    <g class="map-pulse" transform="translate(67 37)">
-      <circle class="ring" r="5"/>
-      <circle class="ring" r="5" style="animation-delay:1.4s"/>
-      <circle class="dot" r="4"/>
+  const mapPreview = `<span class="tool-map-preview" aria-hidden="true">
+    <img src="${prefixFor(currentPath)}assets/pakistan-map.svg" alt="">
+    <span class="tool-map-marker marker-kp"><i></i><b>KP</b></span>
+    <span class="tool-map-marker marker-balochistan"><i></i><b>Balochistan</b></span>
+    <span class="tool-map-marker marker-sindh"><i></i><b>Sindh</b></span>
+    <span class="tool-map-window"><strong>31D</strong><small>rolling window</small></span>
+  </span>`;
+  const netPreview = `<svg class="tool-element-network" viewBox="0 0 220 150" aria-hidden="true">
+    <g class="tool-bonds">
+      <line x1="55" y1="42" x2="111" y2="72"/>
+      <line x1="166" y1="35" x2="111" y2="72"/>
+      <line x1="111" y1="72" x2="58" y2="116"/>
+      <line x1="111" y1="72" x2="169" y2="111"/>
+      <line class="dashed" x1="55" y1="42" x2="166" y2="35"/>
     </g>
-    <g class="tool-map-chip" transform="translate(104 76)">
-      <circle r="13"/>
-      <text y="4" text-anchor="middle">31d</text>
+    <g class="tool-element cell-gold" transform="translate(28 15)">
+      <rect width="54" height="54"/><text class="number" x="6" y="11">01</text><text class="symbol" x="27" y="35">AQ</text><text class="name" x="27" y="47">AL-QAEDA</text>
     </g>
-  </svg>`;
-  const netPreview = `<svg viewBox="0 0 168 132" aria-hidden="true">
-    <line class="tool-net-edge" x1="38" y1="38" x2="84" y2="68"/>
-    <line class="tool-net-edge" x1="130" y1="28" x2="84" y2="68"/>
-    <line class="tool-net-edge" x1="84" y1="68" x2="48" y2="106"/>
-    <line class="tool-net-edge" x1="84" y1="68" x2="132" y2="98"/>
-    <line class="tool-net-edge faint" x1="38" y1="38" x2="130" y2="28"/>
-    <line class="tool-net-edge faint" x1="48" y1="106" x2="132" y2="98"/>
-    <circle class="tool-net-node gold" cx="38" cy="38" r="11"/>
-    <circle class="tool-net-node gold" cx="130" cy="28" r="9"/>
-    <circle class="tool-net-node red" cx="84" cy="68" r="13"/>
-    <circle class="tool-net-node ink" cx="48" cy="106" r="9"/>
-    <circle class="tool-net-node ink" cx="132" cy="98" r="9"/>
+    <g class="tool-element cell-ink" transform="translate(139 8)">
+      <rect width="54" height="54"/><text class="number" x="6" y="11">02</text><text class="symbol" x="27" y="35">IS</text><text class="name" x="27" y="47">ISLAMIC STATE</text>
+    </g>
+    <g class="tool-element cell-red" transform="translate(84 45)">
+      <rect width="54" height="54"/><text class="number" x="6" y="11">03</text><text class="symbol" x="27" y="35">TTP</text><text class="name" x="27" y="47">PAKISTAN</text>
+    </g>
+    <g class="tool-element cell-paper" transform="translate(31 89)">
+      <rect width="54" height="54"/><text class="number" x="6" y="11">04</text><text class="symbol" x="27" y="35">LeT</text><text class="name" x="27" y="47">LASHKAR</text>
+    </g>
+    <g class="tool-element cell-paper" transform="translate(142 84)">
+      <rect width="54" height="54"/><text class="number" x="6" y="11">05</text><text class="symbol" x="27" y="35">BLA</text><text class="name" x="27" y="47">BALOCHISTAN</text>
+    </g>
   </svg>`;
   return `<section class="band tools-band">
     <div class="container split-heading">
