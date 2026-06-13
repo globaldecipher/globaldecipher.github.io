@@ -2,7 +2,7 @@ name: Update incident tracker from X
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Update feed from X posts
         id: xfeed
@@ -31,21 +31,21 @@ jobs:
           X_USERNAME: Global_Decipher
         run: |
           if [ -z "$X_BEARER_TOKEN" ]; then
-            echo 'X_BEARER_TOKEN is not configured; skipping.'
-            echo 'added_count=0' >> "$GITHUB_OUTPUT"
+            echo "X_BEARER_TOKEN is not configured; skipping."
+            echo "added_count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           node .github/scripts/update-incidents-from-x.mjs
 
       - name: Commit incident feed
-        if: steps.xfeed.outputs.added_count != '0'
+        if: steps.xfeed.outputs.changed_count != '0'
         run: |
           if [ -z "$(git status --porcelain static/data/incidents.json)" ]; then
-            echo 'No incident feed changes.'
+            echo "No incident feed changes."
             exit 0
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add static/data/incidents.json
-          git commit -m 'Update incident tracker from X'
+          git commit -m "Update incident tracker from X"
           git push

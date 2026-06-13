@@ -49,21 +49,45 @@
   /* ---------- nav toggle ---------- */
   const navToggle = $("[data-nav-toggle]");
   const nav = $("#site-nav");
+  const searchToggle = $("[data-search-toggle]");
+  const searchPanel = $("[data-site-search]");
+  const setNavOpen = (open) => {
+    if (!navToggle || !nav) return;
+    nav.classList.toggle("open", open);
+    navToggle.setAttribute("aria-expanded", String(open));
+    navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    if (open && searchPanel && searchToggle) {
+      searchPanel.hidden = true;
+      searchToggle.setAttribute("aria-expanded", "false");
+      searchToggle.setAttribute("aria-label", "Search");
+    }
+  };
   if (navToggle && nav) {
     navToggle.addEventListener("click", () => {
-      const open = nav.classList.toggle("open");
-      navToggle.setAttribute("aria-expanded", String(open));
+      setNavOpen(!nav.classList.contains("open"));
+    });
+    nav.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setNavOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && nav.classList.contains("open")) setNavOpen(false);
     });
   }
 
   /* ---------- site-wide search ---------- */
-  const searchToggle = $("[data-search-toggle]");
-  const searchPanel = $("[data-site-search]");
   if (searchToggle && searchPanel) {
     const input = $("[data-site-search-input]", searchPanel);
     const results = $("[data-site-search-results]", searchPanel);
     let index = [];
     let loaded = false;
+
+    const escapeHtml = (value = "") =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 
     const linkFor = (url) => {
       const base = searchPanel.dataset.searchIndex || "search-index.json";
@@ -84,10 +108,10 @@
         })
         .filter((entry) => entry.hit)
         .slice(0, 8)
-        .map(({ item }) => `<a href="${linkFor(item.url)}">
-          <span>${item.type || "item"} · ${item.region || item.category || "Global"}</span>
-          <strong>${item.title}</strong>
-          <small>${item.summary || ""}</small>
+        .map(({ item }) => `<a href="${escapeHtml(linkFor(item.url))}">
+          <span>${escapeHtml(item.type || "item")} · ${escapeHtml(item.region || item.category || "Global")}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.summary || "")}</small>
         </a>`)
         .join("");
       results.innerHTML = matches || `<p>No matching research found.</p>`;
@@ -98,6 +122,7 @@
       loaded = true;
       try {
         const res = await fetch(searchPanel.dataset.searchIndex || "search-index.json");
+        if (!res.ok) throw new Error(`Search index returned ${res.status}`);
         index = await res.json();
       } catch {
         index = [];
@@ -105,16 +130,20 @@
     };
 
     const openSearch = async () => {
+      setNavOpen(false);
       searchPanel.hidden = false;
       searchToggle.setAttribute("aria-expanded", "true");
+      searchToggle.setAttribute("aria-label", "Close search");
       await load();
       render();
       window.requestAnimationFrame(() => input?.focus());
     };
 
-    const closeSearch = () => {
+    const closeSearch = (restoreFocus = false) => {
       searchPanel.hidden = true;
       searchToggle.setAttribute("aria-expanded", "false");
+      searchToggle.setAttribute("aria-label", "Search");
+      if (restoreFocus) searchToggle.focus();
     };
 
     searchToggle.addEventListener("click", async () => {
@@ -123,7 +152,7 @@
     });
     input?.addEventListener("input", render);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !searchPanel.hidden) closeSearch();
+      if (event.key === "Escape" && !searchPanel.hidden) closeSearch(true);
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         openSearch();

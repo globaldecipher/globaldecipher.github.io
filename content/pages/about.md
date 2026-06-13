@@ -12,12 +12,11 @@ The Global Decipher is a digital intelligence and research platform providing st
 
 TGD serves researchers, journalists, policy analysts, and security institutions with public-source analysis, professional reporting, and research products designed to support informed decision-making.
 
-## Current reach
+## Public presence
 
-- X / Twitter: 533 followers.
-- WhatsApp Channel: 1,770+ subscribers.
-- LinkedIn: 245 followers.
-- Instagram: 150 followers.
+- X / Twitter for public updates and reporting.
+- WhatsApp Channel for briefing distribution.
+- LinkedIn and Instagram for wider public outreach.
 
 ## Leadership
 

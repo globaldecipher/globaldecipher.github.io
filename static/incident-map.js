@@ -107,11 +107,6 @@
     if (!Number.isFinite(value)) return date || "today";
     return new Intl.DateTimeFormat("en", { day: "numeric", month: compact ? "short" : "long", year: compact ? undefined : "numeric", timeZone: "UTC" }).format(new Date(value));
   }
-  function formatUpdated(value) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value || "Unknown";
-    return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: TZ }).format(date);
-  }
   function provinceKey(value) {
     const compact = norm(value).replace(/[^a-z0-9]+/g, "");
     if (!compact) return "";
@@ -161,6 +156,12 @@
     if (state.mode === "last30") return "LAST 30 DAYS";
     if (state.mode === "week") return state.week.toUpperCase();
     return formatDay(state.date).toUpperCase();
+  }
+  function rangeContext() {
+    if (state.mode === "last7") return "in the last 7 days";
+    if (state.mode === "last30") return "in the last 30 days";
+    if (state.mode === "week") return `in the ${state.week}`;
+    return `on ${formatDay(state.date)}`;
   }
   function setDate(date) {
     state.mode = "date";
@@ -228,7 +229,7 @@
     return "low";
   }
   function trend(group) {
-    if (!group.count) return `No incident logged for ${rangeLabel().toLowerCase()}.`;
+    if (!group.count) return `No incident logged ${rangeContext()}.`;
     const cats = topLabels(group.categories, 2).join(" ").toLowerCase();
     if (group.fatalities + group.injuries >= 5) return "High-impact reporting in current selection.";
     if (group.high >= 2) return "High-severity activity is concentrated here.";
@@ -519,7 +520,7 @@
   function renderList() {
     els.resultCount.textContent = `${count(state.filtered.length)} shown`;
     if (!state.filtered.length) {
-      const message = state.range.length ? "No incidents match these filters." : state.mode === "date" && !inArchive(state.date) ? `Date is outside the ${ARCHIVE_DAYS}-day archive window.` : `No incidents logged for ${rangeLabel().toLowerCase()} Pakistan time yet.`;
+      const message = state.range.length ? "No incidents match these filters." : state.mode === "date" && !inArchive(state.date) ? `Date is outside the ${ARCHIVE_DAYS}-day archive window.` : `No incidents logged ${rangeContext()} (Pakistan time).`;
       els.list.innerHTML = `<p class="tracker-empty">${esc(message)}</p>`;
       return;
     }
@@ -544,7 +545,7 @@
     renderDetail();
     renderList();
     renderTabs();
-    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in ${rangeLabel().toLowerCase()}. Archive keeps the latest ${ARCHIVE_DAYS} Pakistan-time days.`;
+    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} ${rangeContext()}. Archive covers the latest ${ARCHIVE_DAYS} Pakistan-time days.`;
   }
   function stopPlayback(renderControls = true) {
     if (playbackTimer) window.clearInterval(playbackTimer);
@@ -578,7 +579,8 @@
       state.archive = state.all.filter((incident) => inArchive(incident.date));
       if (!state.loaded && !state.archive.some((incident) => incident.date === state.date)) setDate(state.archive[0]?.date || state.today);
       state.loaded = true;
-      els.lastUpdated.textContent = `Updated ${formatUpdated(data.last_updated)}`;
+      const latestDate = state.archive[0]?.date;
+      els.lastUpdated.textContent = latestDate ? `Data through ${formatDay(latestDate)}` : "No recent records";
       render();
     } catch (error) {
       els.lastUpdated.textContent = "Feed unavailable";

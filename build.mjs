@@ -139,6 +139,7 @@ function inlineMarkdown(text) {
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
   out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  out = out.replace(/\[([^\]]+)\]\((mailto:[^)]+)\)/g, '<a href="$2">$1</a>');
   out = out.replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2">$1</a>');
   // Re-allow stored image tags to keep raw src/alt (escapeHtml only ran on text input).
   return out;
@@ -310,7 +311,8 @@ function readCollection(collection) {
     .map((file) => {
       const filePath = path.join(dir, file);
       const parsed = parseFrontMatter(filePath);
-      const slug = parsed.data.slug || slugify(file.replace(/\.md$/, ""));
+      const slug = slugify(parsed.data.slug || file.replace(/\.md$/, ""));
+      if (!slug) throw new Error(`Could not create a valid slug for ${filePath}`);
       return {
         ...parsed.data,
         collection,
@@ -502,7 +504,7 @@ function escapeXml(value = "") {
 
 function accessLabel(item) {
   if (item.access === "premium-preview") return '<span class="badge badge-premium">Premium preview</span>';
-  if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Research sensitive</span>';
+  if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Public source</span>';
   return '<span class="badge badge-free">Free</span>';
 }
 
@@ -599,7 +601,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
           <span>Search TGD</span>
           <input type="search" data-site-search-input placeholder="Search reports, profiles, regions, groups, or themes" autocomplete="off">
         </label>
-        <div class="site-search-results" data-site-search-results></div>
+        <div class="site-search-results" data-site-search-results aria-live="polite"></div>
       </div>
     </section>
   </header>
@@ -618,6 +620,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       </div>
       <div>
         <h2>Editorial</h2>
+        <a href="${linkFor("/methodology/", pagePath)}">Methodology</a>
         <a href="${linkFor("/corrections-policy/", pagePath)}">Corrections</a>
         <a href="${linkFor("/privacy-policy/", pagePath)}">Privacy</a>
       </div>
@@ -642,8 +645,9 @@ function card(item, currentPath = "/", { compact = false } = {}) {
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const tagMarkup = tags.slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
   const status = item.type === "profiles" ? profileStatus(item) : "";
+  const statusSlug = status ? slugify(status) : "";
   const searchText = [item.title, item.summary, item.category, item.region, status, tags.join(" ")].join(" ").toLowerCase();
-  return `<article class="content-card" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
+  return `<article class="content-card${statusSlug ? ` status-${statusSlug}` : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
     <div class="card-kicker">
       <span>${escapeHtml(typeLabel(item.type))}</span>
       ${accessLabel(item)}
@@ -652,7 +656,9 @@ function card(item, currentPath = "/", { compact = false } = {}) {
     <p>${escapeHtml(item.summary || "")}</p>
     <div class="card-meta">
       <span>${escapeHtml(formatDate(item.date))}</span>
-      <span>${escapeHtml(item.type === "profiles" && status ? status : item.region || item.category || "")}</span>
+      ${item.type === "profiles" && status
+        ? `<span class="status-chip status-${statusSlug}">${escapeHtml(status)}</span>`
+        : `<span>${escapeHtml(item.region || item.category || "")}</span>`}
     </div>
     ${compact ? "" : `<div class="tag-row">${tagMarkup}</div>`}
   </article>`;
@@ -686,10 +692,10 @@ function filterToolbar(types = []) {
 
 function pillarStrip() {
   const items = [
-    { icon: "whatsapp", num: "1,770+", label: "WhatsApp subscribers", url: SITE.whatsapp },
-    { icon: "x", num: "533", label: "Followers on X", url: SITE.x },
+    { icon: "whatsapp", num: "WhatsApp", label: "Briefing channel", url: SITE.whatsapp },
+    { icon: "x", num: "X", label: "Public updates", url: SITE.x },
     { icon: "book", num: "Substack", label: "Long-form analysis", url: SITE.substack },
-    { icon: "mail", num: "Pitch us", label: "globaldecipher@gmail.com", url: `mailto:${SITE.email}?subject=TGD%20pitch` }
+    { icon: "mail", num: "Pitch us", label: "Contact the desk", url: linkFor("/contact/", "/") }
   ];
   const cells = items.map(
     (s) => `<a class="pillar" href="${s.url}"${/^https?:\/\//.test(s.url) ? ' target="_blank" rel="noopener"' : ""}>
@@ -757,18 +763,80 @@ function heroMapSvg() {
   </svg>`;
 }
 
+function toolsBand(currentPath = "/") {
+  const mapPreview = `<svg viewBox="0 0 168 132" aria-hidden="true">
+    <path class="tool-map-land" d="M34 122 L20 96 L30 78 L24 60 L44 50 L50 30 L72 22 L88 30 L98 16 L118 24 L124 40 L108 48 L118 60 L142 66 L148 84 L130 96 L104 100 L86 120 L58 126 Z"/>
+    <path class="tool-map-hot" d="M50 30 L72 22 L88 30 L82 48 L60 52 L44 50 Z"/>
+    <g class="map-pulse" transform="translate(67 37)">
+      <circle class="ring" r="5"/>
+      <circle class="ring" r="5" style="animation-delay:1.4s"/>
+      <circle class="dot" r="4"/>
+    </g>
+    <g class="tool-map-chip" transform="translate(104 76)">
+      <circle r="13"/>
+      <text y="4" text-anchor="middle">31d</text>
+    </g>
+  </svg>`;
+  const netPreview = `<svg viewBox="0 0 168 132" aria-hidden="true">
+    <line class="tool-net-edge" x1="38" y1="38" x2="84" y2="68"/>
+    <line class="tool-net-edge" x1="130" y1="28" x2="84" y2="68"/>
+    <line class="tool-net-edge" x1="84" y1="68" x2="48" y2="106"/>
+    <line class="tool-net-edge" x1="84" y1="68" x2="132" y2="98"/>
+    <line class="tool-net-edge faint" x1="38" y1="38" x2="130" y2="28"/>
+    <line class="tool-net-edge faint" x1="48" y1="106" x2="132" y2="98"/>
+    <circle class="tool-net-node gold" cx="38" cy="38" r="11"/>
+    <circle class="tool-net-node gold" cx="130" cy="28" r="9"/>
+    <circle class="tool-net-node red" cx="84" cy="68" r="13"/>
+    <circle class="tool-net-node ink" cx="48" cy="106" r="9"/>
+    <circle class="tool-net-node ink" cx="132" cy="98" r="9"/>
+  </svg>`;
+  return `<section class="band tools-band">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">Intelligence tools</p>
+        <h2>Live research tools, built in-house.</h2>
+      </div>
+      <a href="${linkFor("/incident-map/", currentPath)}">Open the incident map</a>
+    </div>
+    <div class="container tool-grid">
+      <a class="tool-card" href="${linkFor("/incident-map/", currentPath)}">
+        <span class="tool-visual">${mapPreview}</span>
+        <span class="tool-body">
+          <span class="gateway-kicker">Public-source tracker</span>
+          <strong>Pakistan incident map</strong>
+          <p>District-level incidents, casualties, and severity on a rolling 31-day archive — updated from monitored feeds.</p>
+          <span class="tool-cta">Open the map →</span>
+        </span>
+      </a>
+      <a class="tool-card" href="${linkFor("/network-graph/", currentPath)}">
+        <span class="tool-visual">${netPreview}</span>
+        <span class="tool-body">
+          <span class="gateway-kicker">Actor relationships</span>
+          <strong>Militant network graph</strong>
+          <p>Interactive map of leaders, organisations, and the command, allegiance, and rivalry links between them.</p>
+          <span class="tool-cta">Explore the network →</span>
+        </span>
+      </a>
+    </div>
+  </section>`;
+}
+
 function tickerStrip(items) {
   const latest = items.filter((item) => !["profiles", "pages"].includes(item.type));
   const lines = latest.slice(0, 8).map((item) => {
-    return `<a href="${linkFor(item.url, "/")}"><span class="region">${escapeHtml(item.region || item.category || "Global")}</span><strong>${escapeHtml(item.title)}</strong></a>`;
+    const region = escapeHtml(item.region || item.category || "Global");
+    const title = escapeHtml(item.title);
+    return {
+      link: `<a href="${linkFor(item.url, "/")}"><span class="region">${region}</span><strong>${title}</strong></a>`,
+      copy: `<span class="ticker-copy-item"><span class="region">${region}</span><strong>${title}</strong></span>`
+    };
   });
   if (!lines.length) return "";
-  const doubled = [...lines, ...lines].join("");
   return `<div class="ticker-bar">
     <div class="container ticker-row">
       <span class="ticker-label"><span class="live-dot"></span> Latest briefings</span>
       <div class="ticker-track">
-        <div class="ticker-strip">${doubled}</div>
+        <div class="ticker-strip">${lines.map((line) => line.link).join("")}<span class="ticker-copy" aria-hidden="true">${lines.map((line) => line.copy).join("")}</span></div>
       </div>
     </div>
   </div>`;
@@ -796,7 +864,7 @@ function pitchBand() {
         <p class="band-eyebrow">Pitch the desk</p>
         <h2>Got a <em>tip</em>, document, or story?</h2>
         <p>We work with researchers, journalists, and on-the-ground sources. Source identities are protected. We verify before we publish.</p>
-        <a class="button primary" href="mailto:${SITE.email}?subject=TGD%20pitch">Email the desk <span class="arrow">→</span></a>
+        <a class="button primary" href="${linkFor("/contact/", "/")}">Contact the desk <span class="arrow">→</span></a>
       </div>
       <aside class="pitch-card">
         <p class="label">Pitch &amp; contact</p>
@@ -838,6 +906,7 @@ function homepage(items) {
       description: SITE.description,
       body: `${tickerStrip(items)}
   <section class="hero">
+    <div class="hero-map" aria-hidden="true">${heroMapSvg()}</div>
     <div class="container hero-grid">
       <div class="hero-lead-col">
         <p class="hero-eyebrow">The Global Decipher</p>
@@ -864,6 +933,7 @@ function homepage(items) {
   const body = `
   ${tickerStrip(items)}
   <section class="hero">
+    <div class="hero-map" aria-hidden="true">${heroMapSvg()}</div>
     <div class="container hero-grid">
       <div class="hero-lead-col">
         <p class="hero-eyebrow">${leadType} · ${escapeHtml(lead.region || "Pakistan")}</p>
@@ -882,8 +952,8 @@ function homepage(items) {
       </div>
       <aside class="hero-rail">
         <div class="hero-rail-head">
-          <span class="title">Research queue</span>
-          <span class="status"><span class="live-dot"></span> Updated</span>
+          <span class="title">Latest research</span>
+          <span class="status"><span class="live-dot"></span> Recently updated</span>
         </div>
         ${railItems.length ? railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
           <span class="num">0${i + 2}</span>
@@ -906,6 +976,8 @@ function homepage(items) {
       </article>`).join("")}
     </div>
   </section>
+
+  ${toolsBand(currentPath)}
 
   <section class="band muted">
     <div class="container split-heading">
@@ -1072,7 +1144,7 @@ function articleTemplate(item, allItems) {
       ? `<aside class="premium-cta">
           <h2>Request full access</h2>
           <p>This is a public preview. Full Monitoring Desk notes and premium reports are handled manually for subscribers and institutional clients.</p>
-          <a class="button primary" href="mailto:${SITE.email}?subject=TGD%20Premium%20Access%20Request">Contact TGD</a>
+          <a class="button primary" href="${linkFor("/contact/", item.url)}">Contact TGD</a>
         </aside>`
       : "";
   const body = `<section class="article-hero">
@@ -1200,7 +1272,7 @@ ${urls
   fs.writeFileSync(
     path.join(OUT_DIR, "search-index.json"),
     JSON.stringify(
-      items.map(({ title, summary, type, region, category, tags, url, date, access }) => ({
+      [...items, ...pages].map(({ title, summary, type, region, category, tags, url, date, access }) => ({
         title,
         summary,
         type,

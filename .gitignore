@@ -3,3 +3,6 @@ node_modules/
 .env
 # Build output — GitHub Actions regenerates this on every push
 site/
+
+# Local tooling
+.claude/

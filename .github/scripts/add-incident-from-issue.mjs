@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const DATA_PATH = path.join("static", "data", "incidents.json");
+const RETENTION_DAYS = 31;
 
 const DISTRICT_COORDS = new Map(Object.entries({
   bajaur: [34.72, 71.50],
@@ -121,6 +122,26 @@ function readData() {
   return JSON.parse(fs.readFileSync(DATA_PATH, "utf8"));
 }
 
+function dateValue(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function retentionCutoff(now = new Date()) {
+  const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  cutoff.setUTCDate(cutoff.getUTCDate() - RETENTION_DAYS + 1);
+  return cutoff;
+}
+
+function pruneOldIncidents(incidents, now = new Date()) {
+  const cutoff = retentionCutoff(now);
+  return incidents.filter((incident) => {
+    const incidentDate = dateValue(incident.date);
+    return !incidentDate || incidentDate >= cutoff;
+  });
+}
+
 function writeOutput(name, value) {
   if (!process.env.GITHUB_OUTPUT) return;
   fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${String(value).replace(/\n/g, " ")}\n`);
@@ -190,7 +211,9 @@ function main() {
   else incidents.unshift(incident);
 
   data.last_updated = new Date().toISOString();
-  data.incidents = incidents.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.id || "").localeCompare(String(a.id || "")));
+  data.retention_days = RETENTION_DAYS;
+  data.incidents = pruneOldIncidents(incidents)
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.id || "").localeCompare(String(a.id || "")));
   fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
   fs.writeFileSync(DATA_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 
