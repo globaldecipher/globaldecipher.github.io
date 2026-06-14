@@ -1120,11 +1120,15 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
 }
 
 function pageTemplate(page) {
+  const isWide = page.wide === true
+    || /incident-tracker-shell|network-graph-shell/.test(page.html);
+  const shellClass = isWide ? "" : " static-page-shell";
+  const bodyClass = isWide ? "" : " static-page-body";
   const body = `${sectionHero(page.title, page.eyebrow || "Editorial", page.summary || "")}
   <section class="article-band">
     <div class="container">
-      <div class="static-page-shell">
-        <article class="article-body static-page-body">${page.html}</article>
+      <div class="page-shell${shellClass}">
+        <article class="article-body${bodyClass}">${page.html}</article>
       </div>
     </div>
   </section>`;

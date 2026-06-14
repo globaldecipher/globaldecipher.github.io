@@ -1,6 +1,8 @@
-.article-shell:has(.incident-tracker-shell) {
+.article-shell:has(.incident-tracker-shell),
+.page-shell:has(.incident-tracker-shell) {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 1280px;
+  max-width: 1320px;
+  margin: 0 auto;
 }
 
 .article-body:has(.incident-tracker-shell) {

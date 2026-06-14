@@ -3,9 +3,11 @@
    ══════════════════════════════════════════════════════════ */
 
 /* ── Break out of article constraints ── */
-.article-shell:has(.network-graph-shell) {
+.article-shell:has(.network-graph-shell),
+.page-shell:has(.network-graph-shell) {
   grid-template-columns: minmax(0, 1fr);
   max-width: 1400px;
+  margin: 0 auto;
 }
 .article-body:has(.network-graph-shell) {
   font-family: var(--sans);
