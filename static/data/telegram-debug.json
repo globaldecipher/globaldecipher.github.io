@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-14T12:23:55.485Z",
+  "checked_at": "2026-06-14T14:41:32.437Z",
   "current_day_pakistan": "2026-06-14",
   "archive_days": 30,
   "archive_start": "2026-05-16",
@@ -29,10 +29,23 @@
   },
   "webhook": {
     "active": false,
-    "pending_update_count": 0,
+    "pending_update_count": 1,
     "last_error_date": 0,
     "last_error_message": ""
   },
-  "updates_count": 0,
-  "results": []
+  "updates_count": 1,
+  "results": [
+    {
+      "update_id": 828254903,
+      "type": "message",
+      "reason": "not_incident_text",
+      "chat_id": "-1003994704651",
+      "chat_type": "supergroup",
+      "message_id": 52,
+      "message_date_utc": "2026-06-14T12:54:00.000Z",
+      "message_date_pakistan": "2026-06-14",
+      "has_text": false,
+      "field_keys": []
+    }
+  ]
 }
