@@ -3,6 +3,54 @@
   if (!root) return;
 
   const DATA_URL = "/assets/data/incidents.json";
+  const HUBS_URL = "/assets/data/hubs.json";
+  const HUB_INDEX = { organisations: [], regions: [] };
+  fetch(HUBS_URL, { cache: "default" })
+    .then((res) => res.ok ? res.json() : null)
+    .then((data) => {
+      if (!data) return;
+      HUB_INDEX.organisations = data.organisations || [];
+      HUB_INDEX.regions = data.regions || [];
+      if (state.loaded) render();
+    })
+    .catch(() => {});
+
+  function hubSlug(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+  function matchHub(text, kind) {
+    const value = String(text || "").trim();
+    if (!value) return null;
+    const list = kind === "region" ? HUB_INDEX.regions : HUB_INDEX.organisations;
+    const slug = hubSlug(value);
+    let direct = list.find((h) => h.slug === slug);
+    if (direct) return direct;
+    const lower = value.toLowerCase();
+    let bestPartial = null;
+    for (const hub of list) {
+      const label = hub.label.toLowerCase();
+      if (label.length < 2) continue;
+      const re = new RegExp(`(^|[^a-z0-9])${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i");
+      if (re.test(lower)) {
+        if (!bestPartial || hub.label.length > bestPartial.label.length) bestPartial = hub;
+      }
+    }
+    return bestPartial;
+  }
+  function hubLink(label, kind) {
+    const text = String(label || "").trim();
+    if (!text) return "";
+    const hub = matchHub(text, kind);
+    if (hub) {
+      const base = kind === "region" ? "regions" : "organisations";
+      return `<a class="hub-link" href="/${base}/${hub.slug}/">${esc(text)}</a>`;
+    }
+    return esc(text);
+  }
   const TZ = "Asia/Karachi";
   const ARCHIVE_DAYS = 31;
   const DAY_MS = 86400000;
@@ -652,25 +700,28 @@
 
   function casualty(incident) { return `${count(incident.fatalities)} killed / ${count(incident.injuries)} injured`; }
   function stat(label, value) { return `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`; }
+  function statRaw(label, htmlValue) { return `<div><span>${esc(label)}</span><strong>${htmlValue || "—"}</strong></div>`; }
   function renderDetail() {
     const map = groups();
     const incident = state.filtered.find((item) => item.id === state.selectedIncident);
     if (incident) {
       const source = incident.source_url ? `<a href="${esc(incident.source_url)}" target="_blank" rel="noopener noreferrer">${esc(incident.source || "Open source")}</a>` : `<span>${esc(incident.source || "Source pending")}</span>`;
       const trust = confidence(incident);
-      els.detail.innerHTML = `<div class="detail-panel-head"><span>Selected incident</span><button type="button" data-clear-detail>Clear</button></div><h3>${esc(incident.title)}</h3><span class="source-confidence ${esc(trust.className)}">${esc(trust.label)}</span><p>${esc(incident.summary)}</p><div class="detail-stats">${stat("Date", incident.date || "Unknown")}${stat("District", incident.district || "Unknown")}${stat("Actor", incident.actor || "Unknown")}${stat("Casualties", casualty(incident))}${stat("Severity", incident.severity || "Unknown")}${stat("Category", incident.category || "Unknown")}</div><div class="detail-source"><span>Source</span>${source}</div>`;
+      els.detail.innerHTML = `<div class="detail-panel-head"><span>Selected incident</span><button type="button" data-clear-detail>Clear</button></div><h3>${esc(incident.title)}</h3><span class="source-confidence ${esc(trust.className)}">${esc(trust.label)}</span><p>${esc(incident.summary)}</p><div class="detail-stats">${stat("Date", incident.date || "Unknown")}${stat("District", incident.district || "Unknown")}${statRaw("Actor", hubLink(incident.actor || "Unknown", "org"))}${stat("Casualties", casualty(incident))}${stat("Severity", incident.severity || "Unknown")}${stat("Category", incident.category || "Unknown")}</div><div class="detail-source"><span>Source</span>${source}</div>`;
       return;
     }
     const group = state.selectedProvince ? map.get(provinceKey(state.selectedProvince)) : null;
     if (group?.count) {
       const latest = group.incidents[0];
-      els.detail.innerHTML = `<div class="detail-panel-head"><span>Province briefing</span><button type="button" data-clear-detail>Clear</button></div><h3>${esc(group.label)}</h3><p>${esc(trend(group))}</p><div class="briefing-tags"><span>${esc(topLabels(group.districts, 1)[0] || "No district")}</span><span>${esc(topLabels(group.actors, 1)[0] || "No actor")}</span><span>${esc(topLabels(group.categories, 1)[0] || "No category")}</span></div>${fatalityPills(group.split)}<div class="detail-stats">${stat("Incidents", count(group.count))}${stat("Fatalities", count(group.fatalities))}${stat("Injuries", count(group.injuries))}${stat("Top districts", topLabels(group.districts, 3).join(", ") || "None")}${stat("Main actor", topLabels(group.actors, 1)[0] || "None")}${stat("Dominant type", topLabels(group.categories, 1)[0] || "None")}${stat("Latest incident", latest ? `${latest.date} · ${latest.district}` : "None")}${stat("Fatality split", `F ${count(group.split.forces)} / T ${count(group.split.terrorists)} / C ${count(group.split.civilians)}`)}</div>`;
+      const topActor = topLabels(group.actors, 1)[0] || "No actor";
+      els.detail.innerHTML = `<div class="detail-panel-head"><span>Province briefing</span><button type="button" data-clear-detail>Clear</button></div><h3>${hubLink(group.label, "region")}</h3><p>${esc(trend(group))}</p><div class="briefing-tags"><span>${esc(topLabels(group.districts, 1)[0] || "No district")}</span><span>${hubLink(topActor, "org")}</span><span>${esc(topLabels(group.categories, 1)[0] || "No category")}</span></div>${fatalityPills(group.split)}<div class="detail-stats">${stat("Incidents", count(group.count))}${stat("Fatalities", count(group.fatalities))}${stat("Injuries", count(group.injuries))}${stat("Top districts", topLabels(group.districts, 3).join(", ") || "None")}${statRaw("Main actor", hubLink(topActor, "org"))}${stat("Dominant type", topLabels(group.categories, 1)[0] || "None")}${stat("Latest incident", latest ? `${latest.date} · ${latest.district}` : "None")}${stat("Fatality split", `F ${count(group.split.forces)} / T ${count(group.split.terrorists)} / C ${count(group.split.civilians)}`)}</div>`;
       return;
     }
     const fatalities = state.filtered.reduce((sum, item) => sum + Number(item.fatalities || 0), 0);
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
     const topProvince = Array.from(map.values()).sort((a, b) => b.count - a.count)[0];
-    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${stat("Top province", topProvince?.count ? topProvince.label : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${stat("Top actor", topLabels(countBy(state.filtered, "actor"), 1)[0] || "None")}${stat("Archive", `${ARCHIVE_DAYS} days`)}</div>`;
+    const topActorLabel = topLabels(countBy(state.filtered, "actor"), 1)[0] || "None";
+    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${statRaw("Top province", topProvince?.count ? hubLink(topProvince.label, "region") : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${statRaw("Top actor", topActorLabel === "None" ? "None" : hubLink(topActorLabel, "org"))}${stat("Archive", `${ARCHIVE_DAYS} days`)}</div>`;
   }
   function renderList() {
     els.resultCount.textContent = `${count(state.filtered.length)} shown`;

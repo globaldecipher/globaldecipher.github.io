@@ -643,7 +643,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
 
 function card(item, currentPath = "/", { compact = false } = {}) {
   const tags = Array.isArray(item.tags) ? item.tags : [];
-  const tagMarkup = tags.slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+  const tagMarkup = tags.slice(0, 3).map((tag) => tagChip(tag, currentPath)).join("");
   const status = item.type === "profiles" ? profileStatus(item) : "";
   const statusSlug = status ? slugify(status) : "";
   const categoryAccent = item.type !== "profiles"
@@ -1069,7 +1069,7 @@ function sparseListingCta({ title, current, count }) {
 
 function featuredArticleBlock(item, current) {
   const tags = Array.isArray(item.tags) ? item.tags : [];
-  const tagMarkup = tags.slice(0, 4).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+  const tagMarkup = tags.slice(0, 4).map((tag) => tagChip(tag, current)).join("");
   return `<article class="featured-article">
     <div class="featured-meta">
       <span class="featured-kicker">${escapeHtml(typeLabel(item.type))}${item.region ? ` · ${escapeHtml(item.region)}` : ""}</span>
@@ -1181,7 +1181,7 @@ function articleSidebar(item) {
   const tagBlock = tags.length
     ? `<div class="article-side-panel">
         <h2>Tags</h2>
-        <div class="side-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+        <div class="side-tags">${tags.map((tag) => tagChip(tag, item.url)).join("")}</div>
       </div>`
     : "";
 
@@ -1309,7 +1309,7 @@ ${feedItems.map((item) => `    <item>
   fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), xml);
 }
 
-function writeStaticFiles(items, pages) {
+function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] }) {
   const urls = [
     "/",
     "/news/",
@@ -1318,7 +1318,9 @@ function writeStaticFiles(items, pages) {
     "/reports/",
     "/profiles/",
     ...items.map((item) => item.url),
-    ...pages.map((page) => page.url)
+    ...pages.map((page) => page.url),
+    ...hubs.organisations.map((hub) => `/organisations/${hub.slug}/`),
+    ...hubs.regions.map((hub) => `/regions/${hub.slug}/`)
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1355,6 +1357,219 @@ ${urls
   );
 }
 
+const HUB_ORG_SLUGS = new Set();
+const HUB_REGION_SLUGS = new Set();
+
+function tagChip(tag, currentPath = "/") {
+  const label = clean(tag);
+  if (!label) return "";
+  const slug = slugify(label);
+  if (HUB_ORG_SLUGS.has(slug)) {
+    return `<a href="${linkFor(`/organisations/${slug}/`, currentPath)}">${escapeHtml(label)}</a>`;
+  }
+  if (HUB_REGION_SLUGS.has(slug)) {
+    return `<a href="${linkFor(`/regions/${slug}/`, currentPath)}">${escapeHtml(label)}</a>`;
+  }
+  return `<span>${escapeHtml(label)}</span>`;
+}
+
+const GENERIC_TAG_DENYLIST = new Set([
+  // status / descriptor tags
+  "Deceased", "Founder", "Planner", "Lone actor", "Federation-builder",
+  "Anti-government", "Far-right terrorism", "Domestic terrorism",
+  "Cult terrorism", "Hostage attacks", "Counterterrorism", "Security Policy",
+  "Daily Monitor", "Public Sources", "UN sanctions", "Rewards for Justice",
+  "ICC", "ISIS predecessor", "Kurdish movement", "Egyptian Islamic Jihad",
+  "Mehsud", "Tamil Tigers", "Monthly Report", "April 2026", "Organisation",
+  // event / place markers — not orgs
+  "9/11", "Kandahar hijacking", "Abbey Gate", "Oklahoma City",
+  // geographic terms — countries, provinces, sub-regions
+  "Pakistan", "India", "Afghanistan", "Iraq", "Syria", "Somalia", "Japan",
+  "Nigeria", "Mali", "Uganda", "Sri Lanka", "Norway", "Turkey",
+  "Khyber Pakhtunkhwa", "Balochistan", "Sindh", "Punjab",
+  "Lake Chad", "North Caucasus", "Sahel", "Chechnya", "South Asia",
+  "Middle East", "Horn of Africa", "West Africa", "Central Africa",
+  "East Asia", "Europe", "United States"
+]);
+
+function buildHubIndex(items) {
+  const regions = new Map();
+  for (const item of items) {
+    const region = clean(item.region);
+    if (!region) continue;
+    if (!regions.has(region)) regions.set(region, []);
+    regions.get(region).push(item);
+  }
+  const regionSlugs = new Set([...regions.keys()].map(slugify));
+
+  const organisations = new Map();
+  for (const item of items) {
+    if (!Array.isArray(item.tags)) continue;
+    for (const tag of item.tags) {
+      const t = clean(tag);
+      if (!t || GENERIC_TAG_DENYLIST.has(t)) continue;
+      const slug = slugify(t);
+      if (!slug || regionSlugs.has(slug)) continue;
+      if (!organisations.has(t)) organisations.set(t, []);
+      organisations.get(t).push(item);
+    }
+  }
+
+  const profileTags = new Set();
+  for (const item of items) {
+    if (item.type !== "profiles" || !Array.isArray(item.tags)) continue;
+    for (const tag of item.tags) profileTags.add(clean(tag));
+  }
+  for (const tag of [...organisations.keys()]) {
+    if (!profileTags.has(tag)) organisations.delete(tag);
+  }
+
+  return {
+    organisations: [...organisations.entries()].map(([label, list]) => ({
+      label,
+      slug: slugify(label),
+      items: dedupeByUrl(list)
+    })).sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label)),
+    regions: [...regions.entries()].map(([label, list]) => ({
+      label,
+      slug: slugify(label),
+      items: dedupeByUrl(list)
+    })).sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label))
+  };
+}
+
+function dedupeByUrl(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    if (seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  });
+}
+
+function hubStatRow(items) {
+  const counts = {
+    profiles: items.filter((i) => i.type === "profiles").length,
+    news: items.filter((i) => i.type === "news").length,
+    opinion: items.filter((i) => i.type === "opinion").length,
+    monitoring: items.filter((i) => i.type === "monitoring").length,
+    reports: items.filter((i) => i.type === "reports").length
+  };
+  const total = items.length;
+  const stats = [
+    ["Total", total, "Linked items"],
+    ["Profiles", counts.profiles, "Actor research"],
+    ["News", counts.news + counts.opinion, "Briefings &amp; opinion"],
+    ["Reports", counts.reports, "Published assessments"],
+    ["Monitoring", counts.monitoring, "Premium previews"]
+  ].filter(([, value]) => value);
+  return `<section class="snapshot-strip hub-snapshot">
+    <div class="container snapshot-grid">
+      ${stats.map(([label, value, note]) => `<article class="snapshot-card">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${note}</small>
+      </article>`).join("")}
+    </div>
+  </section>`;
+}
+
+function hubSection({ title, eyebrow, items, currentPath, emptyNote }) {
+  if (!items.length) {
+    if (!emptyNote) return "";
+    return `<section class="band">
+      <div class="container split-heading">
+        <div>
+          <p class="band-eyebrow">${escapeHtml(eyebrow)}</p>
+          <h2>${escapeHtml(title)}</h2>
+        </div>
+      </div>
+      <div class="container"><p class="empty-state">${escapeHtml(emptyNote)}</p></div>
+    </section>`;
+  }
+  const sorted = items.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  return `<section class="band">
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">${escapeHtml(eyebrow)}</p>
+        <h2>${escapeHtml(title)}</h2>
+      </div>
+    </div>
+    <div class="container card-grid">${sorted.map((item) => card(item, currentPath)).join("")}</div>
+  </section>`;
+}
+
+function organisationHubPage(hub, allContent) {
+  const currentPath = `/organisations/${hub.slug}/`;
+  const profiles = hub.items.filter((item) => item.type === "profiles");
+  const news = hub.items.filter((item) => ["news", "opinion", "monitoring"].includes(item.type));
+  const reports = hub.items.filter((item) => item.type === "reports");
+  const regions = new Set(hub.items.map((item) => item.region).filter(Boolean));
+  const leadProfile = profiles[0];
+  const summary = leadProfile?.summary
+    || `Every profile, briefing, and report in the TGD archive tagged ${hub.label}.`;
+  const body = `${sectionHero(hub.label, "Organisation hub", summary)}
+  ${hubStatRow(hub.items)}
+  ${regions.size ? `<section class="band hub-region-band">
+    <div class="container hub-region-row">
+      <span class="band-eyebrow">Regions covered</span>
+      <div class="hub-region-chips">
+        ${[...regions].map((region) => `<a class="hub-region-chip" href="${linkFor(`/regions/${slugify(region)}/`, currentPath)}">${escapeHtml(region)}</a>`).join("")}
+      </div>
+    </div>
+  </section>` : ""}
+  ${hubSection({ title: "Profiles", eyebrow: "Actor database", items: profiles, currentPath, emptyNote: "No profiles tagged yet." })}
+  ${hubSection({ title: "Briefings &amp; analysis", eyebrow: "Reporting", items: news, currentPath })}
+  ${hubSection({ title: "Reports", eyebrow: "Research products", items: reports, currentPath })}`;
+  return shell({
+    title: `${hub.label} · Organisation hub`,
+    description: summary,
+    body,
+    current: currentPath,
+    pagePath: currentPath
+  });
+}
+
+function regionHubPage(hub, allContent) {
+  const currentPath = `/regions/${hub.slug}/`;
+  const profiles = hub.items.filter((item) => item.type === "profiles");
+  const news = hub.items.filter((item) => ["news", "opinion", "monitoring"].includes(item.type));
+  const reports = hub.items.filter((item) => item.type === "reports");
+  const orgTagSet = new Set();
+  hub.items.forEach((item) => {
+    if (!Array.isArray(item.tags)) return;
+    item.tags.forEach((tag) => {
+      const t = clean(tag);
+      if (t && !GENERIC_TAG_DENYLIST.has(t)) orgTagSet.add(t);
+    });
+  });
+  const summary = `TGD coverage of terrorism, militant actors, and security developments across ${hub.label}.`;
+  const body = `${sectionHero(hub.label, "Region hub", summary)}
+  ${hubStatRow(hub.items)}
+  ${orgTagSet.size ? `<section class="band hub-region-band">
+    <div class="container hub-region-row">
+      <span class="band-eyebrow">Linked actors</span>
+      <div class="hub-region-chips">
+        ${[...orgTagSet].slice(0, 16).map((tag) => `<a class="hub-region-chip" href="${linkFor(`/organisations/${slugify(tag)}/`, currentPath)}">${escapeHtml(tag)}</a>`).join("")}
+      </div>
+    </div>
+  </section>` : ""}
+  ${hubSection({ title: "Actors based or operating here", eyebrow: "Actor database", items: profiles, currentPath, emptyNote: "No profiles tagged to this region yet." })}
+  ${hubSection({ title: "Briefings &amp; analysis", eyebrow: "Reporting", items: news, currentPath })}
+  ${hubSection({ title: "Reports", eyebrow: "Research products", items: reports, currentPath })}`;
+  return shell({
+    title: `${hub.label} · Region hub`,
+    description: summary,
+    body,
+    current: currentPath,
+    pagePath: currentPath
+  });
+}
+
+function clean(value) {
+  return String(value == null ? "" : value).trim();
+}
+
 function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
@@ -1368,6 +1583,12 @@ function main() {
     ...readCollection("profiles")
   ];
   const pages = readCollection("pages");
+
+  const hubs = buildHubIndex(allContent);
+  HUB_ORG_SLUGS.clear();
+  HUB_REGION_SLUGS.clear();
+  for (const hub of hubs.organisations) HUB_ORG_SLUGS.add(hub.slug);
+  for (const hub of hubs.regions) HUB_REGION_SLUGS.add(hub.slug);
 
   writePage("/", homepage(allContent));
   writePage(
@@ -1454,10 +1675,21 @@ function main() {
 
   for (const item of allContent) writePage(item.url, articleTemplate(item, allContent));
   for (const page of pages) writePage(page.url, pageTemplate(page));
-  writeRootFile("404.html", notFoundPage());
-  writeStaticFiles(allContent, pages);
 
-  console.log(`Built ${allContent.length + pages.length + 6} pages into ${path.relative(ROOT, OUT_DIR)}`);
+  for (const hub of hubs.organisations) writePage(`/organisations/${hub.slug}/`, organisationHubPage(hub, allContent));
+  for (const hub of hubs.regions) writePage(`/regions/${hub.slug}/`, regionHubPage(hub, allContent));
+  const hubsManifest = {
+    organisations: hubs.organisations.map(({ label, slug, items }) => ({ label, slug, count: items.length })),
+    regions: hubs.regions.map(({ label, slug, items }) => ({ label, slug, count: items.length }))
+  };
+  ensureDir(path.join(OUT_DIR, "assets", "data"));
+  fs.writeFileSync(path.join(OUT_DIR, "assets", "data", "hubs.json"), JSON.stringify(hubsManifest, null, 2));
+
+  writeRootFile("404.html", notFoundPage());
+  writeStaticFiles(allContent, pages, hubs);
+
+  const hubCount = hubs.organisations.length + hubs.regions.length;
+  console.log(`Built ${allContent.length + pages.length + hubCount + 6} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);
 }
 
 main();

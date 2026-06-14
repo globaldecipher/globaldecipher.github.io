@@ -823,6 +823,20 @@
   grid-template-columns: minmax(260px, 0.55fr) minmax(0, 1.45fr);
 }
 
+/* ============ HUB LINK (cross-link from map to org/region pages) ============ */
+.hub-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(185, 28, 44, 0.45);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+.hub-link:hover {
+  color: var(--red);
+  text-decoration-color: var(--red);
+}
+
 /* ============ GROUPED WEEKLY CHART (Option 1) ============ */
 .grouped-week-chart { padding: 16px 18px; }
 .grouped-chart-head {
