@@ -1392,6 +1392,127 @@ input:focus-visible {
   color: var(--text-soft);
 }
 
+/* ============ STATIC PAGE SHELL (about / contact / methodology / policy) ============ */
+.static-page-shell {
+  display: block;
+  max-width: 780px;
+}
+.static-page-body {
+  min-width: 0;
+}
+
+/* ============ FEATURED ARTICLE (sparse listings, 1 item) ============ */
+.layout-feature { display: block; }
+.layout-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+.layout-duo .duo-rail {
+  display: grid;
+  gap: 24px;
+}
+.layout-duo .content-card { padding-top: 18px; }
+
+.featured-article {
+  position: relative;
+  display: block;
+  padding: 36px 0 8px;
+  border-top: 4px solid var(--red);
+  max-width: 920px;
+}
+.featured-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.featured-kicker {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.featured-article h2 {
+  margin: 0 0 18px;
+  font-family: var(--serif-display);
+  font-weight: 900;
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+  color: var(--ink);
+  max-width: 880px;
+}
+.featured-article h2 a {
+  background: linear-gradient(transparent 92%, var(--red) 92%);
+  background-size: 0% 100%;
+  background-repeat: no-repeat;
+  transition: background-size 600ms var(--ease);
+}
+.featured-article h2 a:hover { background-size: 100% 100%; color: var(--ink); }
+.featured-summary {
+  margin: 0 0 22px;
+  max-width: 760px;
+  font-family: var(--serif);
+  font-size: 1.18rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.featured-byline {
+  display: flex; flex-wrap: wrap; gap: 8px 16px;
+  margin-bottom: 18px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.featured-byline .byline { color: var(--ink); font-weight: 700; }
+.featured-byline span + span::before {
+  content: "·"; margin-right: 14px; color: var(--line-2);
+}
+.featured-cta { margin-top: 14px; }
+@media (max-width: 860px) {
+  .layout-duo { grid-template-columns: 1fr; gap: 28px; }
+  .featured-article { padding-top: 24px; }
+  .featured-article h2 { font-size: clamp(1.8rem, 7vw, 2.6rem); }
+}
+
+/* ============ CATEGORY / REGION ACCENT BORDERS ============ */
+.content-card.accent-news,
+.content-card.accent-pakistan,
+.content-card.accent-south-asia { border-top: 2px solid var(--red); }
+.content-card.accent-opinion,
+.content-card.accent-policy,
+.content-card.accent-research { border-top: 2px solid var(--gold); }
+.content-card.accent-monitoring,
+.content-card.accent-digital-propaganda,
+.content-card.accent-narratives { border-top: 2px solid var(--ink-3); }
+.content-card.accent-reports,
+.content-card.accent-monthly,
+.content-card.accent-counterterrorism { border-top: 2px solid var(--green); }
+.content-card.accent-middle-east { border-top: 2px solid var(--gold); }
+.content-card.accent-horn-of-africa,
+.content-card.accent-west-africa { border-top: 2px solid var(--green); }
+.content-card.accent-europe,
+.content-card.accent-north-america { border-top: 2px solid var(--ink-3); }
+
+/* ============ RAIL STATUS DOT ============ */
+.rail-item { position: relative; }
+.rail-item .rail-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rail-item.rail-status-wanted .meta .rail-status,
+.rail-item.rail-status-active .meta .rail-status { color: var(--red); }
+.rail-item.rail-status-in-custody .meta .rail-status { color: var(--gold); }
+.rail-item.rail-status-deceased .meta .rail-status { color: var(--muted); }
+
 /* ============ TOOLBAR ============ */
 .content-toolbar {
   display: grid;
@@ -2064,7 +2185,9 @@ input:focus-visible {
 
 @media (max-width: 860px) {
   .container { width: min(100% - 32px, 1260px); }
-  .header-grid { grid-template-columns: auto 1fr auto; gap: 12px; min-height: 72px; }
+  .header-grid { grid-template-columns: auto 1fr auto; gap: 12px; min-height: 64px; }
+  .brand-logo { height: 44px; }
+  .site-header.is-scrolled .brand-logo { height: 40px; }
   .header-cta { display: inline-flex; justify-self: end; }
   .pitch-cta { display: none; }
   .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
@@ -2108,8 +2231,10 @@ input:focus-visible {
 }
 
 @media (max-width: 560px) {
-  .brand-logo { height: 54px; }
-  .footer-brand .brand-logo { height: 72px; }
+  .brand-logo { height: 36px; }
+  .site-header.is-scrolled .brand-logo { height: 32px; }
+  .header-grid { min-height: 56px; }
+  .footer-brand .brand-logo { height: 64px; }
   .footer-grid { grid-template-columns: 1fr; }
   .pitch-card { padding: 24px; }
 }

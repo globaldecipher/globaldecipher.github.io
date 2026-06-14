@@ -646,8 +646,14 @@ function card(item, currentPath = "/", { compact = false } = {}) {
   const tagMarkup = tags.slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
   const status = item.type === "profiles" ? profileStatus(item) : "";
   const statusSlug = status ? slugify(status) : "";
+  const categoryAccent = item.type !== "profiles"
+    ? slugify(item.region || item.category || item.type || "")
+    : "";
+  const accentClass = item.type === "profiles"
+    ? (statusSlug ? `status-${statusSlug}` : "")
+    : (categoryAccent ? `accent-${categoryAccent}` : "");
   const searchText = [item.title, item.summary, item.category, item.region, status, tags.join(" ")].join(" ").toLowerCase();
-  return `<article class="content-card${statusSlug ? ` status-${statusSlug}` : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
+  return `<article class="content-card${accentClass ? ` ${accentClass}` : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
     <div class="card-kicker">
       <span>${escapeHtml(typeLabel(item.type))}</span>
       ${accessLabel(item)}
@@ -894,8 +900,13 @@ function homepage(items) {
   const metrics = lead?.type === "reports" ? extractReportMetrics(lead.body) : [];
   const metricMap = new Map(metrics);
   const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
-  const railItems = [...reports.slice(1), ...profiles]
-    .filter((item) => item && item.url !== lead?.url)
+  const briefings = items.filter((item) => ["news", "opinion", "monitoring"].includes(item.type));
+  const railItems = [
+    ...briefings,
+    ...reports.slice(1),
+    ...profiles
+  ]
+    .filter((item, idx, arr) => item && item.url !== lead?.url && arr.findIndex((other) => other.url === item.url) === idx)
     .slice(0, 5);
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
@@ -960,13 +971,21 @@ function homepage(items) {
           <span class="title">Latest research</span>
           <span class="status"><span class="live-dot"></span> Recently updated</span>
         </div>
-        ${railItems.length ? railItems.map((item, i) => `<a class="rail-item" href="${linkFor(item.url, currentPath)}">
+        ${railItems.length ? railItems.map((item, i) => {
+          const status = item.type === "profiles" ? profileStatus(item) : "";
+          const statusSlug = status ? slugify(status) : "";
+          const metaParts = [typeLabel(item.type), item.region || item.category]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join(" · ");
+          return `<a class="rail-item${statusSlug ? ` rail-status-${statusSlug}` : ""}" href="${linkFor(item.url, currentPath)}">
           <span class="num">0${i + 2}</span>
           <span>
-            <span class="meta">${escapeHtml(item.region || item.category || "Brief")}</span>
+            <span class="meta">${metaParts}${status ? ` · <span class="rail-status">${escapeHtml(status)}</span>` : ""}</span>
             <strong>${escapeHtml(item.title)}</strong>
           </span>
-        </a>`).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
+        </a>`;
+        }).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
         <a class="rail-cta" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
       </aside>
     </div>
@@ -1048,15 +1067,51 @@ function sparseListingCta({ title, current, count }) {
   </aside>`;
 }
 
+function featuredArticleBlock(item, current) {
+  const tags = Array.isArray(item.tags) ? item.tags : [];
+  const tagMarkup = tags.slice(0, 4).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+  return `<article class="featured-article">
+    <div class="featured-meta">
+      <span class="featured-kicker">${escapeHtml(typeLabel(item.type))}${item.region ? ` · ${escapeHtml(item.region)}` : ""}</span>
+      ${accessLabel(item)}
+    </div>
+    <h2><a href="${linkFor(item.url, current)}">${escapeHtml(item.title)}</a></h2>
+    <p class="featured-summary">${escapeHtml(item.summary || "")}</p>
+    <div class="featured-byline">
+      <span class="byline">By ${escapeHtml(item.author || "TGD Desk")}</span>
+      <span>${escapeHtml(formatDate(item.date))}</span>
+      ${item.region ? `<span>${escapeHtml(item.region)}</span>` : ""}
+    </div>
+    ${tagMarkup ? `<div class="tag-row">${tagMarkup}</div>` : ""}
+    <a class="button primary featured-cta" href="${linkFor(item.url, current)}">Read briefing <span class="arrow">→</span></a>
+  </article>`;
+}
+
 function listingPage({ title, eyebrow, summary, current, items, filters }) {
   const hasItems = items.length > 0;
+  const layoutClass = items.length === 1
+    ? "listing-grid layout-feature"
+    : items.length <= 3
+      ? "listing-grid layout-duo"
+      : "listing-grid layout-grid";
+  const renderList = () => {
+    if (items.length === 1) {
+      return `<div class="${layoutClass}" data-content-list>${featuredArticleBlock(items[0], current)}</div>`;
+    }
+    if (items.length <= 3) {
+      const [lead, ...rest] = items;
+      return `<div class="${layoutClass}" data-content-list>
+        ${featuredArticleBlock(lead, current)}
+        <div class="duo-rail">${rest.map((item) => card(item, current, { compact: true })).join("")}</div>
+      </div>`;
+    }
+    return `<div class="${layoutClass}" data-content-list>${items.map((item) => card(item, current)).join("")}</div>`;
+  };
   const body = `${sectionHero(title, eyebrow, summary)}
   <section class="band">
     <div class="container">
-      ${hasItems ? filterToolbar(filters) : ""}
-      <div class="listing-grid" data-content-list>
-        ${items.map((item) => card(item, current)).join("")}
-      </div>
+      ${hasItems && items.length > 3 ? filterToolbar(filters) : ""}
+      ${hasItems ? renderList() : `<div class="listing-grid layout-grid" data-content-list></div>`}
       <p class="empty-state" data-empty-state${hasItems ? " hidden" : ""}>${hasItems ? "No matching briefings found." : "No published items yet. New uploads will appear here."}</p>
       ${sparseListingCta({ title, current, count: items.length })}
     </div>
@@ -1067,8 +1122,10 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
 function pageTemplate(page) {
   const body = `${sectionHero(page.title, page.eyebrow || "Editorial", page.summary || "")}
   <section class="article-band">
-    <div class="container article-shell">
-      <article class="article-body">${page.html}</article>
+    <div class="container">
+      <div class="static-page-shell">
+        <article class="article-body static-page-body">${page.html}</article>
+      </div>
     </div>
   </section>`;
   return shell({
