@@ -373,10 +373,9 @@
     });
     const weeks = Array.from(weekMap.values()).sort((a, b) => weekOrder(a.label) - weekOrder(b.label) || a.label.localeCompare(b.label));
     if (!weeks.length) { els.weekly.innerHTML = ""; return; }
-    const maxIncidents = Math.max(...weeks.map((week) => week.count), 1);
-    const maxFatalities = Math.max(...weeks.map((week) => week.fatalities), 1);
     const selected = weeks.find((week) => week.label === state.week) || weeks[weeks.length - 1];
-    const weekItems = state.archive.filter((incident) => weekLabel(incident) === selected.label);
+    const selectedIdx = weeks.indexOf(selected);
+    const previous = selectedIdx > 0 ? weeks[selectedIdx - 1] : null;
     const monthStart = addDays(state.today, -29);
     const monthDays = Array.from({ length: 30 }, (_item, index) => addDays(monthStart, index));
     const byDate = new Map(monthDays.map((date) => [date, { date, count: 0, fatalities: 0, injuries: 0 }]));
@@ -399,27 +398,183 @@
       ["Most affected district", topLabels(countBy(monthItems, "district"), 1)[0] || "None"],
       ["Top category", topLabels(countBy(monthItems, "category"), 1)[0] || "None"]
     ].map(([label, value]) => `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("");
-    const selectedSplit = FATALITY_GROUPS.map(([key, label]) => `<span><b>${count(selected.split[key])}</b>${esc(label)}</span>`).join("");
     const splitStrip = (split) => FATALITY_GROUPS.map(([key, label]) => {
       const value = split[key];
       const width = split.total ? Math.round(value / split.total * 100) : 0;
       return `<div class="archive-split-row"><span>${esc(label)}</span><strong>${count(value)}</strong><i><b style="width:${Math.max(value ? 8 : 0, width)}%"></b></i></div>`;
     }).join("");
-    const row = (week, value, max, detail, type) => `<button type="button" class="weekly-bar-row ${type}${state.mode === "week" && state.week === week.label ? " is-active" : ""}" data-week-select="${esc(week.label)}"><span class="weekly-bar-label">${esc(week.label)}</span><span class="weekly-bar-track"><span style="width:${Math.max(value ? 8 : 0, Math.round(value / max * 100))}%"></span></span><strong>${count(value)}</strong><em>${esc(detail)}</em></button>`;
-    const monthHeat = monthStats.map((day) => {
-      const active = state.mode === "date" && state.date === day.date;
-      const intensity = day.count ? Math.max(18, Math.round(day.count / maxDaily * 100)) : 0;
-      return `<button type="button" class="${active ? "is-active" : ""}" data-archive-day="${esc(day.date)}" title="${esc(formatDay(day.date))}: ${count(day.count)} incidents"><span>${esc(formatDay(day.date, true).replace(" ", "\n"))}</span><i style="height:${intensity}%"></i><strong>${count(day.count)}</strong></button>`;
-    }).join("");
     els.weekly.innerHTML = `
       <div class="weekly-chart-head"><span>Archive graphs</span><strong>${esc(formatDay(archiveStart(), true))} to ${esc(formatDay(state.today, true))}</strong><div class="archive-mode-switch"><button type="button" class="${state.archiveMode === "weekly" ? "is-active" : ""}" data-archive-mode="weekly">Weekly</button><button type="button" class="${state.archiveMode === "monthly" ? "is-active" : ""}" data-archive-mode="monthly">30 days</button></div></div>
       <div class="archive-panel ${state.archiveMode === "monthly" ? "show-monthly" : "show-weekly"}">
-        <article class="weekly-chart-card weekly-bars"><h3>Weekly pace</h3>${weeks.map((week) => row(week, week.count, maxIncidents, topLabels(week.provinces, 1)[0] || "No province", "incident")).join("")}</article>
-        <article class="weekly-chart-card weekly-bars"><h3>Weekly fatalities</h3>${weeks.map((week) => row(week, week.fatalities, maxFatalities, `${count(week.injuries)} injured`, "fatality")).join("")}</article>
-        <article class="weekly-chart-card weekly-focus"><h3>${esc(selected.label)} profile</h3><strong>${count(selected.count)}</strong><p>${count(selected.fatalities)} fatalities, ${count(selected.injuries)} injuries across ${count(selected.provinces.size)} province${selected.provinces.size === 1 ? "" : "s"}.</p><div class="weekly-split">${selectedSplit}</div><div>${topLabels(selected.categories, 3).map((label) => `<span>${esc(label)}</span>`).join("")}</div></article>
+        ${groupedWeekChart(weeks)}
+        ${weekProfileRich(selected, previous)}
         <article class="weekly-chart-card monthly-archive"><h3>Last 30 days</h3><div class="monthly-summary"><strong>${count(monthItems.length)}</strong><span>incidents</span><strong>${count(monthSplit.total)}</strong><span>fatalities</span></div><div class="monthly-insight-strip">${summaryItems}</div><div class="archive-split">${splitStrip(monthSplit)}</div></article>
-        <article class="weekly-chart-card monthly-heat"><h3>Daily archive</h3><div class="month-heat-grid">${monthHeat}</div></article>
+        ${calendarHeatmap(monthStats, maxDaily)}
       </div>`;
+  }
+
+  function groupedWeekChart(weeks) {
+    const maxV = Math.max(...weeks.flatMap((w) => [w.count, w.fatalities, w.injuries]), 1);
+    const tickStep = niceStep(maxV);
+    const ticks = [];
+    for (let v = 0; v <= maxV; v += tickStep) ticks.push(v);
+    if (ticks[ticks.length - 1] < maxV) ticks.push(ticks[ticks.length - 1] + tickStep);
+    const yMax = ticks[ticks.length - 1] || 1;
+    const peakWeek = weeks.reduce((peak, w) => w.fatalities > (peak?.fatalities || -1) ? w : peak, null);
+    const W = 640;
+    const H = 240;
+    const padL = 40, padR = 16, padT = 22, padB = 56;
+    const innerW = W - padL - padR;
+    const innerH = H - padT - padB;
+    const slot = innerW / weeks.length;
+    const barW = Math.max(8, Math.min(20, (slot - 24) / 3));
+    const gap = 3;
+    const gridLines = ticks.map((tick) => {
+      const y = padT + innerH - (tick / yMax) * innerH;
+      return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${tick === 0 ? "#c0baa9" : "#ebe6d8"}" stroke-width="${tick === 0 ? 0.8 : 0.5}" ${tick === 0 ? "" : "stroke-dasharray=\"2 4\""}/><text x="${padL - 6}" y="${y + 3}" font-size="9" font-family="var(--mono)" text-anchor="end" fill="#888780">${count(tick)}</text>`;
+    }).join("");
+    const groups = weeks.map((week, i) => {
+      const cx = padL + slot * i + slot / 2;
+      const groupX = cx - (barW * 3 + gap * 2) / 2;
+      const isPeak = peakWeek && week.label === peakWeek.label;
+      const isSelected = state.mode === "week" && state.week === week.label;
+      const bar = (val, idx, fill) => {
+        const h = (val / yMax) * innerH;
+        const y = padT + innerH - h;
+        return `<rect x="${groupX + idx * (barW + gap)}" y="${y}" width="${barW}" height="${Math.max(h, val > 0 ? 1 : 0)}" fill="${fill}"/>`;
+      };
+      const incidentFill = isSelected ? "#0d1b2a" : "#1a2a3a";
+      const fatalityFill = isPeak ? "#b91c2c" : "#A32D2D";
+      const labelFill = isPeak ? "#b91c2c" : "#0d1b2a";
+      return `<g class="grouped-week" data-week-select="${esc(week.label)}" tabindex="0" role="button" aria-label="${esc(week.label)}: ${count(week.count)} incidents, ${count(week.fatalities)} fatalities, ${count(week.injuries)} injuries">
+        <rect x="${cx - slot / 2 + 4}" y="${padT}" width="${slot - 8}" height="${innerH + 24}" fill="transparent" class="grouped-week-hit"/>
+        ${bar(week.count, 0, incidentFill)}
+        ${bar(week.fatalities, 1, fatalityFill)}
+        ${bar(week.injuries, 2, "#a17328")}
+        <text x="${cx}" y="${padT + innerH + 18}" text-anchor="middle" font-size="10" font-family="var(--mono)" font-weight="700" fill="${labelFill}">${esc(week.label.replace(/\s*week$/i, "").toUpperCase())}</text>
+        ${isPeak ? `<text x="${cx}" y="${padT + innerH + 34}" text-anchor="middle" font-size="9" font-family="var(--mono)" font-weight="700" fill="#b91c2c">PEAK</text>` : ""}
+      </g>`;
+    }).join("");
+    const legend = [
+      ["#0d1b2a", "Incidents"],
+      ["#A32D2D", "Fatalities"],
+      ["#a17328", "Injuries"]
+    ].map(([fill, label]) => `<span class="legend-item"><i style="background:${fill}"></i>${esc(label)}</span>`).join("");
+    return `<article class="weekly-chart-card grouped-week-chart">
+      <div class="grouped-chart-head"><h3>Monthly trend</h3><div class="grouped-chart-legend">${legend}</div></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weekly incidents, fatalities, and injuries across the rolling 31-day archive">
+        ${gridLines}
+        ${groups}
+      </svg>
+    </article>`;
+  }
+
+  function weekProfileRich(week, previous) {
+    const delta = (curr, prev) => {
+      if (prev == null) return "";
+      const diff = curr - prev;
+      if (diff === 0) return `<span class="delta delta-flat">— 0</span>`;
+      const cls = diff > 0 ? "delta-up" : "delta-down";
+      const sign = diff > 0 ? "↑" : "↓";
+      return `<span class="delta ${cls}">${sign} ${count(Math.abs(diff))}</span>`;
+    };
+    const stat = (label, value, prev) => `<div class="rich-stat"><span>${esc(label)}</span><strong>${count(value)} ${delta(value, prev)}</strong></div>`;
+    const splitMax = Math.max(week.split.forces, week.split.terrorists, week.split.civilians, 1);
+    const splitRow = (label, value, fill) => {
+      const pct = Math.round((value / splitMax) * 100);
+      return `<div class="rich-split-row"><span class="rich-split-label">${esc(label)}</span><span class="rich-split-track"><b style="width:${Math.max(value ? 8 : 0, pct)}%; background:${fill}"></b></span><strong>${count(value)}</strong></div>`;
+    };
+    const tactics = top(week.categories, 4);
+    const tacticMax = Math.max(...tactics.map(([, v]) => v), 1);
+    const tacticColors = ["#A32D2D", "#a17328", "#2a3a4a", "#6b6b66"];
+    const tacticRow = ([label, value], idx) => {
+      const pct = Math.round((value / tacticMax) * 100);
+      const dot = tacticColors[idx] || "#888780";
+      return `<div class="rich-tactic-row"><span class="rich-tactic-label"><i style="background:${dot}"></i>${esc(label)}</span><span class="rich-tactic-track"><b style="width:${Math.max(value ? 8 : 0, pct)}%; background:${dot}"></b></span><strong>${count(value)}</strong></div>`;
+    };
+    const tacticsHtml = tactics.length
+      ? tactics.map(tacticRow).join("")
+      : `<p class="rich-empty">No category data for this week.</p>`;
+    const prevSummary = previous
+      ? `Compared with ${esc(previous.label.toLowerCase())}.`
+      : `First archived week.`;
+    return `<article class="weekly-chart-card week-profile-rich">
+      <div class="rich-head"><h3>${esc(week.label)} profile</h3><span>${esc(prevSummary)}</span></div>
+      <div class="rich-stats">
+        ${stat("Incidents", week.count, previous?.count)}
+        ${stat("Fatalities", week.fatalities, previous?.fatalities)}
+        ${stat("Injuries", week.injuries, previous?.injuries)}
+        ${stat("Districts", week.districts.size, previous?.districts.size)}
+      </div>
+      <div class="rich-section">
+        <p class="rich-section-title">Who was hit</p>
+        ${splitRow("Terrorists", week.split.terrorists, "#A32D2D")}
+        ${splitRow("Forces", week.split.forces, "#2a3a4a")}
+        ${splitRow("Civilians", week.split.civilians, "#888780")}
+      </div>
+      <div class="rich-section">
+        <p class="rich-section-title">Tactics</p>
+        ${tacticsHtml}
+      </div>
+    </article>`;
+  }
+
+  function calendarHeatmap(monthStats, maxDaily) {
+    if (!monthStats.length) return "";
+    const dows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dayCells = monthStats.map((day) => {
+      const dt = new Date(`${day.date}T00:00:00Z`);
+      const dow = (dt.getUTCDay() + 6) % 7;
+      return { ...day, dow, dayNum: dt.getUTCDate(), monthShort: dt.toLocaleString("en", { month: "short", timeZone: "UTC" }) };
+    });
+    const first = dayCells[0];
+    const lead = first.dow;
+    const cells = [];
+    for (let i = 0; i < lead; i++) cells.push(null);
+    cells.push(...dayCells);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const cols = cells.length / 7;
+    const bucket = (count) => {
+      if (!count) return 0;
+      const ratio = count / maxDaily;
+      if (ratio >= 0.7) return 5;
+      if (ratio >= 0.45) return 4;
+      if (ratio >= 0.22) return 3;
+      if (ratio >= 0.08) return 2;
+      return 1;
+    };
+    const fills = ["#f1efe8", "#FAECE7", "#F5C4B3", "#D85A30", "#993C1D", "#4A1B0C"];
+    const cellHtml = cells.map((day, i) => {
+      const col = Math.floor(i / 7);
+      const row = i % 7;
+      if (!day) return `<div class="cal-pad" data-col="${col}" data-row="${row}" aria-hidden="true"></div>`;
+      const isActive = state.mode === "date" && state.date === day.date;
+      const fill = fills[bucket(day.count)];
+      return `<button type="button" class="cal-cell${isActive ? " is-active" : ""}" data-archive-day="${esc(day.date)}" style="background:${fill}; grid-column:${col + 1}; grid-row:${row + 1};" title="${esc(formatDay(day.date))}: ${count(day.count)} incidents, ${count(day.fatalities)} fatalities">
+        <span class="cal-num">${day.dayNum}</span>
+        ${day.count ? `<strong class="cal-count">${count(day.count)}</strong>` : ""}
+      </button>`;
+    }).join("");
+    const dowLabels = dows.map((d, i) => `<span class="cal-dow" style="grid-column:1; grid-row:${i + 1};">${d}</span>`).join("");
+    const legend = fills.slice(1).map((fill) => `<span style="background:${fill}"></span>`).join("");
+    return `<article class="weekly-chart-card calendar-heatmap">
+      <div class="cal-head"><h3>31-day calendar</h3><div class="cal-legend"><span>Low</span>${legend}<span>High</span></div></div>
+      <div class="cal-grid" style="grid-template-columns: 36px repeat(${cols}, minmax(0, 1fr));">
+        ${dowLabels}
+        ${cellHtml}
+      </div>
+    </article>`;
+  }
+
+  function niceStep(maxV) {
+    if (maxV <= 5) return 1;
+    if (maxV <= 12) return 2;
+    if (maxV <= 30) return 5;
+    if (maxV <= 60) return 10;
+    if (maxV <= 150) return 25;
+    if (maxV <= 300) return 50;
+    if (maxV <= 600) return 100;
+    return Math.ceil(maxV / 5 / 50) * 50;
   }
 
   function color(count) {
