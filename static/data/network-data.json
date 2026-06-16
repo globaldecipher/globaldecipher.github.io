@@ -1,397 +1,2108 @@
 {
   "meta": {
     "title": "TGD Actor Network Graph",
-    "description": "Interactive network visualization of relationships between militant actors, organisations, and regions profiled by The Global Decipher.",
-    "last_updated": "2026-06-09",
+    "description": "Interactive network of relationships between militant actors and organisations profiled by The Global Decipher.",
+    "last_updated": "2026-06-16",
     "source": "TGD Research Desk"
   },
   "nodes": [
     {
       "id": "osama-bin-laden",
-      "label": "Osama bin Laden",
+      "label": "Osama bin Mohammed bin Awad bin Laden",
       "type": "individual",
-      "org": "al-Qaeda",
-      "region": "Global",
+      "org": "Al-Qaeda",
+      "role": "Founder and Emir of Al-Qaeda",
       "status": "Deceased",
-      "role": "Founder & First Emir",
-      "summary": "Founder and first emir of al-Qaeda. Architect of the September 11, 2001 attacks. Killed in Abbottabad, Pakistan, May 2, 2011.",
+      "region": "Global",
+      "country": "Saudi Arabia",
+      "countries": [
+        "Saudi Arabia",
+        "Saudi Arabian"
+      ],
+      "summary": "Born to the wealthy Saudi bin Laden construction family, Osama bin Laden travelled to Pakistan after the Soviet invasion of Afghanistan in 1979 to support the mujahideen, working with Palestinian Islamist Abdullah Azzam through Maktab al-Khidamat. In 1988 he founded al-Qaeda as a vanguard for transnational jihad.",
       "url": "/profiles/osama-bin-laden/",
+      "aliases": [
+        "Usama bin Laden",
+        "UBL",
+        "Abu Abdallah",
+        "The Sheikh",
+        "The Director"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.105) — 2001-01-25",
+        "US State Dept (FTO/SDGT) — Designation",
+        "US FBI — Most Wanted Terrorist (1999–2011)"
+      ],
+      "sources": [
+        "src-c7996db9c3",
+        "src-aca6a1a870",
+        "src-369e3fd81f",
+        "src-e9b3467534"
+      ],
       "tags": [
-        "al-Qaeda",
-        "Founder",
-        "Deceased"
-      ]
+        "Global",
+        "Al-Qaeda",
+        "Salafi-jihadism",
+        "South Asia",
+        "Pan-Islamism",
+        "Middle East"
+      ],
+      "operatingAreas": [
+        "Middle East",
+        "South Asia",
+        "Global"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "ayman-al-zawahiri",
-      "label": "Ayman al-Zawahiri",
+      "label": "Ayman Mohammed Rabie al-Zawahiri",
       "type": "individual",
-      "org": "al-Qaeda",
-      "region": "Global",
+      "org": "Al-Qaeda",
+      "role": "Second Emir of Al-Qaeda; chief ideologue and strategist",
       "status": "Deceased",
-      "role": "Second Emir & Chief Ideologue",
-      "summary": "Egyptian physician, EIJ leader, and second emir of al-Qaeda. Killed by U.S. drone strike in Kabul, July 31, 2022.",
+      "region": "Global",
+      "country": "Egypt",
+      "countries": [
+        "Egypt",
+        "Egyptian"
+      ],
+      "summary": "Trained as a surgeon in Cairo and from a distinguished Egyptian family, al-Zawahiri joined the Muslim Brotherhood as a teenager and was imprisoned and tortured after the 1981 assassination of Anwar Sadat. He led Egyptian Islamic Jihad through the 1990s, directing the 1995 bombing of the Egyptian embassy in Islamabad and the 1997 Luxor massacre.",
       "url": "/profiles/ayman-al-zawahiri/",
+      "aliases": [
+        "Abu Mohammed",
+        "Abu Mohammed Nur al-Deen",
+        "The Doctor"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.006)",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $25 million"
+      ],
+      "sources": [
+        "src-b39d20b7f6",
+        "src-7aae1155ce",
+        "src-aca6a1a870",
+        "src-e6cbe2d0e8"
+      ],
       "tags": [
-        "al-Qaeda",
-        "Egyptian Islamic Jihad",
-        "Deceased"
-      ]
+        "Global",
+        "Al-Qaeda",
+        "Salafi-jihadism",
+        "South Asia",
+        "Qutbism",
+        "Middle East"
+      ],
+      "operatingAreas": [
+        "Middle East",
+        "South Asia",
+        "Global"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "saif-al-adel",
+      "label": "Mohammed Salahaldin Abd El Halim Zidane",
+      "type": "individual",
+      "org": "Al-Qaeda",
+      "role": "De facto leader of Al-Qaeda (since 2022); long-time head of al-Qaeda's Military Committee",
+      "status": "Wanted",
+      "region": "Global",
+      "country": "Iran",
+      "countries": [
+        "Egyptian",
+        "Iran"
+      ],
+      "summary": "A former lieutenant-colonel in Egypt's special forces, Saif al-Adel was implicated in the 1981 assassination of President Anwar Sadat and later joined Egyptian Islamic Jihad. He travelled to Afghanistan in the late 1980s, trained mujahideen, and became one of al-Qaeda's earliest military commanders.",
+      "url": "/profiles/saif-al-adel/",
+      "aliases": [
+        "Saif al-Adel",
+        "Sayf al-'Adl",
+        "Muhammad Ibrahim Makkawi"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.015)",
+        "US Rewards for Justice — Bounty up to $10 million",
+        "US FBI — Most Wanted Terrorist"
+      ],
+      "sources": [
+        "src-1ae784c6ea",
+        "src-43d71c4d04",
+        "src-0c09921786",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Iran",
+        "Global",
+        "Al-Qaeda",
+        "Salafi-jihadism",
+        "Middle East"
+      ],
+      "operatingAreas": [
+        "Iran",
+        "Middle East",
+        "Global"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "hamza-bin-laden",
+      "label": "Hamza bin Osama bin Mohammed bin Awad bin Laden",
+      "type": "individual",
+      "org": "Al-Qaeda",
+      "role": "Heir-apparent figurehead of al-Qaeda; messaging lead targeting global audiences",
+      "status": "Deceased",
+      "region": "Global",
+      "country": "Saudi Arabia",
+      "countries": [
+        "Saudi Arabia",
+        "Saudi Arabian"
+      ],
+      "summary": "Hamza bin Laden was a favoured son of Osama bin Laden who grew up in Afghanistan and was being groomed as a future al-Qaeda leader. After 2001 he and his family lived in Iran under IRGC custody, then made his way to the Afghanistan/Pakistan border region.",
+      "url": "/profiles/hamza-bin-laden/",
+      "aliases": [
+        "Crown Prince of Jihad"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.421)",
+        "US State Dept SDGT — Designation, 2017",
+        "US Rewards for Justice — Bounty up to $1 million"
+      ],
+      "sources": [
+        "src-22fdab5b47",
+        "src-fe314c93db",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Global",
+        "Al-Qaeda",
+        "Salafi-jihadism",
+        "South Asia",
+        "Middle East"
+      ],
+      "operatingAreas": [
+        "South Asia",
+        "Middle East",
+        "Global"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "abu-musab-al-zarqawi",
-      "label": "Abu Musab al-Zarqawi",
+      "label": "Ahmad Fadeel al-Nazal al-Khalayleh",
       "type": "individual",
-      "org": "AQI / Islamic State precursor",
-      "region": "Middle East",
+      "org": "Al-Qaeda in Iraq (AQI)",
+      "role": "Founder of Al-Qaeda in Iraq, the organisational forerunner of ISIS",
       "status": "Deceased",
-      "role": "Founder of AQI",
-      "summary": "Jordanian militant who founded al-Qaeda in Iraq, the precursor to the Islamic State. Killed by U.S. airstrike in June 2006.",
+      "region": "Middle East",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Jordanian"
+      ],
+      "summary": "A Jordanian street criminal turned jihadist after a prison stint with the cleric Abu Muhammad al-Maqdisi, Zarqawi ran a training camp in Herat, Afghanistan before relocating to Iraqi Kurdistan via Iran in 2002. He came to global attention through Colin Powell's February 2003 UN speech that wrongly tied him to Saddam Hussein's WMD program. After the 2003 U.S.",
       "url": "/profiles/abu-musab-al-zarqawi/",
+      "aliases": [
+        "Abu Musab al-Zarqawi",
+        "Sheikh of the Slaughterers"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $25 million at time of death"
+      ],
+      "sources": [
+        "src-7bc61df363",
+        "src-71be990a4e",
+        "src-ed9966ccc3"
+      ],
       "tags": [
-        "Islamic State",
-        "al-Qaeda in Iraq",
-        "Jordan",
+        "Levant",
+        "Salafi-jihadism",
+        "Al-Qaeda in Iraq (AQI)",
+        "Anti-Shia sectarianism",
         "Iraq"
-      ]
+      ],
+      "operatingAreas": [
+        "Iraq",
+        "Levant"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "abu-bakr-al-baghdadi",
-      "label": "Abu Bakr al-Baghdadi",
+      "label": "Ibrahim Awad Ibrahim al-Badri al-Samarrai",
       "type": "individual",
-      "org": "Islamic State",
-      "region": "Middle East",
+      "org": "Islamic State (ISIS/ISIL/Daesh)",
+      "role": "Self-proclaimed Caliph of the Islamic State (2014–2019)",
       "status": "Deceased",
-      "role": "Caliph / Leader",
-      "summary": "Iraq-born leader of Islamic State from 2010. Central architect of the caliphate project across Iraq, Syria, and affiliated networks.",
+      "region": "Middle East",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Iraqi"
+      ],
+      "summary": "A doctoral graduate in Quranic studies from the Islamic University of Baghdad, Baghdadi was detained at U.S. Camp Bucca in 2004, where he expanded his jihadist network. He rose through the Islamic State of Iraq, becoming its leader in 2010 after the deaths of Abu Omar al-Baghdadi and Abu Ayyub al-Masri.",
       "url": "/profiles/abu-bakr-al-baghdadi/",
+      "aliases": [
+        "Abu Bakr al-Baghdadi",
+        "Caliph Ibrahim",
+        "Abu Du'a"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.299)",
+        "US Rewards for Justice — Bounty up to $25 million"
+      ],
+      "sources": [
+        "src-6a549c417a",
+        "src-4cc2db35cd",
+        "src-aca6a1a870"
+      ],
       "tags": [
-        "Islamic State",
+        "Salafi-jihadism",
+        "Islamic State (ISIS/ISIL/Daesh)",
+        "Syria",
+        "Caliphate restoration",
+        "Iraq"
+      ],
+      "operatingAreas": [
         "Iraq",
         "Syria"
-      ]
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-ibrahim-al-hashimi-al-qurashi",
+      "label": "Amir Muhammad Sa'id Abdal-Rahman al-Mawla",
+      "type": "individual",
+      "org": "Islamic State (ISIS)",
+      "role": "Second Caliph of the Islamic State",
+      "status": "Deceased",
+      "region": "Middle East",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Iraqi"
+      ],
+      "summary": "A Turkmen Iraqi with a master's degree in Quranic studies, al-Mawla was a religious scholar in Saddam-era Iraq and reportedly served as a low-level officer or Islamic Studies teacher before joining al-Qaeda in Iraq. Captured by U.S. forces in 2008, he became a prolific Camp Bucca informant before being released.",
+      "url": "/profiles/abu-ibrahim-al-hashimi-al-qurashi/",
+      "aliases": [
+        "Abu Ibrahim al-Hashimi al-Qurashi",
+        "Hajji Abdullah",
+        "the Professor",
+        "the Destroyer"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty up to $10 million"
+      ],
+      "sources": [
+        "src-877b2a56c3",
+        "src-fce44c462e"
+      ],
+      "tags": [
+        "Islamic State (ISIS)",
+        "Salafi-jihadism",
+        "Syria",
+        "Caliphate restoration",
+        "Iraq"
+      ],
+      "operatingAreas": [
+        "Iraq",
+        "Syria"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-al-hassan-al-hashimi-al-qurashi",
+      "label": "Unknown (Iraqi national)",
+      "type": "individual",
+      "org": "Islamic State",
+      "role": "Third Caliph of the Islamic State",
+      "status": "Deceased",
+      "region": "Middle East",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Iraqi"
+      ],
+      "summary": "A relatively obscure ISIS figure whose true identity was never publicly confirmed by ISIS, Abu al-Hassan al-Hashimi al-Qurashi was named Caliph in March 2022 in an audio statement by spokesman Abu Omar al-Muhajir following the death of al-Mawla. His tenure was brief and his public footprint negligible.",
+      "url": "/profiles/abu-al-hassan-al-hashimi-al-qurashi/",
+      "aliases": [
+        "Abu al-Hassan al-Hashimi al-Qurashi"
+      ],
+      "designations": [
+        "US State Dept — SDGT"
+      ],
+      "sources": [
+        "src-d9c1c4a5f2",
+        "src-09c57e4d95"
+      ],
+      "tags": [
+        "Islamic State",
+        "Salafi-jihadism",
+        "Syria",
+        "Iraq"
+      ],
+      "operatingAreas": [
+        "Iraq",
+        "Syria"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-al-hussein-al-husseini-al-qurashi",
+      "label": "Unknown",
+      "type": "individual",
+      "org": "Islamic State",
+      "role": "Fourth Caliph of the Islamic State",
+      "status": "Deceased",
+      "region": "Middle East",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Iraqi (reported)"
+      ],
+      "summary": "Named Caliph by ISIS in November 2022, Abu al-Hussein al-Husseini al-Qurashi's identity was never confirmed publicly. Turkish President Recep Tayyip Erdoğan announced on 30 April 2023 that Turkish national intelligence (MIT) had killed him in a 29 April operation in northern Syria. ISIS confirmed his death and announced a successor in August 2023.",
+      "url": "/profiles/abu-al-hussein-al-husseini-al-qurashi/",
+      "aliases": [
+        "Abu al-Hussein al-Husseini al-Qurashi"
+      ],
+      "designations": [
+        "US State Dept — SDGT"
+      ],
+      "sources": [
+        "src-3dd8043e65",
+        "src-07dace01c0"
+      ],
+      "tags": [
+        "Islamic State",
+        "Salafi-jihadism",
+        "Syria",
+        "Iraq"
+      ],
+      "operatingAreas": [
+        "Iraq",
+        "Syria"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-hafs-al-hashimi-al-qurashi",
+      "label": "Unknown (assessed by UN to potentially be Abdallah Makki Mosleh al-Rafi'i / Abu Khadija al-Iraqi)",
+      "type": "individual",
+      "org": "Islamic State",
+      "role": "Current (5th) Caliph of the Islamic State",
+      "status": "Wanted",
+      "region": "Global",
+      "country": "Iraq",
+      "countries": [
+        "Iraq",
+        "Iraqi (assessed)"
+      ],
+      "summary": "Named Caliph by ISIS spokesman Abu Hudhayfa al-Ansari in an audio statement on 3 August 2023, Abu Hafs al-Hashimi al-Qurashi is the fifth Caliph since the death of Baghdadi.",
+      "url": "/profiles/abu-hafs-al-hashimi-al-qurashi/",
+      "aliases": [
+        "Abu Hafs al-Hashimi al-Qurashi"
+      ],
+      "designations": [
+        "US State Dept — SDGT"
+      ],
+      "sources": [
+        "src-ac233d34ab",
+        "src-33df61980f",
+        "src-ac99ab6679"
+      ],
+      "tags": [
+        "Islamic State",
+        "Salafi-jihadism",
+        "Syria",
+        "Global Wilayat network",
+        "Iraq"
+      ],
+      "operatingAreas": [
+        "Iraq",
+        "Syria",
+        "Global Wilayat network"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "anwar-al-awlaki",
+      "label": "Anwar Nasser al-Awlaki",
+      "type": "individual",
+      "org": "Al-Qaeda in the Arabian Peninsula (AQAP)",
+      "role": "AQAP propagandist; chief recruiter for English-speaking jihadists; external operations planner",
+      "status": "Deceased",
+      "region": "Global",
+      "country": "Yemen",
+      "countries": [
+        "United States",
+        "Yemen",
+        "Yemeni"
+      ],
+      "summary": "Born in the U.S. to Yemeni parents, al-Awlaki returned to Yemen as a child and then back to the U.S. for college, becoming an imam in San Diego and later at Dar al-Hijrah in Falls Church, Virginia, where he interacted with three of the future 9/11 hijackers.",
+      "url": "/profiles/anwar-al-awlaki/",
+      "aliases": [
+        "Anwar al-Aulaqi",
+        "Sheikh Anwar"
+      ],
+      "designations": [
+        "US State Dept SDGT — Designation, 2010",
+        "UN 1267 — Sanctions"
+      ],
+      "sources": [
+        "src-dae3f432a3",
+        "src-3570d54f56",
+        "src-5fba9468af"
+      ],
+      "tags": [
+        "Al-Qaeda in the Arabian Peninsula (AQAP)",
+        "Global English-language jihad",
+        "Salafi-jihadism",
+        "Yemen"
+      ],
+      "operatingAreas": [
+        "Yemen",
+        "Global English-language jihad"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "khalid-sheikh-mohammed",
       "label": "Khalid Sheikh Mohammed",
       "type": "individual",
-      "org": "al-Qaeda",
-      "region": "Global",
+      "org": "Al-Qaeda",
+      "role": "Principal architect of the September 11 attacks; chief of al-Qaeda's external operations until capture",
       "status": "In custody",
-      "role": "9/11 Architect",
-      "summary": "Principal architect of the September 11, 2001 attacks. In U.S. military custody at Guant\u00e1namo Bay since 2003.",
+      "region": "Global",
+      "country": "Pakistan",
+      "countries": [
+        "Kuwaiti residency",
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "An engineering graduate of North Carolina A&T State University, KSM became the architect of al-Qaeda's most ambitious external operations. He helped fund his nephew Ramzi Yousef's 1993 World Trade Center bombing and co-planned the 1995 Bojinka plot to blow up 12 U.S. airliners over the Pacific.",
       "url": "/profiles/khalid-sheikh-mohammed/",
+      "aliases": [
+        "KSM",
+        "Mukhtar",
+        "The Brain"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.054)",
+        "US Military Commissions — Defendant in U.S. v. Khalid Shaikh Mohammad et al."
+      ],
+      "sources": [
+        "src-94c489b91f",
+        "src-369e3fd81f",
+        "src-0e2a64deaa"
+      ],
       "tags": [
-        "al-Qaeda",
-        "9/11",
-        "Guant\u00e1namo"
-      ]
+        "Global",
+        "Al-Qaeda",
+        "Salafi-jihadism",
+        "Pakistan",
+        "Middle East"
+      ],
+      "operatingAreas": [
+        "Pakistan",
+        "Middle East",
+        "Global"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "ramzi-yousef",
+      "label": "Abdul Basit Mahmoud Abdul Karim",
+      "type": "individual",
+      "org": "Al-Qaeda (orbital, pre-formal)",
+      "role": "Principal bomb-maker of the 1993 World Trade Center bombing; co-architect of the Bojinka plot",
+      "status": "In custody",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Kuwaiti residency",
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "Nephew of KSM, Yousef trained in electrical engineering in Wales and studied bomb-making at al-Qaeda camps in Afghanistan in the early 1990s. He entered the U.S. on a false passport in September 1992 and led the 26 February 1993 truck bombing of the World Trade Center's North Tower garage, which killed 6 and injured over 1,000.",
+      "url": "/profiles/ramzi-yousef/",
+      "aliases": [
+        "Ramzi Yousef",
+        "Rashed",
+        "Najy Awaita Haddad"
+      ],
+      "designations": [
+        "US Federal Court — Convicted (life + 240 years)"
+      ],
+      "sources": [
+        "src-f78e2d6cd6",
+        "src-564b9bcfcc"
+      ],
+      "tags": [
+        "Salafi-jihadism",
+        "Pakistan",
+        "Al-Qaeda (orbital, pre-formal)",
+        "Philippines",
+        "United States"
+      ],
+      "operatingAreas": [
+        "United States",
+        "Philippines",
+        "Pakistan"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "nasir-al-wuhayshi",
+      "label": "Nasir Abdul-Karim Abdullah al-Wuhayshi",
+      "type": "individual",
+      "org": "Al-Qaeda in the Arabian Peninsula (AQAP)",
+      "role": "Founding Emir of AQAP; second-in-command of al-Qaeda central under al-Zawahiri",
+      "status": "Deceased",
+      "region": "Middle East",
+      "country": "Yemen",
+      "countries": [
+        "Yemen",
+        "Yemeni"
+      ],
+      "summary": "Served as Osama bin Laden's personal secretary in Afghanistan in the late 1990s, fleeing to Iran after 2001 and being deported to Yemen, where he was held until escaping from a Sanaa prison in 2006. He led the merger of Yemeni and Saudi al-Qaeda branches that produced AQAP in January 2009.",
+      "url": "/profiles/nasir-al-wuhayshi/",
+      "aliases": [
+        "Abu Basir"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty up to $10 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Al-Qaeda in the Arabian Peninsula (AQAP)",
+        "Salafi-jihadism",
+        "Arabian Peninsula",
+        "Yemen"
+      ],
+      "operatingAreas": [
+        "Yemen",
+        "Arabian Peninsula"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "khalid-batarfi",
+      "label": "Khalid Saeed Batarfi",
+      "type": "individual",
+      "org": "Al-Qaeda in the Arabian Peninsula (AQAP)",
+      "role": "Third Emir of AQAP",
+      "status": "Deceased",
+      "region": "Middle East",
+      "country": "Yemen",
+      "countries": [
+        "Saudi Arabian",
+        "Yemen"
+      ],
+      "summary": "A long-time AQAP figure who served as the group's senior Sharia official, Batarfi was held at Yemen's Mansoura Central Prison until a 2015 mass jailbreak. He served as AQAP's military chief and as Emir of Hadhramaut before being named Emir in February 2020, succeeding Qassim al-Rimi.",
+      "url": "/profiles/khalid-batarfi/",
+      "aliases": [
+        "Abu Miqdad al-Kindi"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-3d0e07f144"
+      ],
+      "tags": [
+        "Al-Qaeda in the Arabian Peninsula (AQAP)",
+        "Salafi-jihadism",
+        "Yemen"
+      ],
+      "operatingAreas": [
+        "Yemen"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "mullah-omar",
+      "label": "Mohammed Omar Mujahid",
+      "type": "individual",
+      "org": "Taliban",
+      "role": "Founder and first Supreme Leader of the Taliban; first head of the Islamic Emirate of Afghanistan (1996–2001)",
+      "status": "Deceased",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghan",
+        "Afghanistan"
+      ],
+      "summary": "A poor village mullah and Soviet-war veteran who lost his right eye to shrapnel, Omar founded the Taliban in 1994 with former madrassa students in Kandahar, capitalising on the chaos and lawlessness of the post-Soviet civil war.",
+      "url": "/profiles/mullah-omar/",
+      "aliases": [
+        "Mullah Mohammed Omar",
+        "Amir al-Mu'minin (Commander of the Faithful)"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty up to $10 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-eb819b9f51",
+        "src-42bf56e910"
+      ],
+      "tags": [
+        "Taliban",
+        "Deobandi Islamism",
+        "Afghanistan",
+        "Pashtun-rooted Islamic emirate"
+      ],
+      "operatingAreas": [
+        "Afghanistan"
+      ],
+      "category": "Deobandi Islamism"
+    },
+    {
+      "id": "akhtar-mansour",
+      "label": "Akhtar Mohammad Mansour",
+      "type": "individual",
+      "org": "Taliban",
+      "role": "Second Supreme Leader of the Taliban; previously Taliban Minister of Civil Aviation (1996–2001)",
+      "status": "Deceased",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Afghan",
+        "Pakistan"
+      ],
+      "summary": "A senior Taliban figure under Mullah Omar, Mansour served as Minister of Civil Aviation in the 1996–2001 Islamic Emirate and was widely seen as the de facto operational head of the Taliban after Omar's death — which he concealed for two years.",
+      "url": "/profiles/akhtar-mansour/",
+      "aliases": [
+        "Mullah Akhtar Mansour"
+      ],
+      "designations": [
+        "UN 1988 Sanctions — Sanctions"
+      ],
+      "sources": [
+        "src-b272c00859",
+        "src-eb819b9f51"
+      ],
+      "tags": [
+        "Taliban",
+        "Deobandi Islamism",
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "operatingAreas": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "category": "Deobandi Islamism"
+    },
+    {
+      "id": "hibatullah-akhundzada",
+      "label": "Hibatullah Akhundzada",
+      "type": "individual",
+      "org": "Taliban",
+      "role": "Third and current Supreme Leader of the Taliban (2016–present); Head of State of the Islamic Emirate of Afghanistan (2021–present)",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghan",
+        "Afghanistan"
+      ],
+      "summary": "A religious scholar rather than military commander, Akhundzada served as the Taliban's chief justice during the 1996–2001 Islamic Emirate, issuing the regime's most consequential rulings on stoning, amputations, and the destruction of the Bamiyan Buddhas. He was selected as Emir in May 2016 within days of Mansour's death.",
+      "url": "/profiles/hibatullah-akhundzada/",
+      "aliases": [
+        "Mawlawi Hibatullah",
+        "Amir al-Mu'minin"
+      ],
+      "designations": [
+        "UN 1988 Sanctions — Sanctions"
+      ],
+      "sources": [
+        "src-eb819b9f51",
+        "src-d9ba8f896b",
+        "src-8271c5fb09"
+      ],
+      "tags": [
+        "Taliban",
+        "Hanafi jurisprudence",
+        "Deobandi Islamism",
+        "Afghanistan"
+      ],
+      "operatingAreas": [
+        "Afghanistan"
+      ],
+      "category": "Deobandi Islamism"
+    },
+    {
+      "id": "sirajuddin-haqqani",
+      "label": "Sirajuddin Jalaluddin Haqqani",
+      "type": "individual",
+      "org": "Taliban (Islamic Emirate of Afghanistan)",
+      "role": "Acting Interior Minister of the Islamic Emirate of Afghanistan (since 2021); Deputy Supreme Leader of Taliban; head of Haqqani Network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Afghan",
+        "Pakistan"
+      ],
+      "summary": "Eldest son of Mujahideen-era commander Jalaluddin Haqqani, Sirajuddin assumed operational control of the Haqqani Network in the late 2000s as his father's health declined.",
+      "url": "/profiles/sirajuddin-haqqani/",
+      "aliases": [
+        "Siraj Haqqani",
+        "Khalifa"
+      ],
+      "designations": [
+        "UN 1988 Sanctions — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $10 million (active)"
+      ],
+      "sources": [
+        "src-8472119fb5",
+        "src-eb819b9f51",
+        "src-ed9966ccc3"
+      ],
+      "tags": [
+        "Deobandi Islamism",
+        "Taliban (Islamic Emirate of Afghanistan)",
+        "Pakistan (Waziristan)",
+        "Afghanistan"
+      ],
+      "operatingAreas": [
+        "Afghanistan",
+        "Pakistan (Waziristan)"
+      ],
+      "category": "Deobandi Islamism"
+    },
+    {
+      "id": "jalaluddin-haqqani",
+      "label": "Jalaluddin Haqqani",
+      "type": "individual",
+      "org": "Haqqani Network",
+      "role": "Founder of the Haqqani Network; legendary anti-Soviet mujahideen commander",
+      "status": "Deceased",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Afghan",
+        "Pakistan"
+      ],
+      "summary": "A Pashtun cleric educated at the Darul Uloom Haqqania madrasa in Akora Khattak (from which he took his nom de guerre), Haqqani became one of the most effective anti-Soviet mujahideen commanders of the 1980s, receiving significant CIA, ISI, and Saudi support.",
+      "url": "/profiles/jalaluddin-haqqani/",
+      "aliases": [
+        "Mawlawi Jalaluddin Haqqani"
+      ],
+      "designations": [
+        "UN 1988 Sanctions — Sanctions"
+      ],
+      "sources": [
+        "src-eb819b9f51",
+        "src-e9fee7e6b9"
+      ],
+      "tags": [
+        "Deobandi Islamism",
+        "Haqqani Network",
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "operatingAreas": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "category": "Deobandi Islamism"
+    },
+    {
+      "id": "mullah-yaqoob",
+      "label": "Mohammad Yaqoob Mujahid",
+      "type": "individual",
+      "org": "Taliban",
+      "role": "Acting Defence Minister of the Islamic Emirate of Afghanistan; head of Taliban Military Commission",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghan",
+        "Afghanistan"
+      ],
+      "summary": "Eldest son of Mullah Omar, Yaqoob studied at the Akora Khattak madrasa in Pakistan and emerged into Taliban politics after his father's death in 2013. Promoted to head the Taliban Military Commission in 2020, he became Acting Defence Minister in September 2021.",
+      "url": "/profiles/mullah-yaqoob/",
+      "aliases": [
+        "Mullah Yaqoob"
+      ],
+      "designations": [
+        "UN 1988 Sanctions — Sanctions"
+      ],
+      "sources": [
+        "src-eb819b9f51",
+        "src-c6c58da537"
+      ],
+      "tags": [
+        "Taliban",
+        "Deobandi Islamism",
+        "Afghanistan"
+      ],
+      "operatingAreas": [
+        "Afghanistan"
+      ],
+      "category": "Deobandi Islamism"
     },
     {
       "id": "baitullah-mehsud",
       "label": "Baitullah Mehsud",
       "type": "individual",
-      "org": "TTP",
-      "region": "South Asia",
+      "org": "Tehrik-i-Taliban Pakistan (TTP)",
+      "role": "Founding Emir of Tehrik-i-Taliban Pakistan",
       "status": "Deceased",
-      "role": "TTP Founder & First Emir",
-      "summary": "Founder and first leader of Tehreek-e-Taliban Pakistan. Killed by U.S. drone strike in South Waziristan, August 2009.",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "A barely-literate Mehsud tribesman from South Waziristan, Baitullah Mehsud emerged from the post-2001 Pakistani Taliban consolidation as the dominant commander among Mehsud groups.",
       "url": "/profiles/baitullah-mehsud/",
+      "aliases": [
+        "Amir Sahab"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-debf4f7057",
+        "src-2208d18328"
+      ],
       "tags": [
-        "TTP",
-        "Pakistan",
-        "South Waziristan"
-      ]
+        "Tehrik-i-Taliban Pakistan (TTP)",
+        "Anti-Pakistani state",
+        "FATA / Khyber Pakhtunkhwa",
+        "Deobandi-jihadist"
+      ],
+      "operatingAreas": [
+        "FATA / Khyber Pakhtunkhwa"
+      ],
+      "category": "Deobandi-jihadist"
     },
     {
-      "id": "tehreek-e-taliban-pakistan",
-      "label": "TTP",
-      "type": "organisation",
-      "org": "TTP",
-      "region": "South Asia",
-      "status": "Active",
-      "role": "Militant Umbrella Movement",
-      "summary": "Pakistan-based militant umbrella movement formed in 2007, central to the contemporary threat picture in Khyber Pakhtunkhwa.",
-      "url": "/profiles/tehreek-e-taliban-pakistan/",
-      "tags": [
-        "TTP",
-        "Pakistan",
-        "Khyber Pakhtunkhwa",
-        "Organisation"
-      ]
-    },
-    {
-      "id": "hafiz-saeed",
-      "label": "Hafiz Saeed",
+      "id": "hakimullah-mehsud",
+      "label": "Hakimullah Mehsud",
       "type": "individual",
-      "org": "Lashkar-e-Taiba / JuD",
+      "org": "Tehrik-i-Taliban Pakistan",
+      "role": "Second Emir of TTP",
+      "status": "Deceased",
       "region": "South Asia",
-      "status": "In custody",
-      "role": "LeT / JuD Founder",
-      "summary": "Co-founder of Lashkar-e-Taiba and founder of Jamaat-ud-Dawa. Convicted and imprisoned in Pakistan on terrorism financing charges.",
-      "url": "/profiles/hafiz-saeed/",
-      "tags": [
-        "Lashkar-e-Taiba",
-        "JuD",
+      "country": "Pakistan",
+      "countries": [
         "Pakistan",
-        "India"
-      ]
+        "Pakistani"
+      ],
+      "summary": "Originally a driver and bodyguard to Baitullah Mehsud, Hakimullah rose to lead TTP operations in Orakzai, Kurram, and Khyber tribal areas before being elevated to Emir in August 2009.",
+      "url": "/profiles/hakimullah-mehsud/",
+      "aliases": [
+        "Zulfiqar Mehsud",
+        "Jamshed"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-debf4f7057"
+      ],
+      "tags": [
+        "Tehrik-i-Taliban Pakistan",
+        "FATA / Khyber Pakhtunkhwa",
+        "Deobandi-jihadist"
+      ],
+      "operatingAreas": [
+        "FATA / Khyber Pakhtunkhwa"
+      ],
+      "category": "Deobandi-jihadist"
+    },
+    {
+      "id": "mullah-fazlullah",
+      "label": "Fazal Hayat",
+      "type": "individual",
+      "org": "TTP",
+      "role": "Third Emir of TTP",
+      "status": "Deceased",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "Son-in-law of TNSM founder Sufi Mohammad, Fazlullah ran a pirate FM radio station in Swat from 2006 broadcasting calls for sharia and against girls' education. He led the Taliban takeover of Swat in 2007–2009, imposing brutal sharia rule. Driven out by the Pakistani army's Operation Rah-e-Rast in 2009, he relocated to Kunar and Nuristan provinces in Afghanistan.",
+      "url": "/profiles/mullah-fazlullah/",
+      "aliases": [
+        "Mullah Fazlullah",
+        "Mullah Radio",
+        "Mullah FM"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-debf4f7057",
+        "src-182a368251"
+      ],
+      "tags": [
+        "Swat, Pakistan; Eastern Afghanistan after 2009",
+        "Tehrik-e-Nafaz-e-Shariat-e-Mohammadi (TNSM)",
+        "TTP",
+        "Deobandi-jihadist"
+      ],
+      "operatingAreas": [
+        "Swat, Pakistan; Eastern Afghanistan after 2009"
+      ],
+      "category": "Deobandi-jihadist"
+    },
+    {
+      "id": "noor-wali-mehsud",
+      "label": "Mufti Noor Wali Mehsud",
+      "type": "individual",
+      "org": "Tehrik-i-Taliban Pakistan",
+      "role": "Current Emir of Tehrik-i-Taliban Pakistan",
+      "status": "Wanted",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "An Islamic scholar (mufti) from the Mechikhel sub-clan of the Mehsud tribe, Noor Wali received madrasa education and fought alongside the Afghan Taliban in the 1990s before joining TTP. He served as TTP qadi (judge), Karachi commander, and deputy to Mullah Fazlullah.",
+      "url": "/profiles/noor-wali-mehsud/",
+      "aliases": [
+        "Abu Mansoor Asim"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.434)",
+        "US State Dept SDGT — Designation, 2019",
+        "US Rewards for Justice — Bounty up to $3 million"
+      ],
+      "sources": [
+        "src-f044164578",
+        "src-1991bb32cb",
+        "src-cda3070239",
+        "src-6d2e9444ac"
+      ],
+      "tags": [
+        "Tehrik-i-Taliban Pakistan",
+        "Deobandi-jihadist",
+        "Afghanistan (eastern provinces)",
+        "Pakistan (KP)",
+        "Pashtun ethno-jihadism"
+      ],
+      "operatingAreas": [
+        "Afghanistan (eastern provinces)",
+        "Pakistan (KP)"
+      ],
+      "category": "Deobandi-jihadist"
     },
     {
       "id": "masood-azhar",
-      "label": "Masood Azhar",
+      "label": "Maulana Masood Azhar Alvi",
       "type": "individual",
-      "org": "Jaish-e-Mohammed",
-      "region": "South Asia",
-      "status": "Uncertain",
-      "role": "JeM Founder",
-      "summary": "Founder of Jaish-e-Mohammed. Linked to the 2001 Indian Parliament attack and the 2019 Pulwama attack.",
-      "url": "/profiles/masood-azhar/",
-      "tags": [
-        "JeM",
-        "Pakistan",
-        "Kashmir"
-      ]
-    },
-    {
-      "id": "mohammad-sharifullah",
-      "label": "Mohammad Sharifullah",
-      "type": "individual",
-      "org": "ISKP",
-      "region": "South Asia",
-      "status": "In custody",
-      "role": "ISKP Cell Commander",
-      "summary": "Afghan ISIS-K operative captured in Pakistan in 2025 and convicted in U.S. federal court in April 2026 for participating in a material-support conspiracy tied to the Abbey Gate attack and other ISIS-K operations.",
-      "url": "/profiles/mohammad-sharifullah/",
-      "tags": [
-        "ISIS-K",
-        "Abbey Gate",
-        "Pakistan",
-        "United States"
-      ]
-    },
-    {
-      "id": "sanaullah-ghafari",
-      "label": "Sanaullah Ghafari (Shahab al-Muhajir)",
-      "type": "individual",
-      "org": "ISKP",
-      "region": "South Asia",
-      "status": "Uncertain",
-      "role": "ISKP Emir",
-      "summary": "Appointed emir of Islamic State Khorasan Province around mid-2020. Subject to U.S. Rewards for Justice bounty.",
-      "url": "/profiles/sanaullah-ghafari-shahab-al-muhajir/",
-      "tags": [
-        "ISKP",
-        "Islamic State",
-        "Afghanistan",
-        "Rewards for Justice"
-      ]
-    },
-    {
-      "id": "balochistan-liberation-army",
-      "label": "BLA",
-      "type": "organisation",
-      "org": "BLA",
-      "region": "South Asia",
+      "org": "Jaish-e-Mohammed (JeM)",
+      "role": "Founder and Emir of Jaish-e-Mohammed",
       "status": "Active",
-      "role": "Separatist Militant Organisation",
-      "summary": "Baloch separatist militant organisation active primarily in Balochistan. Conducts attacks against Pakistani security forces and Chinese interests.",
-      "url": "/profiles/balochistan-liberation-army/",
-      "tags": [
-        "BLA",
-        "Balochistan",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
         "Pakistan",
-        "Separatism"
-      ]
+        "Pakistani"
+      ],
+      "summary": "Educated at Karachi's Jamia Uloom-ul-Islamia (Banuri Town), Azhar joined Harkat-ul-Mujahideen and became its general secretary. He was arrested by Indian forces in Kashmir in 1994 and released in December 1999 along with Omar Saeed Sheikh in exchange for hostages of hijacked Indian Airlines Flight 814 in Kandahar.",
+      "url": "/profiles/masood-azhar/",
+      "aliases": [
+        "Wali Adam Issa"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions (added 2019 after long China veto) — (QDi.428)",
+        "US State Dept SDGT — Designation",
+        "India MHA — Listed terrorist under UAPA"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-d9c1c4a5f2",
+        "src-fbeeb3c168"
+      ],
+      "tags": [
+        "Indian-administered Kashmir",
+        "Deobandi-jihadist",
+        "Pakistan (Punjab)",
+        "Anti-India Kashmir jihad",
+        "Jaish-e-Mohammed (JeM)"
+      ],
+      "operatingAreas": [
+        "Pakistan (Punjab)",
+        "Indian-administered Kashmir"
+      ],
+      "category": "Deobandi-jihadist"
     },
     {
-      "id": "ahmed-abdi-godane",
-      "label": "Ahmed Abdi Godane",
+      "id": "hafiz-saeed",
+      "label": "Hafiz Muhammad Saeed",
       "type": "individual",
-      "org": "al-Shabaab",
-      "region": "Horn of Africa",
+      "org": "Jamaat-ud-Dawa (JuD)",
+      "role": "Founder of Lashkar-e-Taiba; Emir of Jamaat-ud-Dawa",
+      "status": "In custody",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "An Islamic studies academic at the University of Engineering and Technology Lahore, Saeed co-founded Markaz Dawa wal Irshad in 1985 with Zafar Iqbal and a Saudi religious scholar, Sheikh Abdullah Azzam, to spread Ahl-e-Hadith Salafism in Pakistan.",
+      "url": "/profiles/hafiz-saeed/",
+      "aliases": [
+        "Amir Hamza",
+        "Hafiz Sahab"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.263)",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $10 million",
+        "India NIA — Listed accused in 26/11 Mumbai attacks"
+      ],
+      "sources": [
+        "src-abfa7ce5bd",
+        "src-aca6a1a870",
+        "src-d9c1c4a5f2"
+      ],
+      "tags": [
+        "Jamaat-ud-Dawa (JuD)",
+        "Ahl-e-Hadith Salafism",
+        "Indian-administered Kashmir",
+        "Pakistan (Punjab)",
+        "Anti-India Kashmir jihad"
+      ],
+      "operatingAreas": [
+        "Pakistan (Punjab)",
+        "Indian-administered Kashmir"
+      ],
+      "category": "Ahl-e-Hadith Salafism"
+    },
+    {
+      "id": "zaki-ur-rehman-lakhvi",
+      "label": "Zaki-ur-Rehman Lakhvi",
+      "type": "individual",
+      "org": "Lashkar-e-Taiba",
+      "role": "LeT military chief; principal operational planner of the 2008 Mumbai attacks",
+      "status": "In custody",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "A founding LeT military commander, Lakhvi ran LeT's training camps in Muzaffarabad, Pakistan-administered Kashmir, and supervised the 2008 Mumbai attacks operation in real time from a Karachi safehouse — including phone instructions to the gunmen during the three-day siege. Arrested in Pakistan in December 2008 under heavy Indian and U.S.",
+      "url": "/profiles/zaki-ur-rehman-lakhvi/",
+      "aliases": [
+        "Chacha Zaki",
+        "Abu Waheed Irshad Ahmad Arshad"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.264)",
+        "US State Dept SDGT — Designation"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-a6bbe8af21"
+      ],
+      "tags": [
+        "Pakistan",
+        "Lashkar-e-Taiba",
+        "Ahl-e-Hadith Salafism",
+        "Indian-administered Kashmir",
+        "Anti-India jihad"
+      ],
+      "operatingAreas": [
+        "Pakistan",
+        "Indian-administered Kashmir"
+      ],
+      "category": "Ahl-e-Hadith Salafism"
+    },
+    {
+      "id": "sajid-mir",
+      "label": "Sajid Mir",
+      "type": "individual",
+      "org": "Lashkar-e-Taiba",
+      "role": "LeT external operations chief; principal handler during 2008 Mumbai attacks",
+      "status": "In custody",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "Lashkar-e-Taiba's most consequential external operations officer, Mir personally directed the 2008 Mumbai attacks via phone from LeT's Karachi control room — voice recordings of his instructions to the gunmen, recorded by Indian intelligence, are central to the global case against him. He also recruited and ran U.S.",
+      "url": "/profiles/sajid-mir/",
+      "aliases": [
+        "Sajid Majid",
+        "Wassi",
+        "Ibrahim"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions (added 2022 after long Chinese hold)",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million",
+        "US FBI — Most Wanted Terrorist"
+      ],
+      "sources": [
+        "src-f88bccde95",
+        "src-2f8d6cd00f",
+        "src-59c2caa034"
+      ],
+      "tags": [
+        "Pakistan",
+        "Lashkar-e-Taiba",
+        "Ahl-e-Hadith Salafism",
+        "Europe / North America",
+        "Anti-India jihad",
+        "India"
+      ],
+      "operatingAreas": [
+        "Pakistan",
+        "India",
+        "Europe / North America"
+      ],
+      "category": "Ahl-e-Hadith Salafism"
+    },
+    {
+      "id": "ilyas-kashmiri",
+      "label": "Mohammad Ilyas Kashmiri",
+      "type": "individual",
+      "org": "313 Brigade / Al-Qaeda military committee",
+      "role": "Operational commander of HuJI's 313 Brigade and al-Qaeda military operations chief in South Asia",
       "status": "Deceased",
-      "role": "al-Shabaab Emir",
-      "summary": "Al-Shabaab leader who combined charisma, internal repression, and media outreach before his death in a U.S. strike in 2014.",
-      "url": "/profiles/ahmed-abdi-godane/",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "A former Pakistani Special Services Group commando turned jihadist, Kashmiri reportedly trained Pakistani-aligned Kashmiri militants in the 1990s and was once celebrated by then-Army Chief Pervez Musharraf for presenting an Indian soldier's severed head.",
+      "url": "/profiles/ilyas-kashmiri/",
+      "aliases": [
+        "Abu Hamza"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-aca6a1a870",
+        "src-debf4f7057"
+      ],
       "tags": [
-        "al-Shabaab",
-        "Somalia",
-        "Horn of Africa"
-      ]
+        "Kashmir",
+        "Salafi-jihadism",
+        "Pakistan",
+        "Afghanistan",
+        "313 Brigade / Al-Qaeda military committee",
+        "Kashmir-focused"
+      ],
+      "operatingAreas": [
+        "Pakistan",
+        "Afghanistan",
+        "Kashmir"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
-      "id": "ahmed-diriye-abu-ubaidah",
-      "label": "Ahmed Diriye (Abu Ubaidah)",
+      "id": "bashir-zeb-baloch",
+      "label": "Bashir Zeb Baloch",
       "type": "individual",
-      "org": "al-Shabaab",
-      "region": "Horn of Africa",
+      "org": "Balochistan Liberation Army (BLA) – Majeed Brigade direction",
+      "role": "Reported chief of BLA; commander overseeing the Majeed Brigade suicide squad",
       "status": "Wanted",
-      "role": "al-Shabaab Emir (current)",
-      "summary": "Al-Shabaab emir since 2014. Associated with command continuity after Godane's death. Subject to Rewards for Justice bounty.",
-      "url": "/profiles/ahmed-diriye-abu-ubaidah/",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "",
+      "url": "/profiles/bashir-zeb-baloch/",
+      "aliases": [
+        "Aslam Baloch (predecessor commander)"
+      ],
+      "designations": [
+        "Pakistan MoI — BLA proscribed (Schedule I)",
+        "US State Dept — BLA designated FTO/SDGT, 2019",
+        "UK Home Office — BLA proscribed, 2025"
+      ],
+      "sources": [
+        "src-895d733275",
+        "src-0384d326de",
+        "src-6a419cded7"
+      ],
       "tags": [
-        "al-Shabaab",
-        "Somalia",
-        "Rewards for Justice"
-      ]
+        "Baloch ethno-nationalist secessionism",
+        "Balochistan Liberation Army (BLA) – Majeed Brigade direction",
+        "Secular",
+        "Balochistan"
+      ],
+      "operatingAreas": [
+        "Balochistan"
+      ],
+      "category": "Baloch ethno-nationalist secessionism"
+    },
+    {
+      "id": "allah-nazar-baloch",
+      "label": "Allah Nazar Baloch",
+      "type": "individual",
+      "org": "Balochistan Liberation Front (BLF)",
+      "role": "Chief commander of the Balochistan Liberation Front",
+      "status": "Wanted",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Pakistani"
+      ],
+      "summary": "Allah Nazar is a former medical student at the Bolan Medical College who became the public face of the post-2003 'middle-class' phase of the Baloch insurgency, distinct from older tribal-based movements (Bugti, Marri, Mengal).",
+      "url": "/profiles/allah-nazar-baloch/",
+      "aliases": [
+        "Doctor Allah Nazar"
+      ],
+      "designations": [
+        "Pakistan MoI — BLF proscribed"
+      ],
+      "sources": [
+        "src-16ec49ea64",
+        "src-d9c700dda8"
+      ],
+      "tags": [
+        "Baloch ethno-nationalist secessionism",
+        "Balochistan Liberation Front (BLF)",
+        "Secular-leftist",
+        "Balochistan"
+      ],
+      "operatingAreas": [
+        "Balochistan"
+      ],
+      "category": "Baloch ethno-nationalist secessionism"
+    },
+    {
+      "id": "ahmed-al-sharaa",
+      "label": "Ahmed Hussein al-Sharaa",
+      "type": "individual",
+      "org": "Syrian Transitional Government",
+      "role": "President of the Syrian Arab Republic (interim); former Emir of Hayat Tahrir al-Sham",
+      "status": "Active",
+      "region": "Middle East",
+      "country": "Syria",
+      "countries": [
+        "Syria",
+        "Syrian"
+      ],
+      "summary": "From a Syrian family with roots in the Israeli-occupied Golan Heights, Jolani travelled to Iraq after the 2003 U.S. invasion and fought with al-Qaeda in Iraq. He was captured by U.S. forces and held at Camp Bucca (2006–2011). Released and sent by Abu Bakr al-Baghdadi to establish a Syrian front during the Arab Spring, he founded Jabhat al-Nusra in 2012.",
+      "url": "/profiles/ahmed-al-sharaa/",
+      "aliases": [
+        "Abu Mohammad al-Jolani",
+        "al-Joulani"
+      ],
+      "designations": [
+        "US State Dept — SDGT designation since 2013; status under review post-2024",
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty $10M (lifted 2024)"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-16ec49ea64",
+        "src-d9c1c4a5f2"
+      ],
+      "tags": [
+        "Syrian Transitional Government",
+        "Formerly Salafi-jihadism; since 2016 Islamist Syrian nationalist",
+        "Syria"
+      ],
+      "operatingAreas": [
+        "Syria"
+      ],
+      "category": "Formerly Salafi-jihadism; since 2016 Islamist Syrian nationalist"
     },
     {
       "id": "abubakar-shekau",
-      "label": "Abubakar Shekau",
+      "label": "Abubakar Mohammed Shekau",
       "type": "individual",
-      "org": "Boko Haram",
-      "region": "West Africa",
+      "org": "Boko Haram (Jama'atu Ahlis Sunna Lidda'awati wal-Jihad)",
+      "role": "Second leader of Boko Haram",
       "status": "Deceased",
-      "role": "Boko Haram Leader",
-      "summary": "Boko Haram leader from 2009 whose tenure was marked by indiscriminate violence and media spectacle around the Lake Chad basin.",
+      "region": "West Africa",
+      "country": "Nigeria",
+      "countries": [
+        "Nigeria",
+        "Nigerian"
+      ],
+      "summary": "",
       "url": "/profiles/abubakar-shekau/",
+      "aliases": [
+        "Abu Muhammad",
+        "Imam"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US Rewards for Justice — Bounty up to $7 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-21e38cae3e"
+      ],
       "tags": [
-        "Boko Haram",
-        "Lake Chad",
+        "Lake Chad Basin",
+        "Boko Haram (Jama'atu Ahlis Sunna Lidda'awati wal-Jihad)",
+        "Salafi-jihadism",
+        "Takfirism",
         "Nigeria"
-      ]
+      ],
+      "operatingAreas": [
+        "Nigeria",
+        "Lake Chad Basin"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-musab-al-barnawi",
+      "label": "Habib Yusuf",
+      "type": "individual",
+      "org": "Islamic State West Africa Province (ISWAP)",
+      "role": "Leader of ISWAP; son of Boko Haram founder Mohammed Yusuf",
+      "status": "Deceased",
+      "region": "West Africa",
+      "country": "Nigeria",
+      "countries": [
+        "Nigeria",
+        "Nigerian"
+      ],
+      "summary": "Son of Boko Haram founder Mohammed Yusuf, Habib Yusuf was named leader of Islamic State's West Africa Province by ISIS in August 2016, displacing Abubakar Shekau on the grounds that Shekau's takfirism alienated local Muslims. The Shekau loyalists refused, splintering Boko Haram.",
+      "url": "/profiles/abu-musab-al-barnawi/",
+      "aliases": [
+        "Abu Musab al-Barnawi"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept — SDGT"
+      ],
+      "sources": [
+        "src-5f491bcc0d",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Islamic State West Africa Province (ISWAP)",
+        "Lake Chad Basin",
+        "Salafi-jihadism",
+        "Northern Nigeria"
+      ],
+      "operatingAreas": [
+        "Lake Chad Basin",
+        "Northern Nigeria"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abdelmalek-droukdel",
+      "label": "Abdelmalek Droukdel",
+      "type": "individual",
+      "org": "Al-Qaeda in the Islamic Maghreb (AQIM)",
+      "role": "Founding Emir of AQIM",
+      "status": "Deceased",
+      "region": "West Africa",
+      "country": "Algeria",
+      "countries": [
+        "Algeria",
+        "Algerian"
+      ],
+      "summary": "A trained electrical engineer who joined Algeria's Armed Islamic Group (GIA) in 1996, Droukdel became Emir of GSPC in 2004 and engineered its 2007 rebranding as Al-Qaeda in the Islamic Maghreb following formal pledged bayah to bin Laden.",
+      "url": "/profiles/abdelmalek-droukdel/",
+      "aliases": [
+        "Abu Musab Abdul Wadud"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-fb0129b744"
+      ],
+      "tags": [
+        "Sahel",
+        "Algeria",
+        "Salafi-jihadism",
+        "Al-Qaeda in the Islamic Maghreb (AQIM)"
+      ],
+      "operatingAreas": [
+        "Algeria",
+        "Sahel"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "iyad-ag-ghaly",
       "label": "Iyad ag Ghaly",
       "type": "individual",
-      "org": "JNIM / Ansar Dine",
+      "org": "Jama'at Nusrat al-Islam wal-Muslimin (JNIM)",
+      "role": "Emir of JNIM, al-Qaeda's principal Sahel affiliate",
+      "status": "Wanted",
       "region": "West Africa",
-      "status": "Active",
-      "role": "JNIM Leader",
-      "summary": "Tuareg militant leader heading Jama'at Nusrat al-Islam wal-Muslimin, al-Qaeda's main Sahel affiliate.",
-      "url": "/profiles/iyad-ag-ghaly/",
-      "tags": [
-        "JNIM",
-        "Ansar Dine",
+      "country": "Mali",
+      "countries": [
         "Mali",
+        "Malian"
+      ],
+      "summary": "A Tuareg of the influential Ifoghas tribe from Kidal, Ag Ghaly trained with Gaddafi's Pan-Africanist Islamic Corps in Libya (1978–90), fought against Israel in Lebanon in the early 1980s, and led successive Tuareg rebellions in Mali (1988 MPLA, 2006 Kidal accord). He gradually radicalised through the Tablighi Jamaat and contacts with AQIM.",
+      "url": "/profiles/iyad-ag-ghaly/",
+      "aliases": [
+        "Abu al-Fadl"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation, 2013",
+        "US Rewards for Justice — Bounty up to $5 million",
+        "International Criminal Court — Arrest warrants 2024"
+      ],
+      "sources": [
+        "src-f569a02519",
+        "src-e8b3283280",
+        "src-ac39289089"
+      ],
+      "tags": [
+        "Mali",
+        "Tuareg / Sahel-rooted Islamism",
+        "Jama'at Nusrat al-Islam wal-Muslimin (JNIM)",
+        "Salafi-jihadism",
+        "Sahel",
+        "Niger",
+        "Burkina Faso"
+      ],
+      "operatingAreas": [
+        "Mali",
+        "Burkina Faso",
+        "Niger",
         "Sahel"
-      ]
+      ],
+      "category": "Salafi-jihadism"
     },
     {
-      "id": "abdullah-ocalan",
-      "label": "Abdullah \u00d6calan",
+      "id": "adnan-abu-walid-al-sahrawi",
+      "label": "Lehbib Ould Ali Ould Said Ould Joumani",
       "type": "individual",
-      "org": "PKK",
-      "region": "Middle East",
-      "status": "In custody",
-      "role": "PKK Founder",
-      "summary": "Founder of the PKK, imprisoned since 1999. Theorist whose writings shifted Kurdish militant debate toward democratic confederalism.",
-      "url": "/profiles/abdullah-ocalan/",
+      "org": "Islamic State in the Greater Sahara (ISGS)",
+      "role": "Emir of ISGS, the Islamic State's Sahel branch",
+      "status": "Deceased",
+      "region": "West Africa",
+      "country": "Mali",
+      "countries": [
+        "Mali",
+        "Sahrawi"
+      ],
+      "summary": "A Sahrawi who fought with Polisario in his youth, al-Sahrawi rose through MUJAO (Movement for Oneness and Jihad in West Africa), then al-Mourabitoun under Mokhtar Belmokhtar. He broke with Belmokhtar in May 2015 to pledge bayah to Abu Bakr al-Baghdadi, founding ISGS.",
+      "url": "/profiles/adnan-abu-walid-al-sahrawi/",
+      "aliases": [
+        "Adnan Abu Walid al-Sahrawi"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $5 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-7c90824816"
+      ],
       "tags": [
-        "PKK",
-        "Turkey",
-        "Kurdish movement"
-      ]
+        "Islamic State in the Greater Sahara (ISGS)",
+        "Mali / Burkina Faso / Niger tri-border",
+        "Salafi-jihadism"
+      ],
+      "operatingAreas": [
+        "Mali / Burkina Faso / Niger tri-border"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "ahmed-abdi-godane",
+      "label": "Ahmed Abdi Mohammed",
+      "type": "individual",
+      "org": "Al-Shabaab",
+      "role": "First Emir of Al-Shabaab",
+      "status": "Deceased",
+      "region": "Horn of Africa",
+      "country": "Somalia",
+      "countries": [
+        "Somali",
+        "Somalia"
+      ],
+      "summary": "Trained in Pakistani madrasas and Afghan al-Qaeda camps before 2001, Godane returned to Somalia and rose through the Islamic Courts Union. He became Emir of Al-Shabaab after its 2008 formal break from the ICU and pledged bayah to al-Qaeda in 2012, formalising AQ's East African affiliate.",
+      "url": "/profiles/ahmed-abdi-godane/",
+      "aliases": [
+        "Mukhtar Abu Zubeyr",
+        "Sheikh Mukhtar"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation",
+        "US Rewards for Justice — Bounty up to $7 million"
+      ],
+      "sources": [
+        "src-debf4f7057",
+        "src-5216d08319"
+      ],
+      "tags": [
+        "Somalia",
+        "Al-Shabaab",
+        "Salafi-jihadism",
+        "East Africa"
+      ],
+      "operatingAreas": [
+        "Somalia",
+        "East Africa"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "ahmed-diriye",
+      "label": "Ahmed Diriye",
+      "type": "individual",
+      "org": "Al-Shabaab",
+      "role": "Emir of Al-Shabaab",
+      "status": "Wanted",
+      "region": "Horn of Africa",
+      "country": "Somalia",
+      "countries": [
+        "Somali",
+        "Somalia"
+      ],
+      "summary": "A senior Al-Shabaab sharia official and previously the head of its Amniyat intelligence wing, Diriye was elevated to Emir within days of Godane's killing in September 2014.",
+      "url": "/profiles/ahmed-diriye/",
+      "aliases": [
+        "Ahmed Umar",
+        "Abu Ubaidah"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions",
+        "US State Dept SDGT — Designation, 2015",
+        "US Rewards for Justice — Bounty up to $6 million"
+      ],
+      "sources": [
+        "src-3b6c147772",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Somalia",
+        "Al-Shabaab",
+        "Salafi-jihadism"
+      ],
+      "operatingAreas": [
+        "Somalia"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "hambali",
+      "label": "Encep Nurjaman",
+      "type": "individual",
+      "org": "Jemaah Islamiyah",
+      "role": "JI operations chief; al-Qaeda's principal Southeast Asia liaison",
+      "status": "In custody",
+      "region": "Southeast Asia",
+      "country": "Indonesia",
+      "countries": [
+        "Indonesia",
+        "Indonesian"
+      ],
+      "summary": "Hambali fought against the Soviets in Afghanistan in the late 1980s and returned to Southeast Asia to help build Jemaah Islamiyah under Abdullah Sungkar and Abu Bakar Bashir. He was Operations Chief and head of JI's Malaysian-Singapore Mantiqi I region.",
+      "url": "/profiles/hambali/",
+      "aliases": [
+        "Riduan Isamuddin",
+        "Hambali"
+      ],
+      "designations": [
+        "UN 1267 — Sanctions — (QDi.087)",
+        "US Military Commissions — Defendant"
+      ],
+      "sources": [
+        "src-5fba9468af",
+        "src-aca6a1a870"
+      ],
+      "tags": [
+        "Malaysia",
+        "Indonesia",
+        "Salafi-jihadism",
+        "Jemaah Islamiyah",
+        "Southeast Asia"
+      ],
+      "operatingAreas": [
+        "Indonesia",
+        "Malaysia",
+        "Southeast Asia"
+      ],
+      "category": "Salafi-jihadism"
+    },
+    {
+      "id": "abu-bakar-bashir",
+      "label": "Abu Bakar Bashir",
+      "type": "individual",
+      "org": "Jamaah Ansharut Tauhid (JAT)",
+      "role": "Co-founder and spiritual leader of Jemaah Islamiyah; founder of JAT",
+      "status": "Released",
+      "region": "Southeast Asia",
+      "country": "Indonesia",
+      "countries": [
+        "Indonesia",
+        "Indonesian"
+      ],
+      "summary": "An Indonesian-born cleric of Hadhrami Arab descent, Bashir co-founded Pondok Pesantren al-Mukmin (the Ngruki pesantren) with Abdullah Sungkar in 1972 and fled to Malaysia in 1985 to escape Suharto's New Order. He co-founded Jemaah Islamiyah in 1993, succeeding Sungkar as Emir in 1999.",
+      "url": "/profiles/abu-bakar-bashir/",
+      "aliases": [
+        "Abu Bakar Ba'asyir",
+        "Ustad Abu"
+      ],
+      "designations": [
+        "Indonesia BNPT — Listed; JI and JAT designated"
+      ],
+      "sources": [
+        "src-fd8daa0775",
+        "src-ab3615c604"
+      ],
+      "tags": [
+        "Jamaah Ansharut Tauhid (JAT)",
+        "Indonesia",
+        "Salafi-jihadism",
+        "Indonesian Islamic state"
+      ],
+      "operatingAreas": [
+        "Indonesia"
+      ],
+      "category": "Salafi-jihadism"
     },
     {
       "id": "anders-behring-breivik",
       "label": "Anders Behring Breivik",
       "type": "individual",
-      "org": "Lone actor",
-      "region": "Europe",
+      "org": "Claimed but unverified 'Knights Templar Europe'",
+      "role": "Perpetrator of the 22 July 2011 Norway attacks",
       "status": "In custody",
-      "role": "Far-right Lone Actor",
-      "summary": "Norwegian far-right terrorist whose 2011 Oslo and Ut\u00f8ya attacks killed 77 people.",
-      "url": "/profiles/anders-behring-breivik/",
-      "tags": [
-        "Far-right terrorism",
+      "region": "Europe",
+      "country": "Norway",
+      "countries": [
         "Norway",
-        "Lone actor"
-      ]
+        "Norwegian"
+      ],
+      "summary": "A Norwegian far-right gunman who detonated a fertiliser bomb outside the Norwegian government quarter in Oslo (killing 8) and then drove to the Workers' Youth League summer camp on Utøya island, where he shot dead 69 people, mostly teenagers, in a 72-minute massacre.",
+      "url": "/profiles/anders-behring-breivik/",
+      "aliases": [
+        "Fjotolf Hansen (legal name change 2017)",
+        "Andrew Berwick (manifesto pseudonym)"
+      ],
+      "designations": [
+        "Norway Penal Code — Convicted, 21-yr preventive detention"
+      ],
+      "sources": [
+        "src-5927658339",
+        "src-094546577d"
+      ],
+      "tags": [
+        "Counter-jihad",
+        "Claimed but unverified 'Knights Templar Europe'",
+        "Far-right",
+        "Ethno-nationalism",
+        "Norway"
+      ],
+      "operatingAreas": [
+        "Norway"
+      ],
+      "category": "Far-right"
     },
     {
-      "id": "joseph-kony",
-      "label": "Joseph Kony",
+      "id": "brenton-tarrant",
+      "label": "Brenton Harrison Tarrant",
       "type": "individual",
-      "org": "LRA",
+      "org": "",
+      "role": "Perpetrator of the 15 March 2019 Christchurch mosque attacks",
+      "status": "In custody",
+      "region": "Oceania",
+      "country": "Australia",
+      "countries": [
+        "Australia",
+        "Australian"
+      ],
+      "summary": "An Australian white-supremacist who livestreamed his attacks on the Al Noor and Linwood mosques in Christchurch, killing 51 worshippers in Friday prayer. He published a 74-page manifesto, 'The Great Replacement,' modelled explicitly on Breivik's.",
+      "url": "/profiles/brenton-tarrant/",
+      "aliases": [],
+      "designations": [
+        "New Zealand — Convicted, life without parole",
+        "Australia — Listed as a terrorist"
+      ],
+      "sources": [
+        "src-fba7f480d3",
+        "src-4ceb6b26d5"
+      ],
+      "tags": [
+        "Accelerationism",
+        "Eco-fascism",
+        "New Zealand",
+        "Far-right white-supremacist (Great Replacement)"
+      ],
+      "operatingAreas": [
+        "New Zealand"
+      ],
+      "category": "Far-right white-supremacist (Great Replacement)"
+    },
+    {
+      "id": "dylann-roof",
+      "label": "Dylann Storm Roof",
+      "type": "individual",
+      "org": "",
+      "role": "Perpetrator of the 17 June 2015 Charleston church shooting",
+      "status": "In custody",
       "region": "Central Africa",
-      "status": "Wanted",
-      "role": "LRA Leader",
-      "summary": "Leader of the Lord's Resistance Army. Subject to ICC arrest warrant for crimes against humanity and war crimes.",
-      "url": "/profiles/joseph-kony/",
+      "country": "United States",
+      "countries": [
+        "United States"
+      ],
+      "summary": "A self-radicalised white-supremacist, Roof entered a Wednesday evening Bible study at Mother Emanuel African Methodist Episcopal Church in Charleston, sat with worshippers for about an hour, then opened fire — killing nine African-American congregants including the church's pastor and state senator Clementa Pinckney.",
+      "url": "/profiles/dylann-roof/",
+      "aliases": [],
+      "designations": [
+        "US Federal Court — Convicted federal hate crimes; capital sentence"
+      ],
+      "sources": [
+        "src-89210a6141",
+        "src-7be1cbecc9"
+      ],
       "tags": [
-        "LRA",
-        "Uganda",
-        "Central Africa",
-        "ICC"
-      ]
-    },
-    {
-      "id": "shamil-basayev",
-      "label": "Shamil Basayev",
-      "type": "individual",
-      "org": "Chechen militants",
-      "region": "Caucasus",
-      "status": "Deceased",
-      "role": "Chechen Militant Commander",
-      "summary": "Chechen militant commander behind the Beslan school siege and Moscow theater hostage crisis. Killed in 2006.",
-      "url": "/profiles/shamil-basayev/",
-      "tags": [
-        "Chechen insurgency",
-        "Russia",
-        "Beslan"
-      ]
-    },
-    {
-      "id": "shoko-asahara",
-      "label": "Shoko Asahara",
-      "type": "individual",
-      "org": "Aum Shinrikyo",
-      "region": "East Asia",
-      "status": "Deceased",
-      "role": "Cult Leader",
-      "summary": "Founder of Aum Shinrikyo. Orchestrated the 1995 Tokyo subway sarin attack. Executed in 2018.",
-      "url": "/profiles/shoko-asahara/",
-      "tags": [
-        "Aum Shinrikyo",
-        "Japan",
-        "CBRN"
-      ]
+        "Neo-Confederate",
+        "White supremacy",
+        "United States"
+      ],
+      "operatingAreas": [
+        "United States"
+      ],
+      "category": "White supremacy"
     },
     {
       "id": "timothy-mcveigh",
-      "label": "Timothy McVeigh",
+      "label": "Timothy James McVeigh",
       "type": "individual",
-      "org": "Lone actor",
-      "region": "North America",
+      "org": "",
+      "role": "Perpetrator of the 19 April 1995 Oklahoma City bombing",
       "status": "Deceased",
-      "role": "Far-right Domestic Terrorist",
-      "summary": "Perpetrator of the 1995 Oklahoma City bombing. Executed in 2001.",
+      "region": "North America",
+      "country": "United States",
+      "countries": [
+        "United States"
+      ],
+      "summary": "A decorated U.S. Army Gulf War veteran radicalised by the 1992 Ruby Ridge standoff, the 1993 Waco siege, and the militia/Patriot movement, McVeigh — with Terry Nichols — built a 4,800-pound ANFO truck bomb and detonated it outside the Alfred P. Murrah Federal Building in downtown Oklahoma City on the second anniversary of Waco.",
       "url": "/profiles/timothy-mcveigh/",
+      "aliases": [],
+      "designations": [
+        "US Federal Court — Convicted, executed"
+      ],
+      "sources": [
+        "src-7a693deec0"
+      ],
       "tags": [
-        "Far-right terrorism",
         "United States",
-        "Domestic terrorism"
-      ]
+        "Anti-government militia movement",
+        "Christian Identity–adjacent (claimed agnostic)"
+      ],
+      "operatingAreas": [
+        "United States"
+      ],
+      "category": "Anti-government militia movement"
+    },
+    {
+      "id": "patrick-crusius",
+      "label": "Patrick Wood Crusius",
+      "type": "individual",
+      "org": "",
+      "role": "Perpetrator of the 3 August 2019 El Paso Walmart shooting",
+      "status": "In custody",
+      "region": "North America",
+      "country": "United States",
+      "countries": [
+        "United States"
+      ],
+      "summary": "Crusius drove ~650 miles from suburban Dallas to El Paso and opened fire with an AK-style rifle inside a Cielo Vista Walmart, killing 23 people — mostly Hispanic and Mexican shoppers — and wounding 22.",
+      "url": "/profiles/patrick-crusius/",
+      "aliases": [],
+      "designations": [
+        "US Federal Court — Convicted, 90 consecutive life sentences"
+      ],
+      "sources": [
+        "src-59c2caa034",
+        "src-4d4d0aa303"
+      ],
+      "tags": [
+        "United States",
+        "Anti-Hispanic / anti-immigrant",
+        "White-supremacist Great Replacement"
+      ],
+      "operatingAreas": [
+        "United States"
+      ],
+      "category": "White-supremacist Great Replacement"
+    },
+    {
+      "id": "payton-gendron",
+      "label": "Payton S. Gendron",
+      "type": "individual",
+      "org": "",
+      "role": "Perpetrator of the 14 May 2022 Buffalo Tops supermarket shooting",
+      "status": "In custody",
+      "region": "North America",
+      "country": "United States",
+      "countries": [
+        "United States"
+      ],
+      "summary": "Gendron drove ~200 miles from Conklin, NY to a predominantly Black neighbourhood in east Buffalo and opened fire with an AR-15-style rifle inside Tops Friendly Markets, killing 10 Black shoppers and wounding three others.",
+      "url": "/profiles/payton-gendron/",
+      "aliases": [],
+      "designations": [
+        "US/NY — Convicted, life without parole"
+      ],
+      "sources": [
+        "src-2eaae847b3",
+        "src-59c2caa034"
+      ],
+      "tags": [
+        "United States",
+        "Accelerationism",
+        "White-supremacist Great Replacement"
+      ],
+      "operatingAreas": [
+        "United States"
+      ],
+      "category": "White-supremacist Great Replacement"
     },
     {
       "id": "velupillai-prabhakaran",
       "label": "Velupillai Prabhakaran",
       "type": "individual",
-      "org": "LTTE",
-      "region": "South Asia",
+      "org": "Liberation Tigers of Tamil Eelam (LTTE)",
+      "role": "Founder and Supreme Commander of the LTTE",
       "status": "Deceased",
-      "role": "LTTE Founder & Leader",
-      "summary": "Founder and leader of the Liberation Tigers of Tamil Eelam. Killed during the Sri Lankan military's final offensive in May 2009.",
-      "url": "/profiles/velupillai-prabhakaran/",
-      "tags": [
-        "LTTE",
+      "region": "South Asia",
+      "country": "Sri Lanka",
+      "countries": [
         "Sri Lanka",
-        "Tamil Eelam"
-      ]
+        "Sri Lankan (rejected)"
+      ],
+      "summary": "Prabhakaran founded the LTTE in May 1976 in response to Sinhala-majority discrimination against Sri Lanka's Tamil minority.",
+      "url": "/profiles/velupillai-prabhakaran/",
+      "aliases": [
+        "Karikalan",
+        "Thalaivar (The Leader)"
+      ],
+      "designations": [
+        "Sri Lanka — Convicted in absentia (Rajiv Gandhi assassination linked)",
+        "India CBI — Listed, Rajiv Gandhi assassination case",
+        "US State Dept — LTTE FTO designated 1997"
+      ],
+      "sources": [
+        "src-5049ddd884",
+        "src-d229f82f18"
+      ],
+      "tags": [
+        "Marxist-tinged armed nationalism",
+        "Liberation Tigers of Tamil Eelam (LTTE)",
+        "Sri Lanka",
+        "Tamil ethno-nationalist secessionism"
+      ],
+      "operatingAreas": [
+        "Sri Lanka"
+      ],
+      "category": "Tamil ethno-nationalist secessionism"
+    },
+    {
+      "id": "joseph-kony",
+      "label": "Joseph Rao Kony",
+      "type": "individual",
+      "org": "Lord's Resistance Army (LRA)",
+      "role": "Founder and leader of the Lord's Resistance Army",
+      "status": "Wanted",
+      "region": "Central Africa",
+      "country": "Uganda",
+      "countries": [
+        "Uganda",
+        "Ugandan"
+      ],
+      "summary": "A cousin of Holy Spirit Movement leader Alice Lakwena, Kony took over remnants of Acholi rebels in 1987 and built the LRA as a millenarian Christian insurgency against Uganda's Museveni government, claiming to want to rule Uganda by the Ten Commandments.",
+      "url": "/profiles/joseph-kony/",
+      "aliases": [],
+      "designations": [
+        "International Criminal Court — Arrest warrant 2005 (12 counts crimes against humanity, 21 counts war crimes)",
+        "UN 1533 / 2127 Sanctions — Listed (DRC; CAR)"
+      ],
+      "sources": [
+        "src-8ef9777322",
+        "src-243ad1bdfc"
+      ],
+      "tags": [
+        "Acholi ethno-political",
+        "South Sudan",
+        "Uganda",
+        "DRC",
+        "Lord's Resistance Army (LRA)",
+        "Central African Republic",
+        "Christian millenarianism"
+      ],
+      "operatingAreas": [
+        "Uganda",
+        "South Sudan",
+        "DRC",
+        "Central African Republic"
+      ],
+      "category": "Christian millenarianism"
+    },
+    {
+      "id": "shoko-asahara",
+      "label": "Chizuo Matsumoto",
+      "type": "individual",
+      "org": "Aum Shinrikyo",
+      "role": "Founder and Guru of Aum Shinrikyo",
+      "status": "Deceased",
+      "region": "East Asia",
+      "country": "Japan",
+      "countries": [
+        "Japan",
+        "Japanese"
+      ],
+      "summary": "A partially-sighted yoga teacher, Asahara founded Aum Shinrikyo in 1984, blending elements of Tibetan Buddhism, Hindu Shaktism, Christian millenarianism, and Nostradamus prophecy into an apocalyptic doomsday cult. Aum recruited heavily among Japanese scientists and engineers, building a clandestine chemical and biological weapons programme.",
+      "url": "/profiles/shoko-asahara/",
+      "aliases": [
+        "Shoko Asahara"
+      ],
+      "designations": [
+        "Japan — Convicted of 13 counts including murder; executed"
+      ],
+      "sources": [
+        "src-fd9ad92493"
+      ],
+      "tags": [
+        "Apocalyptic new religious movement (Aum)",
+        "Aum Shinrikyo",
+        "Japan"
+      ],
+      "operatingAreas": [
+        "Japan"
+      ],
+      "category": "Apocalyptic new religious movement (Aum)"
+    },
+    {
+      "id": "abimael-guzman",
+      "label": "Manuel Rubén Abimael Guzmán Reynoso",
+      "type": "individual",
+      "org": "Partido Comunista del Perú – Sendero Luminoso (Shining Path)",
+      "role": "Founder and 'Fourth Sword of Marxism' of Sendero Luminoso",
+      "status": "Deceased",
+      "region": "Latin America",
+      "country": "Peru",
+      "countries": [
+        "Peru",
+        "Peruvian"
+      ],
+      "summary": "A philosophy professor at the National University of San Cristóbal de Huamanga in Ayacucho, Guzmán founded the Communist Party of Peru – Shining Path in 1970 as a Maoist splinter. He launched 'people's war' on 17 May 1980.",
+      "url": "/profiles/abimael-guzman/",
+      "aliases": [
+        "Presidente Gonzalo"
+      ],
+      "designations": [
+        "Peru — Convicted, life sentence",
+        "US State Dept — Sendero Luminoso FTO"
+      ],
+      "sources": [
+        "src-db93173c8f",
+        "src-30c927df4d"
+      ],
+      "tags": [
+        "Maoist (Shining Path) revolutionary communism",
+        "Peru",
+        "Partido Comunista del Perú – Sendero Luminoso (Shining Path)"
+      ],
+      "operatingAreas": [
+        "Peru"
+      ],
+      "category": "Maoist (Shining Path) revolutionary communism"
+    },
+    {
+      "id": "carlos-the-jackal",
+      "label": "Ilich Ramírez Sánchez",
+      "type": "individual",
+      "org": "Revolutionary Cells / 'Carlos Organisation'",
+      "role": "1970s–80s freelance terrorist operative; principal architect of the 1975 OPEC siege",
+      "status": "In custody",
+      "region": "Middle East",
+      "country": "Venezuela",
+      "countries": [
+        "Venezuela",
+        "Venezuelan"
+      ],
+      "summary": "Born to a Marxist Venezuelan lawyer who named his three sons Ilich, Lenin, and Vladimir, Carlos studied at Patrice Lumumba University in Moscow and was recruited by Wadie Haddad's PFLP-EO.",
+      "url": "/profiles/carlos-the-jackal/",
+      "aliases": [
+        "Carlos the Jackal",
+        "Carlos"
+      ],
+      "designations": [
+        "France — Convicted 3 life sentences"
+      ],
+      "sources": [
+        "src-db18bfa30a",
+        "src-16ec49ea64"
+      ],
+      "tags": [
+        "Revolutionary Cells / 'Carlos Organisation'",
+        "Late: Islamist",
+        "Marxist-Leninist",
+        "Europe",
+        "Middle East",
+        "Latin America",
+        "Anti-imperialist"
+      ],
+      "operatingAreas": [
+        "Europe",
+        "Middle East",
+        "Latin America"
+      ],
+      "category": "Marxist-Leninist"
     },
     {
       "id": "org-al-qaeda",
-      "label": "al-Qaeda",
+      "label": "Al-Qaeda",
       "type": "organisation",
-      "org": "al-Qaeda",
-      "region": "Global",
+      "org": "Al-Qaeda",
+      "role": "Militant network",
       "status": "Active",
-      "role": "Transnational Jihadist Network",
-      "summary": "Transnational jihadist organisation founded in 1988. Operates through regional affiliates across the Middle East, Africa, and South Asia.",
-      "url": "/profiles/osama-bin-laden/",
+      "region": "Global",
+      "country": "",
+      "countries": [],
+      "summary": "Transnational salafi-jihadist organisation founded by Osama bin Laden in 1988.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
       "tags": [
         "al-Qaeda",
         "Global Jihad"
@@ -402,48 +2113,261 @@
       "label": "Islamic State",
       "type": "organisation",
       "org": "Islamic State",
+      "role": "Militant network",
+      "status": "Active",
       "region": "Global",
-      "status": "Active",
-      "role": "Rival Transnational Jihadist Network",
-      "summary": "Emerged from al-Qaeda in Iraq. Declared caliphate in 2014 across Iraq and Syria. Operates through provinces (wilayat) globally.",
-      "url": "/profiles/abu-bakr-al-baghdadi/",
+      "country": "",
+      "countries": [],
+      "summary": "Salafi-jihadist organisation that declared a caliphate in 2014. Evolved from al-Qaeda in Iraq.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
       "tags": [
         "Islamic State",
-        "Caliphate",
-        "Iraq",
-        "Syria"
+        "Caliphate"
       ]
     },
     {
-      "id": "org-al-shabaab",
-      "label": "al-Shabaab",
+      "id": "org-taliban",
+      "label": "Taliban (Islamic Emirate of Afghanistan)",
       "type": "organisation",
-      "org": "al-Shabaab",
-      "region": "Horn of Africa",
+      "org": "Taliban (Islamic Emirate of Afghanistan)",
+      "role": "Militant network",
       "status": "Active",
-      "role": "al-Qaeda Affiliate (East Africa)",
-      "summary": "Al-Qaeda's East African affiliate, controlling territory in southern Somalia. Active in Kenya and the broader Horn region.",
-      "url": "/profiles/ahmed-abdi-godane/",
-      "tags": [
-        "al-Shabaab",
-        "Somalia",
-        "al-Qaeda"
-      ]
-    },
-    {
-      "id": "org-iskp",
-      "label": "ISKP",
-      "type": "organisation",
-      "org": "ISKP",
       "region": "South Asia",
-      "status": "Active",
-      "role": "Islamic State Province (South Asia)",
-      "summary": "Islamic State Khorasan Province. Active in Afghanistan and Pakistan with cross-border reach into Central and South Asia.",
-      "url": "/profiles/sanaullah-ghafari-shahab-al-muhajir/",
+      "country": "",
+      "countries": [],
+      "summary": "Deobandi Islamist movement that has ruled Afghanistan 1996–2001 and 2021–present.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
       "tags": [
-        "ISKP",
-        "Islamic State",
+        "Taliban",
         "Afghanistan"
+      ]
+    },
+    {
+      "id": "org-haqqani-network",
+      "label": "Haqqani Network",
+      "type": "organisation",
+      "org": "Haqqani Network",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Pashtun militant network based in Loya Paktia and North Waziristan; semi-autonomous Taliban faction.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "Haqqani",
+        "Taliban"
+      ]
+    },
+    {
+      "id": "org-ttp",
+      "label": "Tehrik-i-Taliban Pakistan (TTP)",
+      "type": "organisation",
+      "org": "Tehrik-i-Taliban Pakistan (TTP)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Pakistan-based deobandi-jihadist umbrella organisation founded in 2007.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "TTP",
+        "Pakistan"
+      ]
+    },
+    {
+      "id": "org-let",
+      "label": "Lashkar-e-Taiba (LeT)",
+      "type": "organisation",
+      "org": "Lashkar-e-Taiba (LeT)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Punjab-based Ahl-e-Hadith militant organisation; anti-India operational focus.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "LeT",
+        "JuD",
+        "Pakistan"
+      ]
+    },
+    {
+      "id": "org-jem",
+      "label": "Jaish-e-Mohammed (JeM)",
+      "type": "organisation",
+      "org": "Jaish-e-Mohammed (JeM)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Deobandi anti-India militant organisation founded by Masood Azhar in 2000.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "JeM",
+        "Pakistan"
+      ]
+    },
+    {
+      "id": "org-bla",
+      "label": "Balochistan Liberation Army (BLA)",
+      "type": "organisation",
+      "org": "Balochistan Liberation Army (BLA)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Baloch ethno-nationalist secessionist armed group.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "BLA",
+        "Balochistan"
+      ]
+    },
+    {
+      "id": "org-blf",
+      "label": "Balochistan Liberation Front (BLF)",
+      "type": "organisation",
+      "org": "Balochistan Liberation Front (BLF)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Baloch ethno-nationalist secessionist armed group active in Makran.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "BLF",
+        "Balochistan"
+      ]
+    },
+    {
+      "id": "org-aqap",
+      "label": "Al-Qaeda in the Arabian Peninsula (AQAP)",
+      "type": "organisation",
+      "org": "Al-Qaeda in the Arabian Peninsula (AQAP)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "Middle East",
+      "country": "",
+      "countries": [],
+      "summary": "Al-Qaeda's Yemen-based affiliate, formed in 2009.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "AQAP",
+        "Yemen"
+      ]
+    },
+    {
+      "id": "org-aqim",
+      "label": "Al-Qaeda in the Islamic Maghreb (AQIM)",
+      "type": "organisation",
+      "org": "Al-Qaeda in the Islamic Maghreb (AQIM)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "North Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Al-Qaeda's North Africa affiliate, evolved from Algeria's GSPC in 2007.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "AQIM",
+        "Algeria",
+        "Sahel"
+      ]
+    },
+    {
+      "id": "org-jnim",
+      "label": "Jama'at Nusrat al-Islam wal-Muslimin (JNIM)",
+      "type": "organisation",
+      "org": "Jama'at Nusrat al-Islam wal-Muslimin (JNIM)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "West Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Al-Qaeda's Sahel coalition, founded in 2017 by Iyad ag Ghaly.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "JNIM",
+        "Sahel"
+      ]
+    },
+    {
+      "id": "org-isgs",
+      "label": "Islamic State in the Greater Sahara (ISGS)",
+      "type": "organisation",
+      "org": "Islamic State in the Greater Sahara (ISGS)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "West Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Islamic State's Sahel branch, founded in 2015 by al-Sahrawi.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "ISGS",
+        "Sahel"
+      ]
+    },
+    {
+      "id": "org-iswap",
+      "label": "Islamic State West Africa Province (ISWAP)",
+      "type": "organisation",
+      "org": "Islamic State West Africa Province (ISWAP)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "West Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Islamic State's Lake Chad branch, split from Boko Haram in 2016.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "ISWAP",
+        "Lake Chad"
       ]
     },
     {
@@ -451,32 +2375,196 @@
       "label": "Boko Haram",
       "type": "organisation",
       "org": "Boko Haram",
-      "region": "West Africa",
+      "role": "Militant network",
       "status": "Active",
-      "role": "Militant Islamist Group (West Africa)",
-      "summary": "Nigerian militant group operating in the Lake Chad basin. Split into factions including ISWAP after Shekau's pledge to Islamic State.",
-      "url": "/profiles/abubakar-shekau/",
+      "region": "West Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Nigerian salafi-jihadist organisation founded c.2002.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
       "tags": [
         "Boko Haram",
-        "Nigeria",
-        "ISWAP"
+        "Nigeria"
       ]
     },
     {
-      "id": "org-jnim",
-      "label": "JNIM",
+      "id": "org-al-shabaab",
+      "label": "Al-Shabaab",
       "type": "organisation",
-      "org": "JNIM",
-      "region": "West Africa",
+      "org": "Al-Shabaab",
+      "role": "Militant network",
       "status": "Active",
-      "role": "al-Qaeda Affiliate (Sahel)",
-      "summary": "Jama'at Nusrat al-Islam wal-Muslimin. Al-Qaeda's main Sahel affiliate, operating across Mali, Burkina Faso, and Niger.",
-      "url": "/profiles/iyad-ag-ghaly/",
+      "region": "Horn of Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Al-Qaeda's East African affiliate, controlling parts of southern Somalia.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
       "tags": [
-        "JNIM",
-        "Sahel",
-        "al-Qaeda"
+        "al-Shabaab",
+        "Somalia"
       ]
+    },
+    {
+      "id": "org-hts",
+      "label": "Hayat Tahrir al-Sham (HTS)",
+      "type": "organisation",
+      "org": "Hayat Tahrir al-Sham (HTS)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "Middle East",
+      "country": "",
+      "countries": [],
+      "summary": "Syrian Islamist movement that emerged from Jabhat al-Nusra; ruling party of transitional Syria since 2024.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "HTS",
+        "Syria"
+      ]
+    },
+    {
+      "id": "org-ji",
+      "label": "Jemaah Islamiyah (JI)",
+      "type": "organisation",
+      "org": "Jemaah Islamiyah (JI)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "Southeast Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Indonesian salafi-jihadist organisation co-founded by Abu Bakar Bashir.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "JI",
+        "Indonesia"
+      ]
+    },
+    {
+      "id": "org-lra",
+      "label": "Lord's Resistance Army (LRA)",
+      "type": "organisation",
+      "org": "Lord's Resistance Army (LRA)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "Central Africa",
+      "country": "",
+      "countries": [],
+      "summary": "Ugandan Christian-millenarian insurgency founded by Joseph Kony in 1987.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "LRA",
+        "Uganda"
+      ]
+    },
+    {
+      "id": "org-ltte",
+      "label": "Liberation Tigers of Tamil Eelam (LTTE)",
+      "type": "organisation",
+      "org": "Liberation Tigers of Tamil Eelam (LTTE)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "South Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Tamil ethno-nationalist insurgency in Sri Lanka, defeated 2009.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "LTTE",
+        "Sri Lanka"
+      ]
+    },
+    {
+      "id": "org-sendero",
+      "label": "Sendero Luminoso (Shining Path)",
+      "type": "organisation",
+      "org": "Sendero Luminoso (Shining Path)",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "Latin America",
+      "country": "",
+      "countries": [],
+      "summary": "Maoist insurgency in Peru, 1980–2000s.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "Sendero",
+        "Peru"
+      ]
+    },
+    {
+      "id": "org-aum",
+      "label": "Aum Shinrikyo",
+      "type": "organisation",
+      "org": "Aum Shinrikyo",
+      "role": "Militant network",
+      "status": "Active",
+      "region": "East Asia",
+      "country": "",
+      "countries": [],
+      "summary": "Japanese apocalyptic new religious movement responsible for the 1995 Tokyo subway sarin attack.",
+      "url": "",
+      "aliases": [],
+      "designations": [],
+      "sources": [],
+      "tags": [
+        "Aum",
+        "Japan"
+      ]
+    },
+    {
+      "id": "tehreek-e-taliban-pakistan",
+      "label": "TTP",
+      "type": "organisation",
+      "org": "TTP",
+      "role": "Militant Umbrella Movement",
+      "region": "South Asia",
+      "country": "Pakistan"
+    },
+    {
+      "id": "org-iskp",
+      "label": "ISKP",
+      "type": "organisation",
+      "org": "ISKP",
+      "role": "Islamic State Province (South Asia)",
+      "region": "South Asia",
+      "country": "Afghanistan"
+    },
+    {
+      "id": "sanaullah-ghafari",
+      "label": "Sanaullah Ghafari (Shahab al-Muhajir)",
+      "type": "individual",
+      "org": "ISKP",
+      "role": "ISKP Emir",
+      "region": "South Asia",
+      "country": "Afghanistan"
+    },
+    {
+      "id": "balochistan-liberation-army",
+      "label": "BLA",
+      "type": "organisation",
+      "org": "BLA",
+      "role": "Separatist Militant Organisation",
+      "region": "South Asia",
+      "country": "Pakistan"
     }
   ],
   "edges": [
@@ -484,205 +2572,883 @@
       "source": "osama-bin-laden",
       "target": "org-al-qaeda",
       "type": "founded",
-      "label": "Founded al-Qaeda (1988)"
+      "label": "Founded (1988–2011)"
     },
     {
       "source": "osama-bin-laden",
       "target": "ayman-al-zawahiri",
-      "type": "leadership",
-      "label": "Deputy \u2192 Successor"
+      "type": "succession",
+      "label": "deputy/successor"
+    },
+    {
+      "source": "osama-bin-laden",
+      "target": "khalid-sheikh-mohammed",
+      "type": "command",
+      "label": "operational subordinate"
+    },
+    {
+      "source": "osama-bin-laden",
+      "target": "hamza-bin-laden",
+      "type": "ideological",
+      "label": "father-of"
+    },
+    {
+      "source": "osama-bin-laden",
+      "target": "mullah-omar",
+      "type": "linked",
+      "label": "host/ally"
     },
     {
       "source": "ayman-al-zawahiri",
       "target": "org-al-qaeda",
       "type": "led",
-      "label": "Second Emir (2011\u20132022)"
+      "label": "Emir"
     },
     {
-      "source": "khalid-sheikh-mohammed",
+      "source": "ayman-al-zawahiri",
       "target": "osama-bin-laden",
-      "type": "operational",
-      "label": "9/11 operational planner under OBL"
+      "type": "succession",
+      "label": "deputy / successor"
     },
     {
-      "source": "khalid-sheikh-mohammed",
+      "source": "ayman-al-zawahiri",
+      "target": "saif-al-adel",
+      "type": "linked",
+      "label": "shura colleague"
+    },
+    {
+      "source": "ayman-al-zawahiri",
+      "target": "sirajuddin-haqqani",
+      "type": "linked",
+      "label": "host (Kabul safehouse)"
+    },
+    {
+      "source": "saif-al-adel",
+      "target": "org-al-qaeda",
+      "type": "led",
+      "label": "Military Committee chief; de facto Emir"
+    },
+    {
+      "source": "saif-al-adel",
+      "target": "osama-bin-laden",
+      "type": "command",
+      "label": "subordinate / military chief"
+    },
+    {
+      "source": "saif-al-adel",
+      "target": "ayman-al-zawahiri",
+      "type": "succession",
+      "label": "successor (de facto)"
+    },
+    {
+      "source": "saif-al-adel",
+      "target": "hamza-bin-laden",
+      "type": "leadership",
+      "label": "mentor / father-in-law"
+    },
+    {
+      "source": "hamza-bin-laden",
       "target": "org-al-qaeda",
       "type": "member",
-      "label": "Senior al-Qaeda operative"
+      "label": "senior figurehead / member of Hittin Committee"
+    },
+    {
+      "source": "hamza-bin-laden",
+      "target": "osama-bin-laden",
+      "type": "ideological",
+      "label": "son-of"
+    },
+    {
+      "source": "hamza-bin-laden",
+      "target": "saif-al-adel",
+      "type": "leadership",
+      "label": "mentor"
     },
     {
       "source": "abu-musab-al-zarqawi",
       "target": "org-al-qaeda",
-      "type": "affiliate",
-      "label": "AQI pledge to al-Qaeda"
+      "type": "founded",
+      "label": "Founded (2004–2006)"
     },
     {
       "source": "abu-musab-al-zarqawi",
-      "target": "org-islamic-state",
-      "type": "founded",
-      "label": "Founded IS precursor (AQI)"
+      "target": "osama-bin-laden",
+      "type": "allegiance",
+      "label": "pledged bayah to"
     },
     {
       "source": "abu-musab-al-zarqawi",
       "target": "abu-bakr-al-baghdadi",
       "type": "predecessor",
-      "label": "Ideological predecessor"
+      "label": "organisational predecessor"
     },
     {
       "source": "abu-bakr-al-baghdadi",
       "target": "org-islamic-state",
       "type": "led",
-      "label": "Declared Caliphate (2014)"
+      "label": "Emir"
+    },
+    {
+      "source": "abu-bakr-al-baghdadi",
+      "target": "abu-musab-al-zarqawi",
+      "type": "predecessor",
+      "label": "ideological predecessor"
+    },
+    {
+      "source": "abu-bakr-al-baghdadi",
+      "target": "abu-ibrahim-al-hashimi-al-qurashi",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "abu-ibrahim-al-hashimi-al-qurashi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "Caliph"
+    },
+    {
+      "source": "abu-ibrahim-al-hashimi-al-qurashi",
+      "target": "abu-bakr-al-baghdadi",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "abu-ibrahim-al-hashimi-al-qurashi",
+      "target": "abu-al-hassan-al-hashimi-al-qurashi",
+      "type": "succession",
+      "label": "successor (to)"
+    },
+    {
+      "source": "abu-al-hassan-al-hashimi-al-qurashi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "Caliph"
+    },
+    {
+      "source": "abu-al-hassan-al-hashimi-al-qurashi",
+      "target": "abu-ibrahim-al-hashimi-al-qurashi",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "abu-al-hassan-al-hashimi-al-qurashi",
+      "target": "abu-al-hussein-al-husseini-al-qurashi",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "abu-al-hussein-al-husseini-al-qurashi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "Caliph"
+    },
+    {
+      "source": "abu-al-hussein-al-husseini-al-qurashi",
+      "target": "abu-al-hassan-al-hashimi-al-qurashi",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "abu-al-hussein-al-husseini-al-qurashi",
+      "target": "abu-hafs-al-hashimi-al-qurashi",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "abu-hafs-al-hashimi-al-qurashi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "Caliph"
+    },
+    {
+      "source": "abu-hafs-al-hashimi-al-qurashi",
+      "target": "abu-al-hussein-al-husseini-al-qurashi",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "anwar-al-awlaki",
+      "target": "org-al-qaeda",
+      "type": "member",
+      "label": "external operations and propaganda"
+    },
+    {
+      "source": "anwar-al-awlaki",
+      "target": "nasir-al-wuhayshi",
+      "type": "linked",
+      "label": "AQAP colleague"
+    },
+    {
+      "source": "khalid-sheikh-mohammed",
+      "target": "org-al-qaeda",
+      "type": "member",
+      "label": "head of military / external operations committee"
+    },
+    {
+      "source": "khalid-sheikh-mohammed",
+      "target": "ramzi-yousef",
+      "type": "linked",
+      "label": "uncle-of"
+    },
+    {
+      "source": "khalid-sheikh-mohammed",
+      "target": "osama-bin-laden",
+      "type": "command",
+      "label": "operational subordinate"
+    },
+    {
+      "source": "khalid-sheikh-mohammed",
+      "target": "hambali",
+      "type": "linked",
+      "label": "Southeast Asia operations partner"
+    },
+    {
+      "source": "ramzi-yousef",
+      "target": "org-al-qaeda",
+      "type": "member",
+      "label": "operational"
+    },
+    {
+      "source": "ramzi-yousef",
+      "target": "khalid-sheikh-mohammed",
+      "type": "linked",
+      "label": "nephew-of"
+    },
+    {
+      "source": "nasir-al-wuhayshi",
+      "target": "org-al-qaeda",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "nasir-al-wuhayshi",
+      "target": "osama-bin-laden",
+      "type": "ideological",
+      "label": "personal secretary"
+    },
+    {
+      "source": "nasir-al-wuhayshi",
+      "target": "anwar-al-awlaki",
+      "type": "linked",
+      "label": "AQAP commander"
+    },
+    {
+      "source": "nasir-al-wuhayshi",
+      "target": "khalid-batarfi",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "khalid-batarfi",
+      "target": "org-al-qaeda",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "khalid-batarfi",
+      "target": "nasir-al-wuhayshi",
+      "type": "predecessor",
+      "label": "successor (to predecessor of)"
+    },
+    {
+      "source": "mullah-omar",
+      "target": "org-taliban",
+      "type": "founded",
+      "label": "Founded (1994–2013)"
+    },
+    {
+      "source": "mullah-omar",
+      "target": "osama-bin-laden",
+      "type": "linked",
+      "label": "host"
+    },
+    {
+      "source": "mullah-omar",
+      "target": "akhtar-mansour",
+      "type": "succession",
+      "label": "successor (to)"
+    },
+    {
+      "source": "mullah-omar",
+      "target": "hibatullah-akhundzada",
+      "type": "succession",
+      "label": "ideological successor"
+    },
+    {
+      "source": "akhtar-mansour",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "Supreme Leader"
+    },
+    {
+      "source": "akhtar-mansour",
+      "target": "mullah-omar",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "akhtar-mansour",
+      "target": "hibatullah-akhundzada",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "hibatullah-akhundzada",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "Supreme Leader; head of judiciary (1996–2001)"
+    },
+    {
+      "source": "hibatullah-akhundzada",
+      "target": "akhtar-mansour",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "hibatullah-akhundzada",
+      "target": "sirajuddin-haqqani",
+      "type": "command",
+      "label": "subordinate (Interior Minister)"
+    },
+    {
+      "source": "hibatullah-akhundzada",
+      "target": "mullah-yaqoob",
+      "type": "command",
+      "label": "subordinate (Defence Minister)"
+    },
+    {
+      "source": "sirajuddin-haqqani",
+      "target": "org-haqqani-network",
+      "type": "led",
+      "label": "leader"
+    },
+    {
+      "source": "sirajuddin-haqqani",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "Deputy Leader; Interior Minister"
+    },
+    {
+      "source": "sirajuddin-haqqani",
+      "target": "jalaluddin-haqqani",
+      "type": "ideological",
+      "label": "son-of"
+    },
+    {
+      "source": "sirajuddin-haqqani",
+      "target": "ayman-al-zawahiri",
+      "type": "linked",
+      "label": "host"
+    },
+    {
+      "source": "sirajuddin-haqqani",
+      "target": "hibatullah-akhundzada",
+      "type": "command",
+      "label": "subordinate"
+    },
+    {
+      "source": "jalaluddin-haqqani",
+      "target": "org-haqqani-network",
+      "type": "founded",
+      "label": "Founded (c.1996–2018)"
+    },
+    {
+      "source": "jalaluddin-haqqani",
+      "target": "org-taliban",
+      "type": "member",
+      "label": "Minister of Borders and Tribal Affairs"
+    },
+    {
+      "source": "jalaluddin-haqqani",
+      "target": "sirajuddin-haqqani",
+      "type": "ideological",
+      "label": "father-of"
+    },
+    {
+      "source": "jalaluddin-haqqani",
+      "target": "osama-bin-laden",
+      "type": "linked",
+      "label": "early host/ally"
+    },
+    {
+      "source": "mullah-yaqoob",
+      "target": "org-taliban",
+      "type": "member",
+      "label": "Acting Defence Minister; head of Military Commission"
+    },
+    {
+      "source": "mullah-yaqoob",
+      "target": "mullah-omar",
+      "type": "ideological",
+      "label": "son-of"
+    },
+    {
+      "source": "mullah-yaqoob",
+      "target": "hibatullah-akhundzada",
+      "type": "command",
+      "label": "subordinate"
+    },
+    {
+      "source": "mullah-yaqoob",
+      "target": "sirajuddin-haqqani",
+      "type": "rivalry",
+      "label": "rival faction"
+    },
+    {
+      "source": "baitullah-mehsud",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "founding Emir"
+    },
+    {
+      "source": "baitullah-mehsud",
+      "target": "hakimullah-mehsud",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "hakimullah-mehsud",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "hakimullah-mehsud",
+      "target": "baitullah-mehsud",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "hakimullah-mehsud",
+      "target": "mullah-fazlullah",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "mullah-fazlullah",
+      "target": "org-ttp",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "mullah-fazlullah",
+      "target": "hakimullah-mehsud",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "mullah-fazlullah",
+      "target": "noor-wali-mehsud",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "noor-wali-mehsud",
+      "target": "org-taliban",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "noor-wali-mehsud",
+      "target": "mullah-fazlullah",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "noor-wali-mehsud",
+      "target": "sirajuddin-haqqani",
+      "type": "linked",
+      "label": "host"
+    },
+    {
+      "source": "masood-azhar",
+      "target": "org-jem",
+      "type": "founded",
+      "label": "Founded (2000–present)"
+    },
+    {
+      "source": "masood-azhar",
+      "target": "hafiz-saeed",
+      "type": "rivalry",
+      "label": "rival anti-India jihadist leader"
+    },
+    {
+      "source": "hafiz-saeed",
+      "target": "org-let",
+      "type": "founded",
+      "label": "Founded (1990–2002)"
+    },
+    {
+      "source": "hafiz-saeed",
+      "target": "org-let",
+      "type": "led",
+      "label": "Emir (LeT political/charity front)"
+    },
+    {
+      "source": "hafiz-saeed",
+      "target": "zaki-ur-rehman-lakhvi",
+      "type": "leadership",
+      "label": "deputy"
+    },
+    {
+      "source": "hafiz-saeed",
+      "target": "sajid-mir",
+      "type": "command",
+      "label": "operational subordinate"
+    },
+    {
+      "source": "zaki-ur-rehman-lakhvi",
+      "target": "org-let",
+      "type": "led",
+      "label": "Operational/Military Chief"
+    },
+    {
+      "source": "zaki-ur-rehman-lakhvi",
+      "target": "hafiz-saeed",
+      "type": "leadership",
+      "label": "deputy to"
+    },
+    {
+      "source": "zaki-ur-rehman-lakhvi",
+      "target": "sajid-mir",
+      "type": "linked",
+      "label": "Mumbai attacks co-planner"
+    },
+    {
+      "source": "sajid-mir",
+      "target": "org-let",
+      "type": "led",
+      "label": "external operations chief"
+    },
+    {
+      "source": "sajid-mir",
+      "target": "hafiz-saeed",
+      "type": "command",
+      "label": "subordinate to"
+    },
+    {
+      "source": "sajid-mir",
+      "target": "zaki-ur-rehman-lakhvi",
+      "type": "linked",
+      "label": "co-planner of Mumbai"
+    },
+    {
+      "source": "ilyas-kashmiri",
+      "target": "org-al-qaeda",
+      "type": "led",
+      "label": "commander"
+    },
+    {
+      "source": "ilyas-kashmiri",
+      "target": "ayman-al-zawahiri",
+      "type": "command",
+      "label": "subordinate to"
+    },
+    {
+      "source": "bashir-zeb-baloch",
+      "target": "org-bla",
+      "type": "led",
+      "label": "Chief"
+    },
+    {
+      "source": "allah-nazar-baloch",
+      "target": "org-blf",
+      "type": "led",
+      "label": "chief commander"
+    },
+    {
+      "source": "allah-nazar-baloch",
+      "target": "bashir-zeb-baloch",
+      "type": "linked",
+      "label": "allied insurgent leader"
+    },
+    {
+      "source": "ahmed-al-sharaa",
+      "target": "org-al-qaeda",
+      "type": "member",
+      "label": "operative"
+    },
+    {
+      "source": "ahmed-al-sharaa",
+      "target": "org-hts",
+      "type": "founded",
+      "label": "Founded (2012–2016)"
+    },
+    {
+      "source": "ahmed-al-sharaa",
+      "target": "org-hts",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "ahmed-al-sharaa",
+      "target": "abu-bakr-al-baghdadi",
+      "type": "rivalry",
+      "label": "early commander; later rival"
+    },
+    {
+      "source": "ahmed-al-sharaa",
+      "target": "ayman-al-zawahiri",
+      "type": "allegiance",
+      "label": "former pledged bayah"
+    },
+    {
+      "source": "abubakar-shekau",
+      "target": "org-boko-haram",
+      "type": "led",
+      "label": "leader"
+    },
+    {
+      "source": "abubakar-shekau",
+      "target": "abu-musab-al-barnawi",
+      "type": "succession",
+      "label": "rival; ISWAP successor"
+    },
+    {
+      "source": "abubakar-shekau",
+      "target": "abu-bakr-al-baghdadi",
+      "type": "allegiance",
+      "label": "pledged bayah to"
+    },
+    {
+      "source": "abu-musab-al-barnawi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "leader (twice)"
+    },
+    {
+      "source": "abu-musab-al-barnawi",
+      "target": "abubakar-shekau",
+      "type": "rivalry",
+      "label": "rival"
+    },
+    {
+      "source": "abdelmalek-droukdel",
+      "target": "org-al-qaeda",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "abdelmalek-droukdel",
+      "target": "iyad-ag-ghaly",
+      "type": "linked",
+      "label": "regional ally"
+    },
+    {
+      "source": "abdelmalek-droukdel",
+      "target": "osama-bin-laden",
+      "type": "allegiance",
+      "label": "pledged bayah to"
+    },
+    {
+      "source": "iyad-ag-ghaly",
+      "target": "org-jnim",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "iyad-ag-ghaly",
+      "target": "abdelmalek-droukdel",
+      "type": "linked",
+      "label": "AQ regional ally"
+    },
+    {
+      "source": "iyad-ag-ghaly",
+      "target": "adnan-abu-walid-al-sahrawi",
+      "type": "rivalry",
+      "label": "rival (ISGS leader)"
+    },
+    {
+      "source": "adnan-abu-walid-al-sahrawi",
+      "target": "org-islamic-state",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "adnan-abu-walid-al-sahrawi",
+      "target": "iyad-ag-ghaly",
+      "type": "rivalry",
+      "label": "rival"
+    },
+    {
+      "source": "ahmed-abdi-godane",
+      "target": "org-al-shabaab",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "ahmed-abdi-godane",
+      "target": "ahmed-diriye",
+      "type": "predecessor",
+      "label": "predecessor"
+    },
+    {
+      "source": "ahmed-abdi-godane",
+      "target": "ayman-al-zawahiri",
+      "type": "allegiance",
+      "label": "pledged bayah to"
+    },
+    {
+      "source": "ahmed-diriye",
+      "target": "org-al-shabaab",
+      "type": "led",
+      "label": "Emir"
+    },
+    {
+      "source": "ahmed-diriye",
+      "target": "ahmed-abdi-godane",
+      "type": "succession",
+      "label": "successor"
+    },
+    {
+      "source": "hambali",
+      "target": "org-jem",
+      "type": "led",
+      "label": "Operations chief; head of JI Mantiqi I"
+    },
+    {
+      "source": "hambali",
+      "target": "abu-bakar-bashir",
+      "type": "linked",
+      "label": "JI co-leader"
+    },
+    {
+      "source": "hambali",
+      "target": "khalid-sheikh-mohammed",
+      "type": "ideological",
+      "label": "AQ–JI liaison"
+    },
+    {
+      "source": "abu-bakar-bashir",
+      "target": "org-jem",
+      "type": "founded",
+      "label": "Founded (1993–2008)"
+    },
+    {
+      "source": "abu-bakar-bashir",
+      "target": "hambali",
+      "type": "linked",
+      "label": "JI co-leader"
+    },
+    {
+      "source": "anders-behring-breivik",
+      "target": "brenton-tarrant",
+      "type": "inspiration",
+      "label": "ideological influence on"
+    },
+    {
+      "source": "anders-behring-breivik",
+      "target": "patrick-crusius",
+      "type": "inspiration",
+      "label": "ideological influence on"
+    },
+    {
+      "source": "brenton-tarrant",
+      "target": "anders-behring-breivik",
+      "type": "inspiration",
+      "label": "ideologically modelled on"
+    },
+    {
+      "source": "brenton-tarrant",
+      "target": "payton-gendron",
+      "type": "inspiration",
+      "label": "ideological influence on"
+    },
+    {
+      "source": "brenton-tarrant",
+      "target": "patrick-crusius",
+      "type": "inspiration",
+      "label": "ideological influence on"
+    },
+    {
+      "source": "dylann-roof",
+      "target": "brenton-tarrant",
+      "type": "inspiration",
+      "label": "ideological influence on"
+    },
+    {
+      "source": "patrick-crusius",
+      "target": "brenton-tarrant",
+      "type": "inspiration",
+      "label": "ideologically modelled on"
+    },
+    {
+      "source": "payton-gendron",
+      "target": "brenton-tarrant",
+      "type": "inspiration",
+      "label": "ideologically modelled on"
+    },
+    {
+      "source": "velupillai-prabhakaran",
+      "target": "org-ltte",
+      "type": "founded",
+      "label": "Founded (1976–2009)"
+    },
+    {
+      "source": "joseph-kony",
+      "target": "org-lra",
+      "type": "founded",
+      "label": "Founded (1987–present)"
+    },
+    {
+      "source": "shoko-asahara",
+      "target": "org-aum",
+      "type": "founded",
+      "label": "Founded (1984–1995)"
+    },
+    {
+      "source": "abimael-guzman",
+      "target": "org-sendero",
+      "type": "founded",
+      "label": "Founded (1970–1992)"
+    },
+    {
+      "source": "org-aqap",
+      "target": "org-al-qaeda",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-aqim",
+      "target": "org-al-qaeda",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-jnim",
+      "target": "org-al-qaeda",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-al-shabaab",
+      "target": "org-al-qaeda",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-iswap",
+      "target": "org-islamic-state",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-isgs",
+      "target": "org-islamic-state",
+      "type": "affiliate",
+      "label": "Affiliate"
+    },
+    {
+      "source": "org-haqqani-network",
+      "target": "org-taliban",
+      "type": "affiliate",
+      "label": "Affiliate"
     },
     {
       "source": "org-islamic-state",
       "target": "org-al-qaeda",
       "type": "rivalry",
       "label": "Split & rivalry from 2014"
-    },
-    {
-      "source": "baitullah-mehsud",
-      "target": "tehreek-e-taliban-pakistan",
-      "type": "founded",
-      "label": "Founded TTP (2007)"
-    },
-    {
-      "source": "tehreek-e-taliban-pakistan",
-      "target": "org-al-qaeda",
-      "type": "affiliate",
-      "label": "Ideological alignment with AQ"
-    },
-    {
-      "source": "baitullah-mehsud",
-      "target": "osama-bin-laden",
-      "type": "allegiance",
-      "label": "Pledge of allegiance to OBL"
-    },
-    {
-      "source": "hafiz-saeed",
-      "target": "masood-azhar",
-      "type": "ecosystem",
-      "label": "Pakistan militant ecosystem"
-    },
-    {
-      "source": "masood-azhar",
-      "target": "org-al-qaeda",
-      "type": "linked",
-      "label": "Historical AQ network links"
-    },
-    {
-      "source": "sanaullah-ghafari",
-      "target": "org-iskp",
-      "type": "led",
-      "label": "ISKP Emir (2020\u2013)"
-    },
-    {
-      "source": "mohammad-sharifullah",
-      "target": "org-iskp",
-      "type": "cell",
-      "label": "ISKP cell operative"
-    },
-    {
-      "source": "org-iskp",
-      "target": "org-islamic-state",
-      "type": "province",
-      "label": "IS Khorasan Province"
-    },
-    {
-      "source": "org-iskp",
-      "target": "tehreek-e-taliban-pakistan",
-      "type": "rivalry",
-      "label": "Competitive recruitment in KP/FATA"
-    },
-    {
-      "source": "ahmed-abdi-godane",
-      "target": "org-al-shabaab",
-      "type": "led",
-      "label": "al-Shabaab Emir to 2014"
-    },
-    {
-      "source": "ahmed-diriye-abu-ubaidah",
-      "target": "org-al-shabaab",
-      "type": "led",
-      "label": "al-Shabaab Emir (2014\u2013)"
-    },
-    {
-      "source": "ahmed-abdi-godane",
-      "target": "ahmed-diriye-abu-ubaidah",
-      "type": "succession",
-      "label": "Successor after Godane killed"
-    },
-    {
-      "source": "org-al-shabaab",
-      "target": "org-al-qaeda",
-      "type": "affiliate",
-      "label": "AQ East Africa affiliate"
-    },
-    {
-      "source": "abubakar-shekau",
-      "target": "org-boko-haram",
-      "type": "led",
-      "label": "Led Boko Haram (2009\u20132021)"
-    },
-    {
-      "source": "org-boko-haram",
-      "target": "org-islamic-state",
-      "type": "pledge",
-      "label": "Shekau pledge to IS (2015)"
-    },
-    {
-      "source": "iyad-ag-ghaly",
-      "target": "org-jnim",
-      "type": "led",
-      "label": "JNIM Leader"
-    },
-    {
-      "source": "org-jnim",
-      "target": "org-al-qaeda",
-      "type": "affiliate",
-      "label": "AQ Sahel affiliate"
-    },
-    {
-      "source": "balochistan-liberation-army",
-      "target": "tehreek-e-taliban-pakistan",
-      "type": "parallel",
-      "label": "Parallel threat in Pakistan"
-    },
-    {
-      "source": "ayman-al-zawahiri",
-      "target": "osama-bin-laden",
-      "type": "ideological",
-      "label": "Chief ideologue & deputy"
-    },
-    {
-      "source": "org-al-qaeda",
-      "target": "org-al-shabaab",
-      "type": "command",
-      "label": "AQ command influence"
-    },
-    {
-      "source": "org-al-qaeda",
-      "target": "org-jnim",
-      "type": "command",
-      "label": "AQ command influence"
-    },
-    {
-      "source": "org-islamic-state",
-      "target": "org-iskp",
-      "type": "command",
-      "label": "IS central command"
-    },
-    {
-      "source": "shamil-basayev",
-      "target": "org-al-qaeda",
-      "type": "linked",
-      "label": "AQ-linked Chechen jihad"
-    },
-    {
-      "source": "anders-behring-breivik",
-      "target": "timothy-mcveigh",
-      "type": "inspiration",
-      "label": "Far-right inspiration model"
     }
   ],
   "regions": [
@@ -712,29 +3478,49 @@
       "color": "#8b1420"
     },
     {
-      "id": "europe",
-      "label": "Europe",
-      "color": "#2a3a4a"
-    },
-    {
       "id": "central-africa",
       "label": "Central Africa",
       "color": "#6b6b66"
     },
     {
-      "id": "caucasus",
-      "label": "Caucasus",
-      "color": "#1a2a3a"
+      "id": "north-africa",
+      "label": "North Africa",
+      "color": "#c08a2a"
     },
     {
-      "id": "east-asia",
-      "label": "East Asia",
-      "color": "#a17328"
+      "id": "europe",
+      "label": "Europe",
+      "color": "#2a3a4a"
     },
     {
       "id": "north-america",
       "label": "North America",
       "color": "#948e7e"
+    },
+    {
+      "id": "latin-america",
+      "label": "Latin America",
+      "color": "#7a4a3a"
+    },
+    {
+      "id": "southeast-asia",
+      "label": "Southeast Asia",
+      "color": "#1f6f5c"
+    },
+    {
+      "id": "east-asia",
+      "label": "East Asia",
+      "color": "#3a5a40"
+    },
+    {
+      "id": "oceania",
+      "label": "Oceania",
+      "color": "#4a6fa5"
+    },
+    {
+      "id": "caucasus",
+      "label": "Caucasus",
+      "color": "#1a2a3a"
     }
   ],
   "edgeTypes": [
@@ -748,6 +3534,12 @@
       "id": "led",
       "label": "Led / Commands",
       "color": "#0d1b2a",
+      "dash": false
+    },
+    {
+      "id": "member",
+      "label": "Member / Operative",
+      "color": "#1a2a3a",
       "dash": false
     },
     {
@@ -769,27 +3561,21 @@
       "dash": false
     },
     {
-      "id": "leadership",
-      "label": "Leadership chain",
-      "color": "#2a3a4a",
-      "dash": false
-    },
-    {
       "id": "predecessor",
       "label": "Predecessor",
       "color": "#6b6b66",
       "dash": true
     },
     {
-      "id": "operational",
-      "label": "Operational link",
-      "color": "#0d1b2a",
+      "id": "leadership",
+      "label": "Leadership chain",
+      "color": "#2a3a4a",
       "dash": false
     },
     {
-      "id": "member",
-      "label": "Member / Operative",
-      "color": "#1a2a3a",
+      "id": "command",
+      "label": "Command influence",
+      "color": "#0d1b2a",
       "dash": false
     },
     {
@@ -799,10 +3585,22 @@
       "dash": false
     },
     {
-      "id": "pledge",
-      "label": "Pledge of allegiance",
-      "color": "#a17328",
+      "id": "linked",
+      "label": "Linked",
+      "color": "#948e7e",
+      "dash": true
+    },
+    {
+      "id": "ideological",
+      "label": "Ideological",
+      "color": "#2a3a4a",
       "dash": false
+    },
+    {
+      "id": "inspiration",
+      "label": "Inspiration",
+      "color": "#948e7e",
+      "dash": true
     },
     {
       "id": "province",
@@ -815,42 +3613,360 @@
       "label": "Cell / Operative",
       "color": "#1a2a3a",
       "dash": true
-    },
-    {
-      "id": "linked",
-      "label": "Linked",
-      "color": "#948e7e",
-      "dash": true
-    },
-    {
-      "id": "ecosystem",
-      "label": "Same ecosystem",
-      "color": "#948e7e",
-      "dash": true
-    },
-    {
-      "id": "parallel",
-      "label": "Parallel threat",
-      "color": "#948e7e",
-      "dash": true
-    },
-    {
-      "id": "ideological",
-      "label": "Ideological",
-      "color": "#2a3a4a",
-      "dash": false
-    },
-    {
-      "id": "command",
-      "label": "Command influence",
-      "color": "#0d1b2a",
-      "dash": false
-    },
-    {
-      "id": "inspiration",
-      "label": "Inspiration",
-      "color": "#948e7e",
-      "dash": true
     }
-  ]
+  ],
+  "sourceIndex": {
+    "src-c7996db9c3": {
+      "label": "FBI – Usama Bin Laden (archived Most Wanted)",
+      "url": "https://www.fbi.gov/history/famous-cases/usama-bin-laden"
+    },
+    "src-aca6a1a870": {
+      "label": "UN Sanctions List – Hambali (QDi.087)",
+      "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+    },
+    "src-369e3fd81f": {
+      "label": "9/11 Commission Report (Chapter 5: Al-Qaeda Aims at the American Homeland)",
+      "url": "https://9-11commission.gov/report/911Report.pdf"
+    },
+    "src-e9b3467534": {
+      "label": "CIA – The Hunt for Bin Laden",
+      "url": "https://www.cia.gov/stories/story/the-hunt-for-bin-laden/"
+    },
+    "src-b39d20b7f6": {
+      "label": "FBI – Ayman al-Zawahiri (Most Wanted Terrorists)",
+      "url": "https://www.fbi.gov/wanted/wanted_terrorists/ayman-al-zawahiri"
+    },
+    "src-7aae1155ce": {
+      "label": "Rewards for Justice – Ayman al-Zawahiri",
+      "url": "https://rewardsforjustice.net/rewards/ayman-al-zawahiri/"
+    },
+    "src-e6cbe2d0e8": {
+      "label": "White House statement on al-Zawahiri strike (1 Aug 2022)",
+      "url": "https://www.whitehouse.gov/briefing-room/speeches-remarks/2022/08/01/remarks-by-president-biden-on-a-successful-counterterrorism-operation-in-afghanistan/"
+    },
+    "src-1ae784c6ea": {
+      "label": "FBI – Saif al-Adel",
+      "url": "https://www.fbi.gov/wanted/wanted_terrorists/saif-al-adel"
+    },
+    "src-43d71c4d04": {
+      "label": "Rewards for Justice – Saif al-Adel",
+      "url": "https://rewardsforjustice.net/rewards/saif-al-adel/"
+    },
+    "src-0c09921786": {
+      "label": "Wilson Center – Profile: Saif al-Adel of al-Qaeda",
+      "url": "https://www.wilsoncenter.org/article/profile-saif-al-adel-al-qaeda"
+    },
+    "src-22fdab5b47": {
+      "label": "Rewards for Justice – Hamza bin Laden",
+      "url": "https://rewardsforjustice.net/rewards/hamza-bin-laden/"
+    },
+    "src-fe314c93db": {
+      "label": "White House statement on death of Hamza bin Laden (14 Sep 2019)",
+      "url": "https://trumpwhitehouse.archives.gov/briefings-statements/statement-president-3/"
+    },
+    "src-7bc61df363": {
+      "label": "DOD news transcript – Operation that killed Zarqawi (8 Jun 2006)",
+      "url": "https://www.defense.gov/News/Transcripts/Transcript/Article/603987/"
+    },
+    "src-71be990a4e": {
+      "label": "FBI Most Wanted Terrorist – al-Zarqawi (archived)",
+      "url": "https://www.fbi.gov/history/famous-cases/abu-musab-al-zarqawi"
+    },
+    "src-ed9966ccc3": {
+      "label": "CTC Sentinel – The Haqqani Network",
+      "url": "https://ctc.westpoint.edu/"
+    },
+    "src-6a549c417a": {
+      "label": "Rewards for Justice – Abu Bakr al-Baghdadi (archived)",
+      "url": "https://rewardsforjustice.net/rewards/abu-bakr-al-baghdadi/"
+    },
+    "src-4cc2db35cd": {
+      "label": "DOD news – Death of ISIS leader Baghdadi (28 Oct 2019)",
+      "url": "https://www.defense.gov/News/Releases/Release/Article/2003948/"
+    },
+    "src-877b2a56c3": {
+      "label": "Rewards for Justice – Amir Muhammad Sa'id Abd-al-Rahman al-Mawla",
+      "url": "https://rewardsforjustice.net/rewards/amir-muhammad-said-abd-al-rahman-al-mawla/"
+    },
+    "src-fce44c462e": {
+      "label": "White House statement on ISIS leader (3 Feb 2022)",
+      "url": "https://www.whitehouse.gov/briefing-room/statements-releases/2022/02/03/statement-by-president-biden-on-the-successful-counterterrorism-operation-in-syria/"
+    },
+    "src-d9c1c4a5f2": {
+      "label": "US State Department – Statement on Syrian transition (Dec 2024)",
+      "url": "https://www.state.gov/"
+    },
+    "src-09c57e4d95": {
+      "label": "Reuters – Islamic State announces new leader after predecessor killed",
+      "url": "https://www.reuters.com/world/middle-east/islamic-state-announces-new-leader-after-predecessor-killed-2022-11-30/"
+    },
+    "src-3dd8043e65": {
+      "label": "BBC – Turkey announces death of ISIS leader (30 Apr 2023)",
+      "url": "https://www.bbc.com/news/world-europe-65430350"
+    },
+    "src-07dace01c0": {
+      "label": "Reuters – ISIS confirms death of leader, names new chief (3 Aug 2023)",
+      "url": "https://www.reuters.com/world/middle-east/islamic-state-confirms-death-leader-names-new-chief-2023-08-03/"
+    },
+    "src-ac233d34ab": {
+      "label": "UN Security Council 33rd ISIL/Al-Qaida Monitoring Team Report (2024)",
+      "url": "https://main.un.org/securitycouncil/en/content/repertoire/2017-2019/sanctions"
+    },
+    "src-33df61980f": {
+      "label": "Reuters – Islamic State announces new leader (3 Aug 2023)",
+      "url": "https://www.reuters.com/world/middle-east/islamic-state-announces-new-leader-2023-08-03/"
+    },
+    "src-ac99ab6679": {
+      "label": "ICCT – Islamic State in 2025: Evolving Threat",
+      "url": "https://icct.nl/publication/islamic-state-2025-evolving-threat-facing-waning-global-response"
+    },
+    "src-dae3f432a3": {
+      "label": "FBI – Anwar al-Awlaki",
+      "url": "https://www.fbi.gov/wanted/wanted_terrorists"
+    },
+    "src-3570d54f56": {
+      "label": "U.S. DOJ Office of Legal Counsel memo on lethal operation against U.S. citizen (Awlaki)",
+      "url": "https://www.justice.gov/oip/foia-library/olc/memoranda_2010s/download"
+    },
+    "src-5fba9468af": {
+      "label": "ODNI – Detainee Biographies (Hambali)",
+      "url": "https://www.dni.gov/"
+    },
+    "src-94c489b91f": {
+      "label": "ODNI – Detainee Biographies: KSM",
+      "url": "https://www.dni.gov/files/documents/Newsroom/Press%20Releases/biographies-of-high-value-terrorist-detainees-transferred-to-the-us-naval-base-at-guantanamo-bay.pdf"
+    },
+    "src-0e2a64deaa": {
+      "label": "Senate Intelligence Committee Study of CIA Detention and Interrogation Program (Torture Report)",
+      "url": "https://www.intelligence.senate.gov/sites/default/files/publications/CRPT-113srpt288.pdf"
+    },
+    "src-f78e2d6cd6": {
+      "label": "FBI – 1993 World Trade Center Bombing",
+      "url": "https://www.fbi.gov/history/famous-cases/world-trade-center-bombing-1993"
+    },
+    "src-564b9bcfcc": {
+      "label": "DOJ – United States v. Ramzi Yousef et al.",
+      "url": "https://www.justice.gov/archive/ag/annualreports/ar97/Chapter3.htm"
+    },
+    "src-debf4f7057": {
+      "label": "Rewards for Justice – Ahmed Abdi Godane (archived)",
+      "url": "https://rewardsforjustice.net/"
+    },
+    "src-3d0e07f144": {
+      "label": "Reuters – AQAP announces new leader after Batarfi death (Mar 2024)",
+      "url": "https://www.reuters.com/"
+    },
+    "src-eb819b9f51": {
+      "label": "UN Sanctions List – Mohammad Yaqoob",
+      "url": "https://main.un.org/securitycouncil/en/sanctions/1988"
+    },
+    "src-42bf56e910": {
+      "label": "BBC – Mullah Omar died in 2013, Taliban admits (29 Jul 2015)",
+      "url": "https://www.bbc.com/news/world-asia-33703097"
+    },
+    "src-b272c00859": {
+      "label": "BBC – Taliban leader Mullah Akhtar Mansour killed (22 May 2016)",
+      "url": "https://www.bbc.com/news/world-asia-36352559"
+    },
+    "src-d9ba8f896b": {
+      "label": "MEI Taliban Tracker – Hibatullah Akhundzada",
+      "url": "https://talibantracker.mei.edu/english/taliban/taliban-leadership-tracker/sheikh-mullah-haibatullah-akhundzada-also-spelled-haybatullah-akhondzada"
+    },
+    "src-8271c5fb09": {
+      "label": "RFE/RL – Who Is Haibatullah Akhundzada?",
+      "url": "https://www.rferl.org/a/akhundzada-taliban-supreme-leader/31448314.html"
+    },
+    "src-8472119fb5": {
+      "label": "Rewards for Justice – Sirajuddin Haqqani",
+      "url": "https://rewardsforjustice.net/rewards/sirajuddin-haqqani/"
+    },
+    "src-e9fee7e6b9": {
+      "label": "New York Times – Jalaluddin Haqqani, founder of network that battled U.S. (4 Sep 2018)",
+      "url": "https://www.nytimes.com/2018/09/04/world/asia/jalaluddin-haqqani-dead.html"
+    },
+    "src-c6c58da537": {
+      "label": "MEI Taliban Leadership Tracker – Mullah Yaqoob",
+      "url": "https://talibantracker.mei.edu/"
+    },
+    "src-2208d18328": {
+      "label": "BBC – Pakistan Taliban chief Baitullah Mehsud 'dead' (7 Aug 2009)",
+      "url": "https://news.bbc.co.uk/2/hi/8186975.stm"
+    },
+    "src-182a368251": {
+      "label": "DAWN – APS Peshawar attack coverage",
+      "url": "https://www.dawn.com/"
+    },
+    "src-f044164578": {
+      "label": "Rewards for Justice – Mufti Noor Wali Mehsud",
+      "url": "https://rewardsforjustice.net/rewards/mufti-noor-wali-mehsud/"
+    },
+    "src-1991bb32cb": {
+      "label": "UN Security Council – Noor Wali Mehsud (QDi.434)",
+      "url": "https://main.un.org/securitycouncil/en/content/noor-wali-mehsud"
+    },
+    "src-cda3070239": {
+      "label": "Jamestown Foundation – Mufti Noor Wali Mehsud: The New Ideologue-Warrior Leader of TTP",
+      "url": "https://jamestown.org/mufti-noor-wali-mehsud-the-new-ideologue-warrior-leader-of-ttp/"
+    },
+    "src-6d2e9444ac": {
+      "label": "Counter Extremism Project – Mufti Noor Wali Mehsud",
+      "url": "https://www.counterextremism.com/extremists/mufti-noor-wali-mehsud"
+    },
+    "src-fbeeb3c168": {
+      "label": "MEA India – Briefing on Pulwama and Balakot (2019)",
+      "url": "https://www.mea.gov.in/"
+    },
+    "src-abfa7ce5bd": {
+      "label": "Rewards for Justice – Hafiz Saeed",
+      "url": "https://rewardsforjustice.net/rewards/hafiz-saeed/"
+    },
+    "src-a6bbe8af21": {
+      "label": "Indian NIA – 26/11 chargesheets",
+      "url": "https://nia.gov.in/"
+    },
+    "src-f88bccde95": {
+      "label": "Rewards for Justice – Sajid Mir",
+      "url": "https://rewardsforjustice.net/rewards/sajid-mir/"
+    },
+    "src-2f8d6cd00f": {
+      "label": "FBI – Sajid Mir (Most Wanted Terrorist)",
+      "url": "https://www.fbi.gov/wanted/wanted_terrorists/sajid-mir"
+    },
+    "src-59c2caa034": {
+      "label": "DOJ – Statement on Buffalo Tops federal plea (2025)",
+      "url": "https://www.justice.gov/"
+    },
+    "src-895d733275": {
+      "label": "US State Dept – Designation of BLA as SDGT (2019)",
+      "url": "https://www.state.gov/u-s-designates-balochistan-liberation-army-as-specially-designated-global-terrorist/"
+    },
+    "src-0384d326de": {
+      "label": "UK Home Office – Proscribed Terrorist Organisations (2025 update)",
+      "url": "https://www.gov.uk/government/publications/proscribed-terror-groups-or-organisations--2"
+    },
+    "src-6a419cded7": {
+      "label": "Jamestown Foundation – The Resurgent BLA",
+      "url": "https://jamestown.org/"
+    },
+    "src-16ec49ea64": {
+      "label": "BBC – Carlos the Jackal profile",
+      "url": "https://www.bbc.com/news/"
+    },
+    "src-d9c700dda8": {
+      "label": "Crisis Group – Pakistan's Baloch Conundrum",
+      "url": "https://www.crisisgroup.org/"
+    },
+    "src-21e38cae3e": {
+      "label": "BBC – Boko Haram leader Shekau dies after blowing himself up (7 Jun 2021)",
+      "url": "https://www.bbc.com/news/world-africa-57370833"
+    },
+    "src-5f491bcc0d": {
+      "label": "BBC – Nigeria confirms death of Abu Musab al-Barnawi (15 Oct 2021)",
+      "url": "https://www.bbc.com/news/world-africa-58922959"
+    },
+    "src-fb0129b744": {
+      "label": "French MoD statement on Droukdel killing (5 Jun 2020)",
+      "url": "https://www.defense.gouv.fr/"
+    },
+    "src-f569a02519": {
+      "label": "Rewards for Justice – Iyad ag Ghaly",
+      "url": "https://rewardsforjustice.net/rewards/iyad-ag-ghaly/"
+    },
+    "src-e8b3283280": {
+      "label": "Counter Extremism Project – Iyad Ag Ghaly",
+      "url": "https://www.counterextremism.com/extremists/iyad-ag-ghaly"
+    },
+    "src-ac39289089": {
+      "label": "MEMRI – Profile of Iyad Ag Ghali",
+      "url": "https://www.memri.org/jttm/profile-iyad-ag-ghali-%E2%80%93-leader-al-qaedas-affiliate-african-sahel-group-support-islam-and"
+    },
+    "src-7c90824816": {
+      "label": "Élysée – Statement by President Macron (16 Sep 2021)",
+      "url": "https://www.elysee.fr/"
+    },
+    "src-5216d08319": {
+      "label": "DOD – Statement on death of Ahmed Abdi Godane (5 Sep 2014)",
+      "url": "https://www.defense.gov/"
+    },
+    "src-3b6c147772": {
+      "label": "Rewards for Justice – Ahmed Diriye",
+      "url": "https://rewardsforjustice.net/rewards/ahmed-diriye/"
+    },
+    "src-fd8daa0775": {
+      "label": "IPAC – Jemaah Islamiyah analysis",
+      "url": "https://www.understandingconflict.org/"
+    },
+    "src-ab3615c604": {
+      "label": "BBC – Bali bomb cleric Abu Bakar Ba'asyir released (8 Jan 2021)",
+      "url": "https://www.bbc.com/news/world-asia-55581732"
+    },
+    "src-5927658339": {
+      "label": "Norwegian Police Investigation Report (2012)",
+      "url": "https://www.politiet.no/"
+    },
+    "src-094546577d": {
+      "label": "BBC – Norway attacks: What happened (2012)",
+      "url": "https://www.bbc.com/news/world-europe-14250692"
+    },
+    "src-fba7f480d3": {
+      "label": "Royal Commission of Inquiry into the Christchurch terrorist attack (2020)",
+      "url": "https://christchurchattack.royalcommission.nz/"
+    },
+    "src-4ceb6b26d5": {
+      "label": "New Zealand Police – R v Tarrant sentencing notes (27 Aug 2020)",
+      "url": "https://www.justice.govt.nz/"
+    },
+    "src-89210a6141": {
+      "label": "FBI – Dylann Roof investigation summary",
+      "url": "https://www.fbi.gov/"
+    },
+    "src-7be1cbecc9": {
+      "label": "DOJ – United States v. Dylann Storm Roof",
+      "url": "https://www.justice.gov/opa/pr/dylann-roof-found-guilty-federal-hate-crimes-charleston-shooting"
+    },
+    "src-7a693deec0": {
+      "label": "FBI – Oklahoma City Bombing case file",
+      "url": "https://www.fbi.gov/history/famous-cases/oklahoma-city-bombing"
+    },
+    "src-4d4d0aa303": {
+      "label": "Texas Attorney General – Crusius state plea (2025)",
+      "url": "https://www.texasattorneygeneral.gov/"
+    },
+    "src-2eaae847b3": {
+      "label": "Office of NY AG – Investigative report on Buffalo shooting (Oct 2022)",
+      "url": "https://ag.ny.gov/"
+    },
+    "src-5049ddd884": {
+      "label": "UN Secretary-General – Report of the Panel of Experts on Sri Lanka (2011)",
+      "url": "https://www.un.org/News/dh/infocus/Sri_Lanka/POE_Report_Full.pdf"
+    },
+    "src-d229f82f18": {
+      "label": "Indian CBI – Rajiv Gandhi assassination chargesheet",
+      "url": "https://cbi.gov.in/"
+    },
+    "src-8ef9777322": {
+      "label": "ICC – Warrant of arrest for Joseph Kony",
+      "url": "https://www.icc-cpi.int/court-record/icc-02/04-01/05-53"
+    },
+    "src-243ad1bdfc": {
+      "label": "UN OCHA – LRA Regional Update",
+      "url": "https://www.unocha.org/"
+    },
+    "src-fd9ad92493": {
+      "label": "Japan National Police Agency White Paper",
+      "url": "https://www.npa.go.jp/english/"
+    },
+    "src-db93173c8f": {
+      "label": "Peru Truth and Reconciliation Commission Final Report (2003)",
+      "url": "http://www.cverdad.org.pe/ifinal/index.php"
+    },
+    "src-30c927df4d": {
+      "label": "BBC – Abimael Guzmán dies (11 Sep 2021)",
+      "url": "https://www.bbc.com/news/world-latin-america-58530944"
+    },
+    "src-db18bfa30a": {
+      "label": "France 24 – Carlos the Jackal: Three life sentences (Mar 2018)",
+      "url": "https://www.france24.com/"
+    }
+  }
 }
