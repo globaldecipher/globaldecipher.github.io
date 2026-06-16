@@ -2361,3 +2361,587 @@ input:focus-visible {
 }
 
 :root[data-theme="dark"] .site-header.is-scrolled { background: rgba(15, 19, 24, 0.97); }
+
+/* ====================================================================
+   TGD — CINEMATIC INTERACTIVE LAYER
+   (Appended. All elements injected via main.js — non-breaking.)
+   ==================================================================== */
+
+/* ---------- 1. Cinematic intro overlay (editorial · on-brand) ---------- */
+.tgd-intro {
+  position: fixed; inset: 0; z-index: 9999;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: stretch; justify-items: stretch;
+  color: #f2efe6;
+  font-family: var(--mono);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 38%, rgba(185, 28, 44, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 60% at 50% 90%, rgba(212, 168, 82, 0.12) 0%, transparent 65%),
+    linear-gradient(180deg, #0d1318 0%, #0a0e13 60%, #05080c 100%);
+  opacity: 1;
+  overflow: hidden;
+  transition: opacity 600ms var(--ease), visibility 0s linear 0s;
+}
+.tgd-intro.is-leaving { opacity: 0; visibility: hidden; transition-delay: 0s, 600ms; }
+
+/* dot-grid background */
+.tgd-intro-grid {
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(rgba(242, 239, 230, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: 0 0;
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 0%, #000 40%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 0%, #000 40%, transparent 78%);
+  opacity: 0.55;
+}
+/* scanline */
+.tgd-intro-scan {
+  position: absolute; left: 0; right: 0; top: 0;
+  height: 220px;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 107, 122, 0.05) 50%, transparent 100%);
+  animation: tgd-intro-scan 3.6s linear infinite;
+  pointer-events: none;
+}
+@keyframes tgd-intro-scan {
+  0% { transform: translateY(-30%); }
+  100% { transform: translateY(110vh); }
+}
+
+/* top bar */
+.tgd-intro-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px 28px;
+  font-size: 0.62rem;
+  color: rgba(242, 239, 230, 0.55);
+  border-bottom: 1px solid rgba(242, 239, 230, 0.08);
+  position: relative; z-index: 2;
+}
+.tgd-intro-corner { display: inline-flex; align-items: center; gap: 8px; }
+.tgd-intro-corner-mid .live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #ff6b7a;
+  box-shadow: 0 0 0 0 rgba(255, 107, 122, 0.7);
+  animation: tgd-intro-pulse 1.6s ease-out infinite;
+}
+.tgd-intro-skip {
+  border: 1px solid rgba(242, 239, 230, 0.25);
+  background: transparent;
+  color: rgba(242, 239, 230, 0.85);
+  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: 0.6rem; letter-spacing: 0.18em;
+  cursor: pointer;
+  border-radius: 3px;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: background 180ms var(--ease), color 180ms var(--ease), border-color 180ms var(--ease);
+}
+.tgd-intro-skip:hover {
+  background: rgba(185, 28, 44, 0.85);
+  color: #fff;
+  border-color: rgba(185, 28, 44, 0.85);
+}
+.tgd-intro-skip span { transition: transform 200ms var(--ease); display: inline-block; }
+.tgd-intro-skip:hover span { transform: translateX(3px); }
+
+/* center stage */
+.tgd-intro-stage {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; padding: 28px;
+  text-align: center;
+  position: relative; z-index: 2;
+}
+
+/* radar */
+.tgd-intro-radar {
+  position: relative;
+  width: 132px; height: 132px;
+  display: grid; place-items: center;
+  margin-bottom: 6px;
+}
+.tgd-intro-radar .ring {
+  position: absolute; inset: 0;
+  border: 1px solid rgba(185, 28, 44, 0.55);
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.tgd-intro-radar .r2 { inset: 14px; opacity: 0.35; }
+.tgd-intro-radar .r3 { inset: 28px; opacity: 0.22; }
+.tgd-intro-radar .sweep {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(185, 28, 44, 0.45) 0deg,
+    rgba(185, 28, 44, 0.25) 18deg,
+    rgba(185, 28, 44, 0.08) 36deg,
+    transparent 56deg,
+    transparent 360deg);
+  mix-blend-mode: screen;
+  animation: tgd-intro-sweep 2.8s linear infinite;
+}
+@keyframes tgd-intro-sweep { to { transform: rotate(360deg); } }
+
+.tgd-intro-mark {
+  position: relative; z-index: 2;
+  width: 76px; height: 76px;
+  background: linear-gradient(180deg, #c4202f, #8b1420);
+  border-radius: 16px;
+  display: grid; place-items: center;
+  box-shadow: 0 10px 30px rgba(185, 28, 44, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  animation: tgd-intro-mark-in 700ms var(--ease) both;
+}
+.tgd-intro-mark span {
+  font-family: var(--serif-display); font-weight: 900;
+  font-size: 1.55rem; letter-spacing: 0.02em;
+  color: #fafaf7; line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.tgd-intro-radar .blip {
+  position: absolute;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #d4a852;
+  box-shadow: 0 0 12px rgba(212, 168, 82, 0.75);
+  animation: tgd-intro-blip 2.4s ease-out infinite;
+}
+.tgd-intro-radar .b1 { top: 8px; right: 22px; }
+.tgd-intro-radar .b2 { bottom: 18px; left: 12px; animation-delay: 0.6s; background: #ff6b7a; box-shadow: 0 0 12px rgba(255, 107, 122, 0.7); }
+.tgd-intro-radar .b3 { top: 50%; right: 4px; animation-delay: 1.4s; }
+@keyframes tgd-intro-blip {
+  0%, 60%, 100% { opacity: 0.45; transform: scale(1); }
+  20% { opacity: 1; transform: scale(1.4); }
+}
+
+.tgd-intro-eyebrow {
+  margin: 0; font-size: 0.62rem;
+  color: rgba(212, 168, 82, 0.9);
+  letter-spacing: 0.24em;
+  opacity: 0;
+  animation: tgd-intro-text-in 500ms var(--ease) 120ms forwards;
+}
+.tgd-intro-title {
+  margin: 0;
+  font-family: var(--serif-display);
+  font-weight: 700; font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em; text-transform: none;
+  color: #fafaf7;
+  opacity: 0;
+  animation: tgd-intro-text-in 600ms var(--ease) 220ms forwards;
+}
+.tgd-intro-sub {
+  margin: 0; max-width: 56ch;
+  font-family: var(--sans);
+  text-transform: none; letter-spacing: 0;
+  font-size: 0.92rem;
+  color: rgba(242, 239, 230, 0.68);
+  opacity: 0;
+  animation: tgd-intro-text-in 600ms var(--ease) 360ms forwards;
+}
+
+.tgd-intro-stats {
+  display: inline-flex; align-items: center; gap: 14px;
+  margin-top: 8px;
+  padding: 10px 18px;
+  border: 1px solid rgba(242, 239, 230, 0.1);
+  background: rgba(13, 19, 24, 0.55);
+  border-radius: 4px;
+  font-size: 0.6rem; letter-spacing: 0.12em;
+  color: rgba(242, 239, 230, 0.55);
+  opacity: 0;
+  animation: tgd-intro-text-in 600ms var(--ease) 480ms forwards;
+}
+.tgd-intro-stats span:not(.dotsep) { display: inline-flex; align-items: baseline; gap: 6px; }
+.tgd-intro-stats strong {
+  font-family: var(--serif-display);
+  color: #fafaf7;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.tgd-intro-stats small {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 239, 230, 0.5);
+}
+.tgd-intro-stats .dotsep {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(212, 168, 82, 0.6);
+}
+
+/* bottom */
+.tgd-intro-bottom {
+  padding: 16px 28px 22px;
+  border-top: 1px solid rgba(242, 239, 230, 0.08);
+  display: flex; flex-direction: column; gap: 10px;
+  position: relative; z-index: 2;
+}
+.tgd-intro-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.62rem; color: rgba(242, 239, 230, 0.7);
+}
+.tgd-intro-status .cursor {
+  width: 8px; height: 12px;
+  background: #ff6b7a;
+  animation: tgd-intro-cursor 0.8s steps(2) infinite;
+}
+@keyframes tgd-intro-cursor { 50% { opacity: 0; } }
+
+.tgd-intro-bar {
+  height: 2px;
+  background: rgba(242, 239, 230, 0.08);
+  border-radius: 99px; overflow: hidden;
+}
+.tgd-intro-bar span {
+  display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--red), #d4a852);
+  box-shadow: 0 0 12px rgba(185, 28, 44, 0.5);
+  animation: tgd-intro-bar 2300ms cubic-bezier(0.2, 0.7, 0.2, 1) 60ms forwards;
+}
+.tgd-intro-foot {
+  font-size: 0.58rem;
+  color: rgba(242, 239, 230, 0.4);
+  letter-spacing: 0.22em;
+}
+
+@keyframes tgd-intro-mark-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes tgd-intro-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 107, 122, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 107, 122, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 107, 122, 0); }
+}
+@keyframes tgd-intro-text-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tgd-intro-bar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@media (max-width: 560px) {
+  .tgd-intro-top { padding: 14px 16px; }
+  .tgd-intro-bottom { padding: 14px 16px 18px; }
+  .tgd-intro-corner-mid { display: none; }
+  .tgd-intro-stats { flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px 12px; }
+  .tgd-intro-stats .dotsep { display: none; }
+  .tgd-intro-radar { width: 108px; height: 108px; }
+}
+
+/* ---------- 2. Scroll progress bar ---------- */
+.tgd-progress {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px; z-index: 998;
+  background: transparent;
+  pointer-events: none;
+}
+.tgd-progress span {
+  display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--red), var(--gold));
+  box-shadow: 0 0 12px rgba(185, 28, 44, 0.45);
+  transition: width 80ms linear;
+}
+
+/* ---------- 3. Floating ops console ---------- */
+.tgd-ops {
+  position: fixed;
+  left: 18px; bottom: 18px;
+  z-index: 90;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px;
+  min-width: 200px;
+  background: rgba(13, 19, 24, 0.78);
+  color: #f2f0ea;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 12px 38px rgba(0,0,0,0.35);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 520ms var(--ease), transform 520ms var(--ease);
+}
+.tgd-ops.is-visible { opacity: 1; transform: translateY(0); }
+.tgd-ops-head {
+  display: flex; align-items: center; gap: 8px;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 7px; margin-bottom: 2px;
+}
+.tgd-ops-head .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #ff6b7a;
+  box-shadow: 0 0 0 0 rgba(255,107,122,0.6);
+  animation: tgd-intro-pulse 1.6s ease-out infinite;
+}
+.tgd-ops-head strong { color: #fff; letter-spacing: 0.14em; font-weight: 700; }
+.tgd-ops-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  align-items: baseline;
+}
+.tgd-ops-row span:first-child { color: rgba(255,255,255,0.48); }
+.tgd-ops-row span:last-child { color: #fff; font-variant-numeric: tabular-nums; }
+.tgd-ops-toggle {
+  position: absolute; top: 6px; right: 6px;
+  width: 20px; height: 20px;
+  background: transparent; border: 0; cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1;
+  display: grid; place-items: center; border-radius: 4px;
+}
+.tgd-ops-toggle:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.tgd-ops.is-collapsed { min-width: 0; padding: 8px 12px; }
+.tgd-ops.is-collapsed .tgd-ops-row,
+.tgd-ops.is-collapsed .tgd-ops-head strong { display: none; }
+@media (max-width: 720px) {
+  .tgd-ops { left: 10px; bottom: 10px; min-width: 0; font-size: 0.58rem; padding: 8px 10px; }
+  .tgd-ops .tgd-ops-row span:first-child { display: none; }
+  .tgd-totop { right: 10px; bottom: 10px; width: 34px; height: 34px; }
+}
+
+/* ---------- 4. Hero map: parallax + tooltip ---------- */
+.hero { perspective: 1200px; }
+.hero-map {
+  transition: transform 320ms var(--ease);
+  will-change: transform;
+}
+.map-pulse {
+  cursor: pointer;
+  pointer-events: auto;
+  transition: filter 200ms var(--ease);
+}
+.map-pulse:hover .dot { filter: drop-shadow(0 0 8px currentColor); }
+.map-pulse:hover .ring { animation-duration: 1.6s; }
+.tgd-map-tip {
+  position: absolute;
+  z-index: 4;
+  padding: 8px 12px;
+  background: rgba(13, 19, 24, 0.94);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0; transform: translate(-50%, -120%) translateY(6px);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+}
+.tgd-map-tip.is-visible {
+  opacity: 1; transform: translate(-50%, -120%) translateY(0);
+}
+.tgd-map-tip strong { color: #ff6b7a; display: block; font-size: 0.7rem; letter-spacing: 0.14em; }
+.tgd-map-tip small { display: block; margin-top: 2px; color: rgba(255,255,255,0.65); font-size: 0.62rem; text-transform: none; letter-spacing: 0.04em; }
+
+/* ---------- 5. Card 3D tilt ---------- */
+.content-card,
+.tool-card,
+.gateway-card,
+.snapshot-card,
+.rail-item {
+  transform-style: preserve-3d;
+  transition: transform 320ms var(--ease), box-shadow 320ms var(--ease);
+}
+.content-card.is-tilting,
+.tool-card.is-tilting,
+.gateway-card.is-tilting,
+.rail-item.is-tilting {
+  transition: transform 80ms linear, box-shadow 240ms var(--ease);
+}
+
+/* ---------- 6. Magnetic CTA shine ---------- */
+.button.primary {
+  position: relative;
+  overflow: hidden;
+  transition: transform 220ms var(--ease), background 220ms var(--ease), color 220ms var(--ease), border-color 220ms var(--ease);
+}
+.button.primary::after {
+  content: "";
+  position: absolute; top: 0; left: -120%;
+  width: 60%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-22deg);
+  pointer-events: none;
+}
+.button.primary:hover::after {
+  animation: tgd-shine 900ms var(--ease) forwards;
+}
+@keyframes tgd-shine {
+  from { left: -120%; }
+  to { left: 140%; }
+}
+
+/* ---------- 7. Ticker pause-on-hover ---------- */
+.ticker-row:hover .ticker-strip { animation-play-state: paused; }
+.ticker-strip a {
+  transition: color 200ms var(--ease), background 200ms var(--ease);
+}
+.ticker-strip a:hover {
+  color: var(--red);
+}
+
+/* ---------- 8. Snapshot card animated bars ---------- */
+.snapshot-card { position: relative; overflow: hidden; }
+.snapshot-card .tgd-bar {
+  position: absolute; left: 20px; right: 20px; bottom: 14px;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.snapshot-card .tgd-bar i {
+  display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--red), var(--gold));
+  border-radius: 99px;
+  transition: width 1200ms cubic-bezier(0.18, 0.8, 0.2, 1);
+}
+
+/* ---------- 9. Threat-level gauge (hero rail) ---------- */
+.tgd-threat-gauge {
+  margin: 14px 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper-2);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tgd-threat-gauge-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+}
+.tgd-threat-gauge-head strong { color: var(--text); font-size: 0.7rem; }
+.tgd-threat-level {
+  font-family: var(--serif-display);
+  font-weight: 700; font-size: 1.65rem; line-height: 1;
+  color: var(--red);
+  letter-spacing: 0.02em;
+}
+.tgd-threat-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(185, 28, 44, 0.08);
+  border-radius: 99px; overflow: hidden;
+}
+.tgd-threat-bar i {
+  position: absolute; top: 0; left: 0; height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #14532d 0%, #d4a852 55%, var(--red) 100%);
+  border-radius: 99px;
+  transition: width 1400ms cubic-bezier(0.18, 0.8, 0.2, 1);
+}
+.tgd-threat-bar::after {
+  content: ""; position: absolute; top: -3px; bottom: -3px;
+  left: var(--tgd-marker, 70%);
+  width: 2px; background: var(--ink);
+  opacity: 0.7;
+}
+.tgd-threat-ticks {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* ---------- 10. Back-to-top floater ---------- */
+.tgd-totop {
+  position: fixed; right: 18px; bottom: 18px;
+  width: 38px; height: 38px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(13, 19, 24, 0.86);
+  color: #f2f0ea;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease), background 200ms var(--ease);
+  z-index: 90;
+}
+.tgd-totop.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.tgd-totop:hover { background: var(--red); border-color: var(--red); }
+
+/* ---------- 11. Ambient orbs (hero atmosphere) ---------- */
+.hero { position: relative; overflow: hidden; }
+.hero::before,
+.hero::after {
+  content: ""; position: absolute; z-index: 0;
+  width: 460px; height: 460px; border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.32;
+  pointer-events: none;
+  animation: tgd-orb 18s ease-in-out infinite alternate;
+}
+.hero::before {
+  top: -120px; right: -80px;
+  background: radial-gradient(circle, rgba(185,28,44,0.32) 0%, transparent 70%);
+}
+.hero::after {
+  bottom: -180px; left: -100px;
+  background: radial-gradient(circle, rgba(212,168,82,0.22) 0%, transparent 70%);
+  animation-delay: -6s;
+}
+@keyframes tgd-orb {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(28px, -22px) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero::before, .hero::after { animation: none; }
+}
+
+/* ---------- 12. Dark mode tuning for new pieces ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tgd-threat-gauge {
+    background: var(--paper-2);
+    border-color: var(--line);
+  }
+}
+:root[data-theme="dark"] .tgd-threat-gauge {
+  background: var(--paper-2);
+  border-color: var(--line);
+}
+:root[data-theme="light"] .tgd-ops {
+  background: rgba(13, 27, 42, 0.92);
+}
+
+/* ---------- 13. Hover lift accent for cards ---------- */
+.content-card, .tool-card, .gateway-card, .rail-item {
+  transition: transform 320ms var(--ease), box-shadow 320ms var(--ease), border-color 320ms var(--ease);
+}
+.content-card:hover {
+  box-shadow: 0 18px 44px rgba(13, 27, 42, 0.14);
+}
+.tool-card:hover {
+  box-shadow: 0 24px 60px rgba(13, 27, 42, 0.18);
+}
+
+/* ---------- 14. Reveal class polish (works alongside existing) ---------- */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 720ms var(--ease), transform 720ms var(--ease); }
+.reveal.is-visible { opacity: 1; transform: translateY(0); }
+
+/* ---------- 15. Reduced motion safety ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tgd-intro,
+  .tgd-progress span,
+  .tgd-ops,
+  .tgd-totop,
+  .button.primary::after,
+  .snapshot-card .tgd-bar i,
+  .tgd-threat-bar i {
+    transition: none !important;
+    animation: none !important;
+  }
+  .hero-map { transform: none !important; }
+}
+
