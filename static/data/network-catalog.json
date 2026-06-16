@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "TGD country network catalogue",
-    "last_updated": "2026-06-16",
+    "last_updated": "2026-06-13",
     "coverage_note": "Country packs are curated research sets, not claims of exhaustive coverage. Legal designation, current activity, and analytical classification are stored as separate fields."
   },
   "countries": [
@@ -10,7 +10,7 @@
       "label": "Pakistan",
       "region": "South Asia",
       "status": "Deep coverage",
-      "description": "Pakistan-focused militant organisations, factions, fronts, and key individuals.",
+      "description": "Pakistan-focused militant organisations, factions, fronts, and key individuals drawn from official designation and sanctions sources.",
       "data": "/assets/data/network-pakistan.json",
       "default": true
     },
@@ -18,7 +18,7 @@
       "id": "afghanistan",
       "label": "Afghanistan",
       "region": "South Asia",
-      "status": "Deep coverage"
+      "status": "Planned"
     },
     {
       "id": "india",
@@ -36,43 +36,7 @@
       "id": "sri-lanka",
       "label": "Sri Lanka",
       "region": "South Asia",
-      "status": "Covered"
-    },
-    {
-      "id": "iraq",
-      "label": "Iraq",
-      "region": "Middle East",
-      "status": "Covered"
-    },
-    {
-      "id": "syria",
-      "label": "Syria",
-      "region": "Middle East",
-      "status": "Covered"
-    },
-    {
-      "id": "yemen",
-      "label": "Yemen",
-      "region": "Middle East",
-      "status": "Covered"
-    },
-    {
-      "id": "somalia",
-      "label": "Somalia",
-      "region": "Horn of Africa",
-      "status": "Covered"
-    },
-    {
-      "id": "nigeria",
-      "label": "Nigeria",
-      "region": "West Africa",
-      "status": "Covered"
-    },
-    {
-      "id": "mali",
-      "label": "Mali",
-      "region": "West Africa",
-      "status": "Covered"
+      "status": "Planned"
     },
     {
       "id": "central-asia",
@@ -84,7 +48,7 @@
       "id": "southeast-asia",
       "label": "Southeast Asia",
       "region": "Asia",
-      "status": "Covered"
+      "status": "Planned"
     }
   ]
 }
