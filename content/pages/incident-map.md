@@ -69,7 +69,7 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
 <script>
 (function () {
   const dataPath = "/assets/data/incidents.json";
-  const imports = ["/assets/data/imports/may-2026-weeks-1-4.csv"];
+  const imports = ["/assets/data/imports/may-2026-record.csv"];
   const archiveDays = 31;
   const dayMs = 24 * 60 * 60 * 1000;
   const nativeFetch = window.fetch.bind(window);
@@ -79,14 +79,16 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
     ["tank|wanda zalu|wanda zalo|wanda zulu", "Tank", "Khyber Pakhtunkhwa", 32.22, 70.38],
     ["south waziristan|wana", "South Waziristan", "Khyber Pakhtunkhwa", 32.3, 69.57],
     ["lower south waziristan|angoor adda", "Lower South Waziristan", "Khyber Pakhtunkhwa", 32.1, 69.36],
-    ["dera ismail khan|di khan|kulachi", "Dera Ismail Khan", "Khyber Pakhtunkhwa", 31.83, 70.9],
+    ["dera ismail khan|di khan|dik|kulachi", "Dera Ismail Khan", "Khyber Pakhtunkhwa", 31.83, 70.9],
     ["bannu|jani khel|fateh khel", "Bannu", "Khyber Pakhtunkhwa", 32.99, 70.6],
     ["north waziristan|mir ali|miranshah|spin wam|shewa", "North Waziristan", "Khyber Pakhtunkhwa", 32.98, 70.13],
     ["kurram", "Kurram", "Khyber Pakhtunkhwa", 33.73, 70.1],
     ["hangu", "Hangu", "Khyber Pakhtunkhwa", 33.53, 71.06],
     ["karak", "Karak", "Khyber Pakhtunkhwa", 33.12, 71.09],
     ["khyber|tirah", "Khyber", "Khyber Pakhtunkhwa", 34.03, 71.13],
+    ["mohmand|ambar", "Mohmand", "Khyber Pakhtunkhwa", 34.45, 71.32],
     ["charsadda", "Charsadda", "Khyber Pakhtunkhwa", 34.15, 71.74],
+    ["kohat|dara adam khel|darra adam khel", "Kohat", "Khyber Pakhtunkhwa", 33.59, 71.44],
     ["peshawar|matni", "Peshawar", "Khyber Pakhtunkhwa", 34.01, 71.56],
     ["quetta|mangla zarghoon|shabaan", "Quetta", "Balochistan", 30.3, 67.2],
     ["kech|turbat", "Kech", "Balochistan", 26, 63.05],
@@ -94,7 +96,11 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
     ["ziarat", "Ziarat", "Balochistan", 30.38, 67.73],
     ["barkhan", "Barkhan", "Balochistan", 29.9, 69.53],
     ["nushki", "Nushki", "Balochistan", 29.55, 66.02],
+    ["gwadar", "Gwadar", "Balochistan", 25.13, 62.33],
+    ["jhal magsi", "Jhal Magsi", "Balochistan", 28.36, 67.54],
+    ["pishin", "Pishin", "Balochistan", 30.58, 66.99],
     ["attock", "Attock", "Punjab", 33.77, 72.36],
+    ["lahore", "Lahore", "Punjab", 31.52, 74.36],
     ["taunsa|chitrota", "Taunsa", "Punjab", 30.7, 70.65],
     ["dera ghazi khan|d g khan|dg khan", "Dera Ghazi Khan", "Punjab", 30.05, 70.64]
   ];
@@ -126,7 +132,15 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260524-cl
     return clean(value) || "Pakistan";
   }
   function findPlace(text, fallbackDistrict, fallbackProvince) {
-    const haystack = lower(`${fallbackDistrict || ""} ${fallbackProvince || ""} ${text}`);
+    const districtHint = lower(fallbackDistrict);
+    if (districtHint && !/^(unknown|unspecified)$/.test(districtHint)) {
+      const direct = districts.find(([terms, district]) => lower(district) === districtHint || terms.split("|").some((term) => districtHint.includes(term)));
+      if (direct) {
+        const [_terms, district, prov, lat, lng] = direct;
+        return { district, province: prov, lat, lng };
+      }
+    }
+    const haystack = lower(`${fallbackDistrict || ""} ${text}`);
     for (const [terms, district, prov, lat, lng] of districts) {
       if (terms.split("|").some((term) => haystack.includes(term))) return { district, province: prov, lat, lng };
     }

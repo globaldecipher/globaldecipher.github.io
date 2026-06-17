@@ -9,7 +9,7 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '').trim();
 const DEBUG = String(process.env.TELEGRAM_DEBUG || '').toLowerCase() === 'true';
 const PAKISTAN_TIME_ZONE = 'Asia/Karachi';
-const ARCHIVE_DAYS = 30;
+const ARCHIVE_DAYS = 31;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DISTRICTS = [
@@ -17,7 +17,7 @@ const DISTRICTS = [
   { terms: ['lakki', 'ghazni khel', 'darra tang'], district: 'Lakki Marwat', province: 'Khyber Pakhtunkhwa', lat: 32.61, lng: 70.91 },
   { terms: ['tank', 'wanda zalu', 'wanda zalo', 'wanda zulu'], district: 'Tank', province: 'Khyber Pakhtunkhwa', lat: 32.22, lng: 70.38 },
   { terms: ['wana', 'south waziristan'], district: 'South Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.3, lng: 69.57 },
-  { terms: ['dera ismail khan', 'di khan'], district: 'Dera Ismail Khan', province: 'Khyber Pakhtunkhwa', lat: 31.83, lng: 70.9 },
+  { terms: ['dera ismail khan', 'di khan', 'dik'], district: 'Dera Ismail Khan', province: 'Khyber Pakhtunkhwa', lat: 31.83, lng: 70.9 },
   { terms: ['bannu'], district: 'Bannu', province: 'Khyber Pakhtunkhwa', lat: 32.99, lng: 70.6 },
   { terms: ['north waziristan', 'mir ali', 'miranshah', 'spin wam', 'shewa'], district: 'North Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.98, lng: 70.13 },
   { terms: ['lower south waziristan', 'angoor adda'], district: 'Lower South Waziristan', province: 'Khyber Pakhtunkhwa', lat: 32.1, lng: 69.36 },
@@ -25,7 +25,9 @@ const DISTRICTS = [
   { terms: ['hangu'], district: 'Hangu', province: 'Khyber Pakhtunkhwa', lat: 33.53, lng: 71.06 },
   { terms: ['karak'], district: 'Karak', province: 'Khyber Pakhtunkhwa', lat: 33.12, lng: 71.09 },
   { terms: ['khyber', 'tirah'], district: 'Khyber', province: 'Khyber Pakhtunkhwa', lat: 34.03, lng: 71.13 },
+  { terms: ['mohmand', 'ambar'], district: 'Mohmand', province: 'Khyber Pakhtunkhwa', lat: 34.45, lng: 71.32 },
   { terms: ['charsadda'], district: 'Charsadda', province: 'Khyber Pakhtunkhwa', lat: 34.15, lng: 71.74 },
+  { terms: ['kohat', 'dara adam khel', 'darra adam khel'], district: 'Kohat', province: 'Khyber Pakhtunkhwa', lat: 33.59, lng: 71.44 },
   { terms: ['peshawar'], district: 'Peshawar', province: 'Khyber Pakhtunkhwa', lat: 34.01, lng: 71.56 },
   { terms: ['quetta', 'mangla zarghoon', 'shabaan'], district: 'Quetta', province: 'Balochistan', lat: 30.3, lng: 67.2 },
   { terms: ['khuzdar'], district: 'Khuzdar', province: 'Balochistan', lat: 27.8, lng: 66.62 },
@@ -34,6 +36,9 @@ const DISTRICTS = [
   { terms: ['ziarat'], district: 'Ziarat', province: 'Balochistan', lat: 30.38, lng: 67.73 },
   { terms: ['barkhan'], district: 'Barkhan', province: 'Balochistan', lat: 29.9, lng: 69.53 },
   { terms: ['nushki'], district: 'Nushki', province: 'Balochistan', lat: 29.55, lng: 66.02 },
+  { terms: ['gwadar'], district: 'Gwadar', province: 'Balochistan', lat: 25.13, lng: 62.33 },
+  { terms: ['jhal magsi'], district: 'Jhal Magsi', province: 'Balochistan', lat: 28.36, lng: 67.54 },
+  { terms: ['pishin'], district: 'Pishin', province: 'Balochistan', lat: 30.58, lng: 66.99 },
   { terms: ['karachi'], district: 'Karachi', province: 'Sindh', lat: 24.86, lng: 67.01 },
   { terms: ['lahore'], district: 'Lahore', province: 'Punjab', lat: 31.52, lng: 74.36 },
   { terms: ['dera ghazi khan', 'd g khan', 'dg khan'], district: 'Dera Ghazi Khan', province: 'Punjab', lat: 30.05, lng: 70.64 },
@@ -72,7 +77,12 @@ function parseFields(text) {
 }
 
 function findDistrict(text, fields = {}) {
-  const haystack = lower(`${fields.district || ''} ${fields.province || ''} ${text}`);
+  const districtHint = lower(fields.district);
+  if (districtHint && !/^(unknown|unspecified)$/.test(districtHint)) {
+    const direct = DISTRICTS.find((item) => lower(item.district) === districtHint || item.terms.some((term) => districtHint.includes(term)));
+    if (direct) return direct;
+  }
+  const haystack = lower(`${fields.district || ''} ${text}`);
   const matched = DISTRICTS.find((item) => item.terms.some((term) => haystack.includes(term)));
   if (matched) return matched;
   return { district: fields.district || 'Unspecified', province: normalProvince(fields.province || 'Pakistan'), lat: 30.3753, lng: 69.3451 };

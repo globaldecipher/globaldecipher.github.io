@@ -1,37 +1,27 @@
 {
-  "checked_at": "2026-06-16T12:32:39.089Z",
-  "current_day_pakistan": "2026-06-16",
-  "archive_days": 30,
+  "checked_at": "2026-06-17T09:21:36.524Z",
+  "current_day_pakistan": "2026-06-17",
+  "archive_days": 31,
   "archive_start": "2026-05-18",
   "import_sources": [
-    "may-2026-weeks-1-4.csv"
+    "may-2026-record.csv"
   ],
-  "imported_count": 16,
+  "imported_count": 43,
   "removed_test_count": 0,
   "time_zone": "Asia/Karachi",
   "offset": 828254904,
-  "expected_chat_id": "-1003994704651",
+  "expected_chat_id": "",
   "bot": {
-    "id": 8885884978,
-    "username": "TGDIncidentFeedBot",
-    "can_join_groups": true,
-    "can_read_all_group_messages": false
+    "error": "TELEGRAM_BOT_TOKEN not configured"
   },
   "chat": {
-    "id": "-1003994704651",
-    "type": "supergroup",
-    "title": "TGD Incident Feed",
-    "username": ""
+    "error": "TELEGRAM_CHAT_ID not configured"
   },
   "bot_member": {
-    "status": "administrator",
-    "can_post_messages": false
+    "error": "bot unavailable"
   },
   "webhook": {
-    "active": false,
-    "pending_update_count": 0,
-    "last_error_date": 0,
-    "last_error_message": ""
+    "error": "bot unavailable"
   },
   "updates_count": 0,
   "results": []
