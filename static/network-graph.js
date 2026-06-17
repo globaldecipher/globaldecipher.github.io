@@ -5,11 +5,12 @@
 ;(function () {
   'use strict';
 
-  /* ───────── physics tuned for SPREAD OUT graph ───────── */
-  const REPULSION     = 48000;
-  const SPRING_K      = 0.0008;
-  const SPRING_REST   = 320;
-  const CENTER_FORCE  = 0.002;
+  /* ───────── physics tuned for CLUSTERED graph ───────── */
+  const REPULSION     = 22000;
+  const SPRING_K      = 0.0014;
+  const SPRING_REST   = 130;
+  const REGION_GRAVITY = 0.018;   /* pull each node toward its region anchor */
+  const ORG_GRAVITY    = 0.045;   /* pull each member toward its parent org */
   const DAMPING       = 0.82;
   const COOL_RATE     = 0.9992;
   const MIN_ENERGY    = 0.02;
@@ -22,9 +23,33 @@
   const TOOLTIP_OFFSET = 14;
   const PARTICLE_SPEED = 0.35;
   const PARTICLE_COUNT = 2;
+  const FOCUS_HOPS    = 2;        /* click-to-focus neighborhood depth */
+  const EDGE_BUNDLE   = 0.4;      /* 0 = straight, 1 = full bundling */
 
-  const ORG_RADIUS  = { min: 32, max: 38 };
-  const IND_RADIUS  = { min: 18, max: 22 };
+  const ORG_RADIUS  = { min: 30, max: 38 };
+  const IND_RADIUS  = { min: 14, max: 18 };
+
+  /* ───────── geographic region anchors (x,y in [-1,1]) ───────── */
+  const REGION_POSITIONS = {
+    'north-america':  { x: -0.82, y: -0.55, label: 'North America' },
+    'europe':         { x: -0.32, y: -0.58, label: 'Europe' },
+    'caucasus':       { x:  0.05, y: -0.50, label: 'Caucasus' },
+    'central-asia':   { x:  0.40, y: -0.52, label: 'Central Asia' },
+    'east-asia':      { x:  0.78, y: -0.42, label: 'East Asia' },
+    'global':         { x: -0.62, y:  0.05, label: 'Global' },
+    'middle-east':    { x: -0.08, y:  0.05, label: 'Middle East' },
+    'south-asia':     { x:  0.55, y:  0.08, label: 'South Asia' },
+    'west-africa':    { x: -0.55, y:  0.62, label: 'West Africa' },
+    'central-africa': { x: -0.08, y:  0.68, label: 'Central Africa' },
+    'horn-of-africa': { x:  0.42, y:  0.68, label: 'Horn of Africa' },
+    'southeast-asia': { x:  0.78, y:  0.55, label: 'Southeast Asia' },
+    'other':          { x:  0.78, y:  0.05, label: 'Other' },
+  };
+
+  function regionKey(region) {
+    if (!region) return 'other';
+    return String(region).toLowerCase().replace(/[\s_]+/g, '-');
+  }
 
   /* ───────── theme palettes ───────── */
   const THEMES = {
@@ -60,6 +85,47 @@
   function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   function unique(values) { return [...new Set((values || []).filter(Boolean))]; }
 
+  function computeRegionAnchors(usedKeys, W, H) {
+    const padX = Math.min(W * 0.06, 80);
+    const padY = Math.min(H * 0.08, 70);
+    const halfW = (W / 2) - padX;
+    const halfH = (H / 2) - padY;
+    const map = {};
+    for (const key of usedKeys) {
+      const pos = REGION_POSITIONS[key] || REGION_POSITIONS.other;
+      map[key] = {
+        x: W / 2 + pos.x * halfW,
+        y: H / 2 + pos.y * halfH,
+        label: pos.label,
+      };
+    }
+    return map;
+  }
+
+  function bfsFocus(start, hops, maxNodes) {
+    const visited = new Set([start.id]);
+    const edgesInFocus = new Set();
+    let frontier = [start];
+    for (let h = 0; h < hops && visited.size < maxNodes; h++) {
+      const next = [];
+      for (const node of frontier) {
+        for (const edge of node._connections) {
+          if (!edge._visible) continue;
+          edgesInFocus.add(edge);
+          const other = edge.sourceNode === node ? edge.targetNode : edge.sourceNode;
+          if (!visited.has(other.id)) {
+            visited.add(other.id);
+            next.push(other);
+            if (visited.size >= maxNodes) break;
+          }
+        }
+        if (visited.size >= maxNodes) break;
+      }
+      frontier = next;
+    }
+    return { nodes: visited, edges: edgesInFocus };
+  }
+
   /* ───────── spatial hash ───────── */
   class SpatialHash {
     constructor(cs) { this.cs = cs; this.map = new Map(); }
@@ -94,6 +160,10 @@
     let nodes = [], edges = [], regionMap = {}, edgeTypeMap = {};
     let sourceIndex = {}, countryCatalog = [];
     let nodeById = {};
+    let orgByLabel = {};
+    let regionAnchorById = {};
+    let usedRegionKeys = [];
+    let frameFocusSet = null;       /* per-frame focus neighborhood {nodes, edges} */
     let W = 0, H = 0, dpr = 1;
     let panX = 0, panY = 0, zoom = 1, targetZoom = 1;
     let temperature = 1;
@@ -133,6 +203,7 @@
         mmCanvas.width = mr.width * dpr; mmCanvas.height = mr.height * dpr;
         mmCanvas.style.width = mr.width + 'px'; mmCanvas.style.height = mr.height + 'px';
       }
+      if (usedRegionKeys.length) regionAnchorById = computeRegionAnchors(usedRegionKeys, W, H);
     }
     resize();
     window.addEventListener('resize', debounce(resize, 150));
@@ -205,26 +276,34 @@
       (data.regions || []).forEach(r => { regionMap[r.id] = r; regionMap[r.label] = r; });
       (data.edgeTypes || []).forEach(e => { edgeTypeMap[e.id] = e; });
 
-      /* spread initial positions WIDELY */
-      const count = (data.nodes || []).length;
+      /* compute region anchors based on regions actually present in data */
+      usedRegionKeys = unique((data.nodes || []).map(n => regionKey(n.region)));
+      regionAnchorById = computeRegionAnchors(usedRegionKeys, W, H);
+
+      /* seed each node near its region anchor (with small jitter) */
       nodes = (data.nodes || []).map((n, i) => {
         const isOrg = n.type === 'organisation';
         const r = isOrg
           ? lerp(ORG_RADIUS.min, ORG_RADIUS.max, Math.random())
           : lerp(IND_RADIUS.min, IND_RADIUS.max, Math.random());
-        const angle = (2 * Math.PI * i) / count;
-        const spread = Math.min(W, H) * 0.45;
+        const anchor = regionAnchorById[regionKey(n.region)] || { x: W/2, y: H/2 };
+        const jitter = isOrg ? 30 : 90;
         return {
           ...n,
-          x: W/2 + Math.cos(angle) * spread * (0.6 + Math.random() * 0.4),
-          y: H/2 + Math.sin(angle) * spread * (0.6 + Math.random() * 0.4),
+          _regionKey: regionKey(n.region),
+          x: anchor.x + (Math.random() - 0.5) * jitter,
+          y: anchor.y + (Math.random() - 0.5) * jitter,
           vx: 0, vy: 0, radius: r, pinned: false,
           _visible: true, _alpha: 1, _connections: [],
-          _introDelay: i * 0.05, _introAlpha: 0,
+          _introDelay: Math.min(i * 0.025, 1.2), _introAlpha: 0,
         };
       });
       nodeById = {};
-      nodes.forEach(n => { nodeById[n.id] = n; });
+      orgByLabel = {};
+      nodes.forEach(n => {
+        nodeById[n.id] = n;
+        if (n.type === 'organisation') orgByLabel[n.label] = n;
+      });
 
       edges = (data.edges || []).map(e => ({
         ...e, sourceNode: nodeById[e.source], targetNode: nodeById[e.target],
@@ -332,21 +411,30 @@
     function buildLegend(data) {
       const el = root.querySelector('[data-network-legend]');
       if (!el) return;
-      const usedRegions = [...new Set(nodes.map(n => n.region).filter(Boolean))];
+      const usedRegions = [...new Set(nodes.map(n => n.region).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
       const usedEdgeTypes = [...new Set(edges.map(e => e.type).filter(Boolean))];
-      let html = '<p class="network-legend-title">Regions</p>';
+      let html = '';
+      html += `<div class="network-legend-group">
+        <p class="network-legend-title">Node</p>
+        <div class="network-legend-item"><span class="network-legend-dot is-org"></span>Organisation</div>
+        <div class="network-legend-item"><span class="network-legend-dot is-ind"></span>Individual</div>
+      </div>`;
+      html += '<div class="network-legend-group"><p class="network-legend-title">Regions</p>';
       usedRegions.forEach(r => {
         const reg = regionMap[r];
         const color = reg ? reg.color : '#b91c2c';
         html += `<div class="network-legend-item"><span class="network-legend-dot" style="background:${color}"></span>${esc(r)}</div>`;
       });
-      html += '<p class="network-legend-title">Connections</p>';
+      html += '</div>';
+      html += '<div class="network-legend-group"><p class="network-legend-title">Connections</p>';
       usedEdgeTypes.slice(0, 8).forEach(tid => {
         const et = edgeTypeMap[tid];
         if (!et) return;
         const cls = et.dash ? 'dashed' : '';
         html += `<div class="network-legend-item"><span class="network-legend-line ${cls}" style="background:${et.color};color:${et.color}"></span>${esc(et.label)}</div>`;
       });
+      html += '</div>';
       el.innerHTML = html;
     }
 
@@ -383,7 +471,7 @@
           if (b === a) continue;
           let dx = a.x - b.x, dy = a.y - b.y;
           let d = Math.sqrt(dx*dx + dy*dy) || 1;
-          const minDist = a.radius + b.radius + 12;
+          const minDist = a.radius + b.radius + 10;
           const f = (REPULSION * temperature) / (d * d);
           a.vx += (dx/d) * f;
           a.vy += (dy/d) * f;
@@ -394,9 +482,23 @@
             a.vy += (dy/d) * push;
           }
         }
-        /* centering */
-        a.vx += (W/2 - a.x) * CENTER_FORCE * temperature;
-        a.vy += (H/2 - a.y) * CENTER_FORCE * temperature;
+        /* region gravity (anchors each node toward its region cluster) */
+        const anchor = regionAnchorById[a._regionKey];
+        if (anchor) {
+          a.vx += (anchor.x - a.x) * REGION_GRAVITY * temperature;
+          a.vy += (anchor.y - a.y) * REGION_GRAVITY * temperature;
+        } else {
+          a.vx += (W/2 - a.x) * 0.004 * temperature;
+          a.vy += (H/2 - a.y) * 0.004 * temperature;
+        }
+        /* org gravity — members orbit their parent organisation */
+        if (a.type !== 'organisation' && a.org) {
+          const orgNode = orgByLabel[a.org];
+          if (orgNode && orgNode._visible && orgNode !== a) {
+            a.vx += (orgNode.x - a.x) * ORG_GRAVITY * temperature;
+            a.vy += (orgNode.y - a.y) * ORG_GRAVITY * temperature;
+          }
+        }
       }
 
       /* springs */
@@ -439,8 +541,8 @@
       }
 
       temperature *= COOL_RATE;
-      if (temperature < 0.008) temperature = 0.008;
-      if (totalEnergy < MIN_ENERGY && viewMode === 'force' && layoutTransitionProgress >= 1) simRunning = false;
+      if (temperature < 0.012) temperature = 0.012;
+      if (totalEnergy < MIN_ENERGY && layoutTransitionProgress >= 1) simRunning = false;
     }
 
     function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
@@ -470,6 +572,12 @@
 
       const vp = viewportBounds();
 
+      /* per-frame focus neighborhood (click-to-focus / hover) */
+      const hl = selectedNode || hoveredNode;
+      frameFocusSet = hl ? bfsFocus(hl, FOCUS_HOPS, 200) : null;
+
+      drawRegionZones(p, vp);
+      drawRegionLabels(p, vp);
       drawGroupLabels(p, vp);
       for (const e of edges) drawEdge(e, p, vp);
       updateParticles(p);
@@ -513,15 +621,77 @@
              Math.max(a.y,b.y) > vp.y1 && Math.min(a.y,b.y) < vp.y2;
     }
 
+    /* Soft elliptical tint behind each region's nodes — replaces the old
+       "PAKISTAN / NIGERIA / …" labels that overlapped the graph body. */
+    function drawRegionZones(p, vp) {
+      if (!usedRegionKeys.length) return;
+      ctx.save();
+      for (const key of usedRegionKeys) {
+        const anchor = regionAnchorById[key];
+        if (!anchor) continue;
+        const members = nodes.filter(n => n._visible && n._regionKey === key);
+        if (!members.length) continue;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const m of members) {
+          if (m.x < minX) minX = m.x; if (m.x > maxX) maxX = m.x;
+          if (m.y < minY) minY = m.y; if (m.y > maxY) maxY = m.y;
+        }
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const rx = Math.max((maxX - minX) / 2 + 70, 90);
+        const ry = Math.max((maxY - minY) / 2 + 70, 90);
+        if (cx + rx < vp.x1 || cx - rx > vp.x2 || cy + ry < vp.y1 || cy - ry > vp.y2) continue;
+        const region = regionMap[key] || regionMap[anchor.label];
+        const color = region ? region.color : p.muted;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(cx, cy, Math.min(rx, ry) * 0.1, cx, cy, Math.max(rx, ry));
+        grad.addColorStop(0, hexToRGBA(color, 0.10));
+        grad.addColorStop(1, hexToRGBA(color, 0));
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    /* Subtle region wordmark anchored to the top of each cluster. */
+    function drawRegionLabels(p, vp) {
+      if (!usedRegionKeys.length) return;
+      ctx.save();
+      ctx.font = "700 11px 'IBM Plex Mono',monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const key of usedRegionKeys) {
+        const anchor = regionAnchorById[key];
+        if (!anchor) continue;
+        const members = nodes.filter(n => n._visible && n._regionKey === key);
+        if (!members.length) continue;
+        let minY = Infinity;
+        for (const m of members) if (m.y - m.radius < minY) minY = m.y - m.radius;
+        const labelY = Math.min(minY - 22, anchor.y - 90);
+        if (anchor.x < vp.x1 || anchor.x > vp.x2 || labelY < vp.y1 || labelY > vp.y2) continue;
+        const text = (anchor.label || '').toUpperCase();
+        const w = ctx.measureText(text).width;
+        ctx.fillStyle = hexToRGBA(p.bg, 0.78);
+        ctx.fillRect(anchor.x - w/2 - 10, labelY - 10, w + 20, 20);
+        const region = regionMap[key] || regionMap[anchor.label];
+        ctx.fillStyle = region ? region.color : p.muted;
+        ctx.fillText(text, anchor.x, labelY);
+      }
+      ctx.restore();
+    }
+
+    /* Layout-mode-specific labels (e.g. "Country families" headings) — kept
+       for radial/hierarchical/country modes. */
     function drawGroupLabels(p, vp) {
-      if (viewMode !== 'country') return;
+      if (!layoutGroupLabels.length) return;
       ctx.save();
       ctx.font = "900 10px 'IBM Plex Mono',monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (const label of layoutGroupLabels) {
         if (label.x < vp.x1 || label.x > vp.x2 || label.y < vp.y1 || label.y > vp.y2) continue;
-        const textLabel = label.text.length > 36 ? label.text.slice(0, 34) + '…' : label.text;
+        const textLabel = label.text.length > 30 ? label.text.slice(0, 28) + '…' : label.text;
         const width = ctx.measureText(textLabel.toUpperCase()).width;
         ctx.fillStyle = hexToRGBA(p.bg, 0.9);
         ctx.fillRect(label.x - width / 2 - 8, label.y - 10, width + 16, 20);
@@ -540,9 +710,10 @@
       if (introA < 0.01) return;
 
       let alpha = Math.min(e._alpha, a._alpha, b._alpha) * introA;
-      if (selectedNode || hoveredNode) {
-        const hl = selectedNode || hoveredNode;
-        alpha = (e.sourceNode === hl || e.targetNode === hl) ? 0.9 * introA : p.dimAlpha;
+      let inFocus = true;
+      if (frameFocusSet) {
+        inFocus = frameFocusSet.edges.has(e);
+        alpha = inFocus ? 0.95 * introA : p.dimAlpha * 0.6;
       }
 
       const et = edgeTypeMap[e.type];
@@ -553,7 +724,7 @@
       ctx.save();
       ctx.globalAlpha = alpha * p.edgeAlpha;
       ctx.strokeStyle = color;
-      ctx.lineWidth = (selectedNode || hoveredNode) && (e.sourceNode === (selectedNode||hoveredNode) || e.targetNode === (selectedNode||hoveredNode)) ? 2.5 : 1.5;
+      ctx.lineWidth = frameFocusSet && inFocus ? 2.4 : 1.3;
       if (dashed) ctx.setLineDash([7, 5]);
 
       ctx.beginPath();
@@ -566,12 +737,36 @@
       ctx.restore();
     }
 
+    /* Bundle edges through region/org centroids so traffic between the same
+       two clusters merges visually instead of crossing every other line. */
     function edgeBezier(a, b) {
-      const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
-      const dx = b.x-a.x, dy = b.y-a.y;
-      const d = Math.sqrt(dx*dx+dy*dy) || 1;
-      const off = Math.min(d*0.1, 40);
-      return { cpx: mx + (-dy/d)*off, cpy: my + (dx/d)*off };
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const ra = regionAnchorById[a._regionKey];
+      const rb = regionAnchorById[b._regionKey];
+
+      let bundleX = mx, bundleY = my;
+      if (ra && rb) {
+        bundleX = (ra.x + rb.x) / 2;
+        bundleY = (ra.y + rb.y) / 2;
+      }
+      /* if both endpoints share a parent org, route the bundle via the org */
+      if (a.org && a.org === b.org) {
+        const org = orgByLabel[a.org];
+        if (org) { bundleX = org.x; bundleY = org.y; }
+      }
+
+      let cpx = lerp(mx, bundleX, EDGE_BUNDLE);
+      let cpy = lerp(my, bundleY, EDGE_BUNDLE);
+
+      /* always add a small perpendicular offset so reciprocal edges don't overlap */
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.sqrt(dx*dx + dy*dy) || 1;
+      const off = Math.min(d * 0.06, 24);
+      cpx += (-dy / d) * off;
+      cpy += ( dx / d) * off;
+
+      return { cpx, cpy };
     }
 
     function drawArrow(a, b, cpx, cpy, color, alpha) {
@@ -605,10 +800,7 @@
         pt.t += pt.speed * 0.008;
         if (pt.t > 1) pt.t -= 1;
 
-        if (selectedNode || hoveredNode) {
-          const hl = selectedNode || hoveredNode;
-          if (e.sourceNode !== hl && e.targetNode !== hl) continue;
-        }
+        if (frameFocusSet && !frameFocusSet.edges.has(e)) continue;
 
         const et = edgeTypeMap[e.type];
         const color = et ? et.color : '#b91c2c';
@@ -638,10 +830,10 @@
       if (n._introAlpha < 0.01) return;
 
       let alpha = n._alpha * n._introAlpha;
-      if (selectedNode || hoveredNode) {
+      if (frameFocusSet) {
         const hl = selectedNode || hoveredNode;
         if (n === hl) alpha = 1;
-        else if (isConnected(hl, n)) alpha = 0.85 * n._introAlpha;
+        else if (frameFocusSet.nodes.has(n.id)) alpha = 0.92 * n._introAlpha;
         else alpha = p.dimAlpha;
       }
 
@@ -716,26 +908,34 @@
       ctx.textBaseline = 'middle';
       ctx.fillText(n.label.charAt(0).toUpperCase(), n.x, n.y + 1);
 
-      /* label */
-      ctx.globalAlpha = alpha * 0.88;
-      const fs = isOrg ? 11 : 9.5;
-      ctx.font = `${isOrg ? '700':'600'} ${fs}px 'IBM Plex Sans',system-ui,sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      let label = n.label;
-      if (label.length > 22) label = label.slice(0, 20) + '…';
+      /* label (hide when zoomed far out for non-orgs, and only show
+         non-focus member labels when nothing is hovered) */
+      const showLabel = isOrg
+        || zoom > 0.7
+        || n === selectedNode
+        || n === hoveredNode
+        || (frameFocusSet && frameFocusSet.nodes.has(n.id));
+      if (showLabel) {
+        ctx.globalAlpha = alpha * 0.92;
+        const fs = isOrg ? 11.5 : 9.5;
+        ctx.font = `${isOrg ? '700':'600'} ${fs}px 'IBM Plex Sans',system-ui,sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        let label = n.label;
+        if (label.length > 24) label = label.slice(0, 22) + '…';
 
-      const tw = ctx.measureText(label).width;
-      ctx.fillStyle = hexToRGBA(p.bg, 0.75);
-      ctx.fillRect(n.x - tw/2 - 3, n.y + r + 5, tw + 6, fs + 5);
-      ctx.fillStyle = p.labelFill;
-      ctx.fillText(label, n.x, n.y + r + 7);
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = hexToRGBA(p.bg, 0.85);
+        ctx.fillRect(n.x - tw/2 - 4, n.y + r + 5, tw + 8, fs + 6);
+        ctx.fillStyle = p.labelFill;
+        ctx.fillText(label, n.x, n.y + r + 7);
+      }
 
       ctx.restore();
     }
 
     function getRegionColor(n) {
-      const rObj = regionMap[n.region] || regionMap[String(n.region).toLowerCase()];
+      const rObj = regionMap[n.region] || regionMap[n._regionKey] || regionMap[String(n.region || '').toLowerCase()];
       return rObj ? rObj.color : '#b91c2c';
     }
     function isConnected(a, b) {
@@ -1069,84 +1269,141 @@
       temperature = 0.008;
     }
 
+    /* Country view:
+       — World mode → group by region, use real geographic anchors
+       — Country selected (e.g. Pakistan) → group by org family in a grid */
     function layoutCountry() {
       const visible = nodes.filter(n => n._visible);
+      if (filterCountry) return layoutOrgFamilies(visible);
+      return layoutByRegion(visible);
+    }
+
+    function layoutByRegion(visible) {
       const groups = new Map();
       for (const node of visible) {
-        const key = filterCountry
-          ? (node.cluster || node.org || 'Other Pakistan-linked records')
-          : (node.country || nodeCountries(node)[0] || node.region || 'Global');
+        const key = node._regionKey || regionKey(node.region) || 'other';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(node);
       }
+      for (const [key, members] of groups) {
+        const anchor = regionAnchorById[key];
+        if (!anchor) continue;
+        const orgs = members.filter(m => m.type === 'organisation')
+          .sort((a, b) => a.label.localeCompare(b.label));
+        const others = members.filter(m => m.type !== 'organisation');
+        const orgRing = Math.min(W, H) * 0.07;
+        orgs.forEach((org, i) => {
+          if (orgs.length === 1) {
+            layoutTargets[org.id] = { x: anchor.x, y: anchor.y };
+          } else {
+            const a = -Math.PI / 2 + (2 * Math.PI * i) / orgs.length;
+            layoutTargets[org.id] = {
+              x: anchor.x + Math.cos(a) * orgRing,
+              y: anchor.y + Math.sin(a) * orgRing,
+            };
+          }
+        });
+        /* members orbit their parent org if one is present, else the region */
+        others.forEach((m, i) => {
+          const parent = m.org ? orgs.find(o => o.label === m.org) : null;
+          const center = parent ? layoutTargets[parent.id] : { x: anchor.x, y: anchor.y };
+          const siblings = others.filter(x => x.org === m.org).length || 1;
+          const idx = others.filter(x => x.org === m.org).indexOf(m);
+          const ring = Math.min(W, H) * (parent ? 0.045 : 0.09);
+          const a = (2 * Math.PI * idx) / siblings + (parent ? Math.PI / 8 : 0);
+          layoutTargets[m.id] = {
+            x: center.x + Math.cos(a) * ring,
+            y: center.y + Math.sin(a) * ring,
+          };
+        });
+      }
+    }
 
-      const entries = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    function layoutOrgFamilies(visible) {
+      const groups = new Map();
+      for (const node of visible) {
+        const key = node.cluster || node.org || 'Other records';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(node);
+      }
+      const entries = [...groups.entries()]
+        .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
       if (!entries.length) return;
       const aspect = Math.max(0.7, W / Math.max(H, 1));
       const cols = Math.max(1, Math.ceil(Math.sqrt(entries.length * aspect)));
-      const rows = Math.max(1, Math.ceil(entries.length / cols));
       const cellW = W / cols;
-      const cellH = H / rows;
-
-      entries.forEach(([, members], groupIndex) => {
+      const cellH = H / Math.max(1, Math.ceil(entries.length / cols));
+      entries.forEach(([title, members], groupIndex) => {
         const col = groupIndex % cols;
         const row = Math.floor(groupIndex / cols);
         const cx = cellW * (col + 0.5);
         const cy = cellH * (row + 0.5);
-        layoutGroupLabels.push({ text: entries[groupIndex][0], x: cx, y: cy - Math.min(cellH * 0.4, 145) });
-        const ordered = [...members].sort((a, b) => (a.type === 'organisation' ? -1 : 1) - (b.type === 'organisation' ? -1 : 1) || a.label.localeCompare(b.label));
+        layoutGroupLabels.push({ text: title, x: cx, y: cy - Math.min(cellH * 0.42, 130) });
+        const ordered = [...members].sort((a, b) =>
+          (a.type === 'organisation' ? -1 : 1) - (b.type === 'organisation' ? -1 : 1)
+          || a.label.localeCompare(b.label));
         ordered.forEach((node, index) => {
-          if (index === 0) {
-            layoutTargets[node.id] = { x: cx, y: cy };
-            return;
-          }
+          if (index === 0) { layoutTargets[node.id] = { x: cx, y: cy }; return; }
           const ring = Math.floor((index - 1) / 8);
           const place = (index - 1) % 8;
           const countOnRing = Math.min(8, ordered.length - 1 - ring * 8);
-          const radius = Math.min(Math.min(cellW, cellH) * 0.38, 60 + ring * 55);
+          const radius = Math.min(Math.min(cellW, cellH) * 0.38, 56 + ring * 50);
           const angle = -Math.PI / 2 + (2 * Math.PI * place) / Math.max(countOnRing, 1);
-          layoutTargets[node.id] = { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius };
+          layoutTargets[node.id] = {
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius,
+          };
         });
       });
     }
 
+    /* Organisation families view: orgs around a central ring, members orbit
+       their parent org as satellites. */
     function layoutHierarchical() {
       const orgs = nodes.filter(n => n._visible && n.type === 'organisation');
       const inds = nodes.filter(n => n._visible && n.type !== 'organisation');
       const cx = W/2, cy = H/2;
-      orgs.forEach((n, i) => {
-        const a = (2*Math.PI*i)/(orgs.length||1);
-        const r = Math.min(W,H)*0.18;
-        layoutTargets[n.id] = { x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r };
+      const orgRing = Math.min(W, H) * 0.22;
+      orgs.forEach((org, i) => {
+        const a = -Math.PI/2 + (2 * Math.PI * i) / Math.max(orgs.length, 1);
+        layoutTargets[org.id] = { x: cx + Math.cos(a) * orgRing, y: cy + Math.sin(a) * orgRing };
       });
       const groups = {};
-      inds.forEach(n => { const k = n.org||'__none__'; if (!groups[k]) groups[k]=[]; groups[k].push(n); });
+      inds.forEach(n => { const k = n.org || '__none__'; (groups[k] = groups[k] || []).push(n); });
       Object.entries(groups).forEach(([key, members]) => {
-        let ocx = cx, ocy = cy;
-        const orgNode = nodes.find(o => o._visible && o.type === 'organisation' && o.label === key);
-        if (orgNode && layoutTargets[orgNode.id]) { ocx = layoutTargets[orgNode.id].x; ocy = layoutTargets[orgNode.id].y; }
-        const ring = Math.min(W,H)*0.32;
+        const orgNode = orgs.find(o => o.label === key);
+        const anchor = orgNode ? layoutTargets[orgNode.id] : { x: cx, y: cy };
+        const r = Math.min(W, H) * 0.07;
         members.forEach((n, i) => {
-          const a = (2*Math.PI*i)/members.length;
-          layoutTargets[n.id] = { x: ocx+Math.cos(a)*ring, y: ocy+Math.sin(a)*ring };
+          const a = (2 * Math.PI * i) / Math.max(members.length, 1);
+          layoutTargets[n.id] = { x: anchor.x + Math.cos(a) * r, y: anchor.y + Math.sin(a) * r };
         });
       });
     }
 
+    /* Regions view: nodes wedge into pie slices keyed by region. */
     function layoutRadial() {
       const cx = W/2, cy = H/2;
       const regionGroups = {};
-      nodes.filter(n => n._visible).forEach(n => { const k = n.region||'Other'; if (!regionGroups[k]) regionGroups[k]=[]; regionGroups[k].push(n); });
+      nodes.filter(n => n._visible).forEach(n => {
+        const k = n._regionKey || regionKey(n.region) || 'other';
+        (regionGroups[k] = regionGroups[k] || []).push(n);
+      });
       const keys = Object.keys(regionGroups);
+      const baseR = Math.min(W, H) * 0.24;
       keys.forEach((key, ri) => {
-        const ga = (2*Math.PI*ri)/keys.length;
+        const ga = -Math.PI/2 + (2 * Math.PI * ri) / keys.length;
         const members = regionGroups[key];
-        const base = Math.min(W,H)*0.26;
+        layoutGroupLabels.push({
+          text: regionAnchorById[key]?.label || key,
+          x: cx + Math.cos(ga) * (baseR - 90),
+          y: cy + Math.sin(ga) * (baseR - 90),
+        });
         members.forEach((n, i) => {
-          const rr = base + i * 50;
-          const spread = 0.6;
-          const a = ga + (i - members.length/2) * spread / members.length;
-          layoutTargets[n.id] = { x: cx+Math.cos(a)*rr, y: cy+Math.sin(a)*rr };
+          const rr = baseR + (i % 6) * 60;
+          const spread = 0.55;
+          const a = ga + (i - members.length/2) * spread / Math.max(members.length, 1);
+          layoutTargets[n.id] = { x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr };
         });
       });
     }
