@@ -1,9 +1,31 @@
 {
-  "last_updated": "2026-06-18T19:55:45.732Z",
+  "last_updated": "2026-06-19T09:58:22.807Z",
   "time_zone": "Asia/Karachi",
   "current_day": "2026-06-19",
   "source_note": "Incident feed uses Pakistan Standard Time. Map points are district-level approximations for reader orientation and should not be treated as precise coordinates.",
   "incidents": [
+    {
+      "id": "2026-06-19-telegram--1003994704651-53-karachi",
+      "date": "2026-06-19",
+      "reported_at": "2026-06-19T05:54:12.000Z",
+      "time_label": "From Telegram feed",
+      "title": "Attack reported in Karachi",
+      "district": "Karachi",
+      "province": "Sindh",
+      "country": "Pakistan",
+      "lat": 24.86,
+      "lng": 67.01,
+      "category": "Attack",
+      "actor": "Unidentified",
+      "status": "Initial report",
+      "severity": "Medium",
+      "fatalities": 0,
+      "injuries": 0,
+      "summary": "Unknown assailants carried out a firing attack near Solangi Chowk in the Memon Goth area of Malir district, Karachi, during the night. Two police personnel were injured in the incident. Tehreek-e-Taliban Pakistan (TTP) later claimed responsibility for the attack. No fatalities were reported.",
+      "source": "TGD Telegram",
+      "source_url": "Police; Tehreek-e-Taliban Pakistan (TTP) claim of responsibility.",
+      "verified": false
+    },
     {
       "id": "2026-06-08-telegram--1003994704651-51-khyber",
       "date": "2026-06-08",
