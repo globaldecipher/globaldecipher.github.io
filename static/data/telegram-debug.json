@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-06-19T09:58:22.805Z",
+  "checked_at": "2026-06-19T13:42:12.248Z",
   "current_day_pakistan": "2026-06-19",
   "archive_days": 30,
   "archive_start": "2026-05-21",
@@ -9,7 +9,7 @@
   "imported_count": 2,
   "removed_test_count": 0,
   "time_zone": "Asia/Karachi",
-  "offset": 828254904,
+  "offset": 828254905,
   "expected_chat_id": "-1003994704651",
   "bot": {
     "id": 8885884978,
@@ -33,30 +33,6 @@
     "last_error_date": 0,
     "last_error_message": ""
   },
-  "updates_count": 1,
-  "results": [
-    {
-      "update_id": 828254904,
-      "type": "message",
-      "reason": "added",
-      "chat_id": "-1003994704651",
-      "chat_type": "supergroup",
-      "message_id": 53,
-      "message_date_utc": "2026-06-19T05:54:12.000Z",
-      "message_date_pakistan": "2026-06-19",
-      "has_text": true,
-      "field_keys": [
-        "district",
-        "province",
-        "type",
-        "state_forces",
-        "civilians",
-        "terrorists_militants",
-        "perpetrator_s_",
-        "target_s_",
-        "summary",
-        "source"
-      ]
-    }
-  ]
+  "updates_count": 0,
+  "results": []
 }
