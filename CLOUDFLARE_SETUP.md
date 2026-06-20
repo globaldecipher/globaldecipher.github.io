@@ -1,176 +1,139 @@
 # Cloudflare setup — runbook
 
-One-time setup to move The Global Decipher off GitHub Pages and onto Cloudflare.
-Run every command on **your own machine, logged into your own Cloudflare account**.
+One-time setup to run The Global Decipher on Cloudflare. Run every command on
+**your own machine, logged into your own Cloudflare account.**
 
-After this:
-- The **site** is served by Cloudflare Pages on `theglobaldecipher.com`.
-- The **incident feed** is polled by a Cloudflare Worker (cron) and stored in KV — no more git commits or site rebuilds for incident updates.
-- Publishing an **article** still rebuilds + deploys the site (a few times a week, well within free limits).
+What you get:
+- **Site** on Cloudflare Pages at `theglobaldecipher.com`.
+- **Admin panel** at `theglobaldecipher.com/admin` — add/edit/delete incidents, articles, and profiles from a web UI (one shared password). No Telegram, no manual git.
+- **Maintenance mode** — a toggle in the admin panel that takes the whole public site offline behind a maintenance screen.
+- **Incident feed** in Cloudflare KV, served by a Worker. Incidents update with no rebuild; articles/profiles trigger a ~1-minute rebuild.
 
 ```
-                 ┌─────────────── Cloudflare (free) ───────────────┐
- Telegram / X ──►│  Worker (cron every 5 min) ──► KV "feed"         │
-                 │                                   ▲               │
- Browser ───────►│  theglobaldecipher.com (Pages, static)              │
-   map widget ──►│  GET /api/incidents ──► Worker ──┘  (KV blob)     │
-                 └──────────────────────────────────────────────────┘
- GitHub Actions: build + `wrangler pages deploy` on content change only.
+                  ┌──────────────── Cloudflare (free) ─────────────────┐
+ Admin panel ───► │  Worker /api/*  ──► KV (incidents, maintenance flag) │
+ (/admin)         │       │   └─► GitHub commit ─► deploy ─► rebuild      │
+                  │       ▼                                               │
+ Browser  ──────► │  Pages (_worker.js gate) ─► static site OR maint page │
+   map widget ──► │  GET /api/incidents ──► Worker ──► KV                  │
+                  └───────────────────────────────────────────────────────┘
 ```
 
 ## 0. Prerequisites
-
-- The `theglobaldecipher.com` zone is already in this Cloudflare account. ✅ (you bought it)
-- Node 18+ and the repo cloned. Pull the latest `main` first.
-- Authenticate wrangler once: `npx wrangler login`.
-- Find your **Account ID**: `npx wrangler whoami` (or Cloudflare dashboard → right sidebar).
+- `theglobaldecipher.com` is already in this Cloudflare account (bought from Cloudflare). ✅
+- Node 18+, repo cloned, latest `main` pulled.
+- `npx wrangler login` (opens browser → log into the right account).
+- `npx wrangler whoami` → note the **Account ID**.
 
 ---
 
 ## 1. Site → Cloudflare Pages
-
 ```bash
-# from the repo root
-node build.mjs                       # produces ./site
-
-# create the Pages project (direct-upload type), production branch = main
+# repo root
+node build.mjs
 npx wrangler pages project create theglobaldecipher --production-branch=main
-
-# first manual deploy
 npx wrangler pages deploy site --project-name=theglobaldecipher --branch=main
 ```
+- **[Cloudflare site]** Workers & Pages → `theglobaldecipher` → Custom domains → add `theglobaldecipher.com` (+ `www` redirect if wanted).
+- **[Cloudflare site]** My Profile → API Tokens → create token with **Cloudflare Pages: Edit**.
+- **[GitHub site]** repo → Settings → Secrets and variables → Actions:
+  - `CLOUDFLARE_API_TOKEN` = the token above
+  - `CLOUDFLARE_ACCOUNT_ID` = from `wrangler whoami`
 
-This prints a `*.pages.dev` URL — open it, confirm the site looks right (the map
-will say "Feed unavailable" until the Worker is up in step 2; that's expected).
-
-**Attach the domain** (Cloudflare dashboard → Workers & Pages → theglobaldecipher
-→ Custom domains): add `theglobaldecipher.com`, and add `www.theglobaldecipher.com` as a
-redirect to the apex if you want www to work.
-
-**Create the GitHub secrets** so Actions can deploy on future content changes
-(repo → Settings → Secrets and variables → Actions → New repository secret):
-
-| Secret | Value |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Edit** (My Profile → API Tokens → Create Token) |
-| `CLOUDFLARE_ACCOUNT_ID` | from `wrangler whoami` |
-
-> ⚠️ Until these two secrets exist, the **Deploy site to Cloudflare Pages** Action
-> (and the article-publish Action) will fail. Set them right after step 1.
+> Until these two secrets exist, the deploy Action fails. Set them now.
 
 ---
 
-## 2. Incident feed → Worker + KV
-
+## 2. Worker + KV (incidents, admin API, maintenance flag)
 ```bash
 cd worker
-npm install                          # installs wrangler locally (optional; npx works too)
-
-# create the KV namespace
-npx wrangler kv namespace create INCIDENTS
-```
-
-Copy the printed `id` into `worker/wrangler.toml`, replacing
-`REPLACE_WITH_KV_NAMESPACE_ID`.
-
-**Seed KV** with the existing incidents (so the map isn't empty on day one):
-
-```bash
-# from repo root — loads the committed feed into KV
+npx wrangler kv namespace create INCIDENTS      # paste the printed id into wrangler.toml
+# seed KV with the existing incidents:
 npx wrangler kv key put --binding=INCIDENTS feed --path=../static/data/incidents.json
-# (run from the worker/ dir, hence ../). Or use an absolute path to static/data/incidents.json
 ```
+
+**GitHub token** (lets the admin panel save articles/profiles). On GitHub: Settings →
+Developer settings → **Fine-grained tokens** → new token, repository =
+`globaldecipher/globaldecipher.github.io`, permission **Contents: Read and write**.
 
 **Set the Worker secrets:**
-
 ```bash
 # still in worker/
-npx wrangler secret put TELEGRAM_BOT_TOKEN      # same bot token used before
-npx wrangler secret put X_BEARER_TOKEN          # X/Twitter API v2 bearer (optional)
-npx wrangler secret put ADMIN_TOKEN             # invent a long random string; used by the issue-form workflow
-```
-
-`TELEGRAM_CHAT_ID` and `X_USERNAME` are non-secret and already in `wrangler.toml`.
-
-**Deploy the Worker:**
-
-```bash
+npx wrangler secret put ADMIN_TOKEN     # invent a long random string = the admin-panel password
+npx wrangler secret put GITHUB_TOKEN    # the fine-grained token above
+npx wrangler secret put X_BEARER_TOKEN  # OPTIONAL — only if you want X auto-import; skip otherwise
 npx wrangler deploy
 ```
+`X_USERNAME`, `GITHUB_REPO`, `GITHUB_BRANCH` are already set in `wrangler.toml`.
 
-**Route the feed under your domain** so the site can fetch it same-origin. In
-`worker/wrangler.toml`, uncomment the `[[routes]]` block:
-
+**Route the API under the domain** — uncomment `[[routes]]` in `worker/wrangler.toml`:
 ```toml
 [[routes]]
 pattern = "theglobaldecipher.com/api/*"
 zone_name = "theglobaldecipher.com"
 ```
+then `npx wrangler deploy` again.
 
-then `npx wrangler deploy` again. (A Workers route overrides Pages for matching
-paths, so `/api/incidents` hits the Worker while everything else is Pages.)
+---
 
-**Verify:**
+## 3. Maintenance mode (bind KV to Pages)
+The Pages site's `_worker.js` reads the maintenance flag from KV. Bind the same KV
+namespace to the Pages project:
 
+**[Cloudflare site]** Workers & Pages → `theglobaldecipher` → Settings → **Functions →
+KV namespace bindings** → Add:
+- Variable name: `MAINTENANCE_KV`
+- KV namespace: `INCIDENTS` (the one created in step 2)
+
+Redeploy Pages once so the binding takes effect:
 ```bash
-curl https://theglobaldecipher.com/api/incidents | head -c 200
-npx wrangler tail        # live logs; watch a cron fire (every 5 min)
+# repo root
+npx wrangler pages deploy site --project-name=theglobaldecipher --branch=main
+```
+> Until this binding exists, the gate fails open (site always live) — maintenance
+> just can't be turned on. After binding, toggling takes up to ~60s to propagate.
+
+---
+
+## 4. Admin panel
+- Go to `https://theglobaldecipher.com/admin`.
+- Log in with the `ADMIN_TOKEN` string from step 2 (this is the shared password — give it to internees).
+- **Incidents** tab: add/edit/delete — updates the live map within ~1 min, no rebuild.
+- **Articles & Profiles** tab: pick a folder (News/Opinion/Monitoring/Reports/Profiles/Pages), add/edit/delete — each save commits to GitHub and the site rebuilds in ~1 min.
+- **Maintenance mode** toggle (top right): ON locks the public site behind the maintenance screen; `/admin` stays reachable so you can turn it back off.
+
+---
+
+## 5. (Optional) remove the old Telegram Worker
+The lost-token Telegram bot is no longer used. Delete its old Worker in
+Workers & Pages so it isn't running for nothing.
+
+---
+
+## Verify
+```bash
+curl https://theglobaldecipher.com/api/incidents | head -c 200       # feed
+curl https://theglobaldecipher.com/api/maintenance                   # {"on":false}
+# open /admin, log in, add a test incident, toggle maintenance on/off
+cd worker && npx wrangler tail                                        # live worker logs
 ```
 
-Reload the live site's incident map — it should load from `/api/incidents`.
-
-> If you'd rather not use a route, the Worker also answers on its
-> `*.workers.dev` URL. In that case set `window.TGD_INCIDENTS_URL` to that URL
-> (the map already honours it) — but the route option is cleaner.
-
----
-
-## 3. Manual incident form (optional)
-
-The "Incident update" issue form now POSTs to the Worker instead of committing.
-Add two more GitHub secrets:
-
-| Secret | Value |
-|---|---|
-| `WORKER_INGEST_URL` | `https://theglobaldecipher.com/api/incidents` |
-| `TGD_ADMIN_TOKEN` | the same string you set as the Worker's `ADMIN_TOKEN` |
-
-The "Content upload" (article) form needs nothing extra — it reuses the
-`CLOUDFLARE_*` secrets from step 1.
-
----
-
-## 4. Cut over and clean up
-
-1. Confirm `theglobaldecipher.com` serves from Pages and the map loads.
-2. In GitHub repo Settings → Pages, set source to **None** to turn off the old
-   GitHub Pages site (optional — it just goes stale otherwise).
-
----
-
 ## Ongoing operations
-
 | Task | How |
 |---|---|
-| Publish an article | Edit/add markdown in `content/` (or use the issue form). Push → Action builds + deploys. |
-| Add an incident by hand | Open an "Incident update" issue → Worker ingests it → map updates within ~1 min, no deploy. |
-| Watch the poller | `cd worker && npx wrangler tail` |
-| Change Worker code | Edit `worker/src/*`, then `npx wrangler deploy` |
-| Re-seed / fix the feed | `wrangler kv key put --binding=INCIDENTS feed --path=<json>` |
-| Rotate the admin token | `wrangler secret put ADMIN_TOKEN` + update `TGD_ADMIN_TOKEN` in GitHub |
-
-## Not migrated (by design)
-
-- **Weekly CSV import** (`static/data/imports/*.csv`): the old Telegram workflow
-  re-imported these into the feed on every run. That step was **not** ported to
-  the Worker. The incidents from the existing CSV are already in the seeded feed
-  and age out naturally after the 31-day window. To bulk-load a new dataset
-  later, either `POST` the rows to `/api/incidents` (Bearer `ADMIN_TOKEN`) or
-  re-seed the `feed` KV key. Say the word and this can be wired as a small
-  Action that parses the CSV and POSTs it.
+| Add/edit/delete an incident | Admin panel → Incidents (instant) |
+| Add/edit/delete an article or profile | Admin panel → Articles & Profiles (rebuild ~1 min) |
+| Take the site offline | Admin panel → Maintenance mode toggle |
+| Change Worker code | edit `worker/src/*` → `npx wrangler deploy` |
+| Rotate the admin password | `wrangler secret put ADMIN_TOKEN` (also update `TGD_ADMIN_TOKEN` if you still use the issue form) |
+| Re-seed the feed | `wrangler kv key put --binding=INCIDENTS feed --path=<json>` |
 
 ## Free-tier headroom
+- **Pages:** 500 builds/month — only on content saves (a handful/week). Incidents cause **zero** builds.
+- **Workers:** 100k requests/day + cron included.
+- **KV:** 100k reads/day, 1k writes/day. Feed reads are edge-cached 60s; the maintenance flag uses a 60s `cacheTtl`.
 
-- **Pages:** 500 builds/month — we only build on content changes (a handful/week). Bot-driven incident updates cause **zero** builds.
-- **Workers:** 100k requests/day + cron included. ~288 cron runs/day + map reads.
-- **KV:** 100k reads/day, 1k writes/day. The `/api/incidents` response is edge-cached 60s, so reads stay low. Writes happen only when there's new incident data.
+## Notes
+- The admin password is sent from the browser to the Worker over HTTPS. Anyone with it can edit content — treat it like a real password. Upgrade path: Clerk (works on Workers/Pages) for per-user login later.
+- `GITHUB_TOKEN` never reaches the browser; only the Worker uses it.
+- Weekly CSV bulk import was not ported — `POST` rows to `/api/incidents` (Bearer `ADMIN_TOKEN`) or re-seed KV if you need it.

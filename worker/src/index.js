@@ -1,35 +1,39 @@
-// The Global Decipher — incident-feed Worker.
+// The Global Decipher — incident-feed + admin API Worker.
 //
-// Replaces the old GitHub Actions pollers + incidents.json commit/deploy loop.
-//   scheduled(): every 5 min poll Telegram (and every 15 min poll X), merge new
-//                incidents into Cloudflare KV. No git commit, no site rebuild.
-//   fetch():     GET  /api/incidents  -> serve the KV feed (this is what the map
-//                                        on the site reads at runtime)
-//                POST /api/incidents  -> authed manual ingest (issue-form workflow)
-//                GET  /               -> health check
+//   scheduled(): poll X (every 15 min) and prune the feed to the archive window.
+//   fetch():
+//     GET    /api/incidents          public — serve the KV feed (the map reads this)
+//     POST   /api/incidents          authed — add/edit incident(s) (merge by id)
+//     DELETE /api/incidents/<id>     authed — remove an incident
+//     GET    /api/maintenance        public — { on: bool }
+//     POST   /api/maintenance        authed — { on: bool } toggle site maintenance
+//     GET    /api/admin/ping         authed — validate the access key
+//     GET    /api/content?folder=    authed — list markdown files in content/<folder>
+//     GET    /api/content/file?path= authed — read one markdown file { content, sha }
+//     PUT    /api/content/file       authed — create/update a markdown file (commits to GitHub)
+//     DELETE /api/content/file       authed — delete a markdown file (commits to GitHub)
+//     GET    /                       health check
 //
-// KV namespace binding: INCIDENTS
-// Secrets: TELEGRAM_BOT_TOKEN, X_BEARER_TOKEN, ADMIN_TOKEN
-// Vars:    TELEGRAM_CHAT_ID, X_USERNAME
+// KV binding: INCIDENTS   Secrets: ADMIN_TOKEN, GITHUB_TOKEN, X_BEARER_TOKEN (optional)
+// Vars: X_USERNAME, GITHUB_REPO, GITHUB_BRANCH
 
 import {
   loadFeed,
   saveFeed,
-  saveTelegramState,
   mergeIncidents,
+  deleteIncidentById,
   pakistanDateFromSeconds,
   archiveStartDate,
   ARCHIVE_DAYS,
-  PAKISTAN_TIME_ZONE
+  PAKISTAN_TIME_ZONE,
+  MAINTENANCE_KEY
 } from "./feed.js";
-import { pollTelegram } from "./telegram.js";
 import { pollX } from "./x.js";
-
-const FEED_PATHS = new Set(["/api/incidents", "/incidents"]);
+import { listContent, getFile, putFile, deleteFile } from "./github.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type"
 };
 
@@ -40,63 +44,111 @@ function json(body, status = 200, extraHeaders = {}) {
   });
 }
 
+function authed(request, env) {
+  const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  return Boolean(env.ADMIN_TOKEN) && token === env.ADMIN_TOKEN;
+}
+
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS });
-    }
+    if (method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+    if (path === "/" || path === "/health") return json({ ok: true, service: "tgd-incidents" });
 
-    if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "tgd-incidents" });
-    }
+    try {
+      // ---- Incident feed (public read) ----
+      if ((path === "/api/incidents" || path === "/incidents") && method === "GET") {
+        const cache = caches.default;
+        const cacheKey = new Request(`${url.origin}${path}`, { method: "GET" });
+        const hit = await cache.match(cacheKey);
+        if (hit) return hit;
+        const feed = await loadFeed(env);
+        const res = json(feed, 200, { "cache-control": "public, max-age=60" });
+        ctx.waitUntil(cache.put(cacheKey, res.clone()));
+        return res;
+      }
 
-    if (!FEED_PATHS.has(url.pathname)) {
+      // ---- Maintenance flag (public read) ----
+      if (path === "/api/maintenance" && method === "GET") {
+        const flag = await env.INCIDENTS.get(MAINTENANCE_KEY);
+        return json({ on: flag === "on" });
+      }
+
+      // ---- Everything below requires the access key ----
+      const needsAuth = path.startsWith("/api/");
+      if (needsAuth && !authed(request, env)) return json({ error: "Unauthorized" }, 401);
+
+      if (path === "/api/admin/ping") return json({ ok: true });
+
+      if (path === "/api/maintenance" && method === "POST") {
+        const body = await readJson(request);
+        const on = body?.on === true || body?.on === "on" || body?.on === "true";
+        await env.INCIDENTS.put(MAINTENANCE_KEY, on ? "on" : "off");
+        return json({ ok: true, on });
+      }
+
+      // ---- Incidents: add / edit ----
+      if (path === "/api/incidents" && method === "POST") {
+        const payload = await readJson(request);
+        const incoming = Array.isArray(payload) ? payload : Array.isArray(payload?.incidents) ? payload.incidents : [payload];
+        const valid = incoming.filter((i) => i && i.id && i.date);
+        if (!valid.length) return json({ error: "Each incident needs at least id and date" }, 400);
+        const today = pakistanDateFromSeconds();
+        const feed = await loadFeed(env);
+        feed.incidents = mergeIncidents(feed.incidents, valid, today);
+        stampFeed(feed, today);
+        await saveFeed(env, feed);
+        return json({ ok: true, added: valid.length, total: feed.incidents.length });
+      }
+
+      // ---- Incidents: delete ----
+      if (path.startsWith("/api/incidents/") && method === "DELETE") {
+        const id = decodeURIComponent(path.slice("/api/incidents/".length));
+        const today = pakistanDateFromSeconds();
+        const feed = await loadFeed(env);
+        const removed = deleteIncidentById(feed, id);
+        if (removed) {
+          stampFeed(feed, today);
+          await saveFeed(env, feed);
+        }
+        return json({ ok: removed, removed, total: feed.incidents.length });
+      }
+
+      // ---- Content (markdown files via GitHub) ----
+      if (path === "/api/content" && method === "GET") {
+        const folder = url.searchParams.get("folder") || "";
+        return json({ files: await listContent(env, folder) });
+      }
+      if (path === "/api/content/file" && method === "GET") {
+        const filePath = url.searchParams.get("path") || "";
+        return json(await getFile(env, filePath));
+      }
+      if (path === "/api/content/file" && method === "PUT") {
+        const body = await readJson(request);
+        if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
+        return json(await putFile(env, body.path, body.content, body.message, body.sha));
+      }
+      if (path === "/api/content/file" && method === "DELETE") {
+        const body = await readJson(request);
+        if (!body?.path || !body?.sha) return json({ error: "path and sha are required" }, 400);
+        return json(await deleteFile(env, body.path, body.sha, body.message));
+      }
+
       return json({ error: "Not found" }, 404);
+    } catch (error) {
+      return json({ error: error.message || "Server error" }, error.status || 500);
     }
-
-    if (request.method === "GET") {
-      // Edge-cache for 60s, keyed by path only so the map's ?t=<ts> cache-buster
-      // doesn't blow past KV's free read quota under traffic.
-      const cache = caches.default;
-      const cacheKey = new Request(`${url.origin}${url.pathname}`, { method: "GET" });
-      const cached = await cache.match(cacheKey);
-      if (cached) return cached;
-
-      const feed = await loadFeed(env);
-      const response = json(feed, 200, { "cache-control": "public, max-age=60" });
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-      return response;
-    }
-
-    if (request.method === "POST") {
-      const auth = request.headers.get("authorization") || "";
-      const token = auth.replace(/^Bearer\s+/i, "");
-      if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
-        return json({ error: "Unauthorized" }, 401);
-      }
-      let payload;
-      try {
-        payload = await request.json();
-      } catch {
-        return json({ error: "Invalid JSON body" }, 400);
-      }
-      const incoming = Array.isArray(payload) ? payload : Array.isArray(payload?.incidents) ? payload.incidents : [payload];
-      const valid = incoming.filter((item) => item && item.id && item.date);
-      if (!valid.length) {
-        return json({ error: "No valid incidents (each needs at least id and date)" }, 400);
-      }
-
-      const today = pakistanDateFromSeconds();
-      const feed = await loadFeed(env);
-      feed.incidents = mergeIncidents(feed.incidents, valid, today);
-      stampFeed(feed, today);
-      await saveFeed(env, feed);
-      return json({ ok: true, added: valid.length, total: feed.incidents.length });
-    }
-
-    return json({ error: "Method not allowed" }, 405);
   },
 
   async scheduled(event, env, ctx) {
@@ -116,43 +168,28 @@ async function runPollers(env) {
   const today = pakistanDateFromSeconds();
   const feed = await loadFeed(env);
   const existing = Array.isArray(feed.incidents) ? feed.incidents : [];
-  const existingIds = new Set(existing.map((incident) => incident.id));
 
-  let telegram = { added: [], lastUpdateId: 0 };
-  try {
-    telegram = await pollTelegram(env, existingIds);
-  } catch (error) {
-    console.error("Telegram poll failed:", error.message);
-  }
-
-  // X is rate-limited on the free tier, so only poll it on the quarter hour.
   let xAdded = [];
   if (env.X_BEARER_TOKEN && new Date().getUTCMinutes() % 15 === 0) {
     try {
-      xAdded = await pollX(env, existing.concat(telegram.added));
+      xAdded = await pollX(env, existing);
     } catch (error) {
       console.error("X poll failed:", error.message);
     }
   }
 
-  const added = telegram.added.concat(xAdded);
   const before = existing.length;
-  const merged = mergeIncidents(existing, added, today);
-  const feedChanged =
-    added.length > 0 ||
+  const merged = mergeIncidents(existing, xAdded, today);
+  const changed =
+    xAdded.length > 0 ||
     merged.length !== before ||
     feed.current_day !== today ||
     feed.archive_start !== archiveStartDate(today);
 
-  if (feedChanged) {
+  if (changed) {
     feed.incidents = merged;
     stampFeed(feed, today);
     await saveFeed(env, feed);
   }
-
-  if (telegram.lastUpdateId > 0) {
-    await saveTelegramState(env, { last_update_id: telegram.lastUpdateId });
-  }
-
-  console.log(`Telegram +${telegram.added.length}, X +${xAdded.length}; feed now ${merged.length} (was ${before}).`);
+  console.log(`X +${xAdded.length}; feed now ${merged.length} (was ${before}).`);
 }

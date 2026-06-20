@@ -4,7 +4,7 @@ Independent, research-first coverage of terrorism, militant networks, and securi
 
 **Live site:** https://globaldecipher.github.io
 
-The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opinion, monitoring updates, monthly reports, and threat-actor / organisation profiles, plus two interactive tools: a **Pakistan incident map** and a **militant network graph**. New incident reports are ingested automatically from a Telegram channel and an X account, and editors can publish articles and incidents through GitHub issue forms — no local tooling required.
+The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opinion, monitoring updates, monthly reports, and threat-actor / organisation profiles, plus two interactive tools: a **Pakistan incident map** and a **militant network graph**. Editors and interns manage everything — incidents, articles, profiles — from a web **admin panel** at `/admin` (one shared password), which also has a **maintenance-mode** switch that takes the public site offline. An optional cron can still auto-import incidents from X.
 
 ---
 
@@ -32,11 +32,11 @@ content/          ← Markdown source for every article (you edit these)
   news/  opinion/  monitoring/  reports/  profiles/
   pages/          ← static pages (About, Contact, Methodology, policies…)
 static/           ← CSS, JS, brand images, and static JSON data
+  admin.js / admin.css ← the /admin panel SPA (self-contained)
   data/           ← network graphs, district coords; incidents.json (seed only)
-  data/imports/   ← CSV imports
-build.mjs         ← the entire static-site builder
-worker/           ← Cloudflare Worker: polls Telegram/X → KV, serves /api/incidents
-  src/            ← index.js (entry), feed.js, telegram.js, x.js
+build.mjs         ← static-site builder (also emits /admin, maintenance.html, _worker.js)
+worker/           ← Cloudflare Worker: incident feed + admin API + maintenance flag
+  src/            ← index.js (entry), feed.js, x.js, github.js
   wrangler.toml   ← Worker config (KV binding, cron, route)
 .github/
   workflows/      ← GitHub Actions (deploy + content/incident publishing)
@@ -65,8 +65,10 @@ The site `url`, title, contact, and social links live in the `SITE` object at th
 
 The site splits cleanly in two so that high-frequency incident updates never trigger a rebuild:
 
-- **Static (Cloudflare Pages):** all articles, profiles, orgs, regions, the map UI, JS/CSS, network graph, district coords. Rebuilt + deployed by GitHub Actions **only when content changes** (a few times a week).
-- **Dynamic (Cloudflare Worker + KV):** the live incident feed. A Worker polls Telegram/X on a cron, merges results into KV, and serves them at `GET /api/incidents`. The map fetches that at runtime. **No commits, no builds, no deploys for incident updates.**
+- **Static (Cloudflare Pages):** all articles, profiles, orgs, regions, the map UI, JS/CSS, network graph, district coords, plus the admin panel (`/admin`) and the maintenance gate (`_worker.js`). Rebuilt + deployed **only when content changes**.
+- **Dynamic (Cloudflare Worker + KV):** the live incident feed + the admin API. The Worker serves `GET /api/incidents` (the map reads this), handles authed writes from the admin panel, commits article/profile edits to GitHub, and stores the maintenance flag. An optional cron imports from X and prunes the archive window. **No commits, no builds, no deploys for incident updates.**
+
+The admin panel writes incidents straight to KV (instant) and writes articles/profiles as Markdown files via the GitHub API (commit → rebuild). Maintenance mode is a KV flag the Pages `_worker.js` checks on every request.
 
 See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.md`](CLOUDFLARE_SETUP.md).
 
@@ -74,12 +76,16 @@ See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.
 
 | File | Role |
 |---|---|
-| `index.js` | `scheduled()` cron handler (poll → KV) + `fetch()` handler (`GET /api/incidents`, authed `POST /api/incidents`) |
-| `telegram.js` | Telegram channel polling → incident objects |
-| `x.js` | X (Twitter) account polling → incident objects |
+| `index.js` | `fetch()` API (incidents CRUD, content CRUD, maintenance toggle, auth) + `scheduled()` cron (X import + prune) |
+| `x.js` | X (Twitter) account polling → incident objects (optional) |
+| `github.js` | GitHub Contents API wrapper — list/read/write/delete Markdown under `content/` |
 | `feed.js` | district lookup, date/archive helpers, KV read/write, merge/dedupe/prune |
 
-Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron `*/5 * * * *`, route `theglobaldecipher.com/api/*`. Secrets (`wrangler secret put`): `TELEGRAM_BOT_TOKEN`, `X_BEARER_TOKEN`, `ADMIN_TOKEN`.
+Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron, route `theglobaldecipher.com/api/*`, vars `X_USERNAME`/`GITHUB_REPO`/`GITHUB_BRANCH`. Secrets (`wrangler secret put`): `ADMIN_TOKEN` (admin password), `GITHUB_TOKEN` (Contents: write), `X_BEARER_TOKEN` (optional). The Pages project also needs a `MAINTENANCE_KV` binding to the same KV namespace.
+
+### Admin panel (`static/admin.js`, `/admin`)
+
+Vanilla-JS SPA. Login with `ADMIN_TOKEN`. Tabs: **Incidents** (KV CRUD, instant) and **Articles & Profiles** (Markdown CRUD via GitHub, ~1-min rebuild). Header toggle for **maintenance mode**. Self-contained styles (`static/admin.css`) so it loads even while the site is gated.
 
 ### GitHub Actions (`.github/workflows/`)
 
@@ -95,11 +101,13 @@ The repo is **public**, so Actions minutes are free and unmetered. The deploy us
 
 ## Publishing
 
-See [`HOW_TO_PUBLISH.md`](HOW_TO_PUBLISH.md) and [`CONTENT_UPLOAD_GUIDE.md`](CONTENT_UPLOAD_GUIDE.md).
+Primary path is the **admin panel** at `/admin` (log in with `ADMIN_TOKEN`):
 
-- **Article:** edit/add a Markdown file in `content/` (or use the *Content upload* issue form). Push → Action builds + deploys.
-- **Incident (by hand):** open an *Incident update* issue. The Worker ingests it; the map updates within ~1 minute with no deploy.
-- **Incidents (automatic):** the Worker polls Telegram + X on its own — nothing to do.
+- **Incident:** Incidents tab → add/edit/delete. Live map updates in ~1 min, no deploy.
+- **Article / profile / page:** Articles & Profiles tab → pick folder → add/edit/delete. Commits to GitHub → site rebuilds in ~1 min.
+- **Maintenance:** header toggle takes the public site offline behind a maintenance screen.
+
+Still available as fallbacks: editing Markdown in `content/` directly, the GitHub *Content upload* / *Incident update* issue forms (see [`HOW_TO_PUBLISH.md`](HOW_TO_PUBLISH.md)), and optional X auto-import via the Worker cron.
 
 ---
 

@@ -1570,6 +1570,88 @@ function clean(value) {
   return String(value == null ? "" : value).trim();
 }
 
+function adminPage() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>TGD Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body>
+<div id="admin-root"></div>
+<script src="/assets/admin.js" defer></script>
+</body>
+</html>
+`;
+}
+
+// Self-contained (no external assets) so it renders even while maintenance mode
+// gates /assets/*.
+function maintenancePage() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${escapeHtml(SITE.title)} — Maintenance</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#0e1116;color:#e6edf3;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center;text-align:center;padding:24px}
+  .wordmark{font-family:"IBM Plex Mono",ui-monospace,monospace;letter-spacing:3px;font-weight:600;font-size:14px;color:#c8a24a;margin-bottom:28px}
+  h1{font-size:28px;margin:0 0 10px;font-weight:600}
+  p{color:#8b96a5;margin:0;max-width:32rem}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d98b2b;margin-right:8px;vertical-align:middle}
+</style>
+</head>
+<body>
+<main>
+  <div class="wordmark">THE GLOBAL DECIPHER</div>
+  <h1><span class="dot"></span>We'll be right back</h1>
+  <p>The site is briefly offline for maintenance. Please check back shortly.</p>
+</main>
+</body>
+</html>
+`;
+}
+
+// Cloudflare Pages advanced-mode worker. Runs on every request to the Pages
+// project. Reads the maintenance flag from KV and serves the maintenance page
+// for the public site; everything except /admin, /assets/admin.* and /api is
+// gated. Fails open if KV is unavailable so a glitch can't lock out the site.
+function pagesWorker() {
+  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/maintenance\\.html$/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const exempt = EXEMPT.some((re) => re.test(url.pathname));
+    if (!exempt && env.MAINTENANCE_KV) {
+      try {
+        const flag = await env.MAINTENANCE_KV.get("maintenance", { cacheTtl: 60 });
+        if (flag === "on") {
+          const page = await env.ASSETS.fetch(new URL("/maintenance.html", url.origin));
+          return new Response(page.body, {
+            status: 503,
+            headers: { "content-type": "text/html; charset=utf-8", "retry-after": "3600", "cache-control": "no-store" }
+          });
+        }
+      } catch (err) {
+        // fail open — serve the site
+      }
+    }
+    return env.ASSETS.fetch(request);
+  }
+};
+`;
+}
+
 function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
@@ -1687,6 +1769,11 @@ function main() {
 
   writeRootFile("404.html", notFoundPage());
   writeStaticFiles(allContent, pages, hubs);
+
+  // Admin panel, maintenance page, and the Pages maintenance gate.
+  writePage("/admin/", adminPage());
+  writeRootFile("maintenance.html", maintenancePage());
+  writeRootFile("_worker.js", pagesWorker());
 
   const hubCount = hubs.organisations.length + hubs.regions.length;
   console.log(`Built ${allContent.length + pages.length + hubCount + 6} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);

@@ -3,16 +3,18 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 workers_dev = true
 
-# Poll Telegram every 5 minutes. X is polled inside the same handler on the
-# quarter hour (see src/index.js), so a single cron is enough.
+# Cron prunes the feed to the archive window and polls X on the quarter hour.
 [triggers]
 crons = ["*/5 * * * *"]
 
-# Non-secret config. Secrets (TELEGRAM_BOT_TOKEN, X_BEARER_TOKEN, ADMIN_TOKEN)
-# are set with `wrangler secret put`, never committed here.
+# Non-secret config. Secrets are set with `wrangler secret put`, never committed:
+#   ADMIN_TOKEN    shared admin-panel password (also the issue-form ingest key)
+#   GITHUB_TOKEN   fine-grained PAT, Contents: Read and write on this repo
+#   X_BEARER_TOKEN optional, only if X auto-import is wanted
 [vars]
-TELEGRAM_CHAT_ID = "-1003994704651"
 X_USERNAME = "Global_Decipher"
+GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
+GITHUB_BRANCH = "main"
 
 # KV namespace that stores the incident feed + Telegram poll state.
 # Replace the placeholder id after running:

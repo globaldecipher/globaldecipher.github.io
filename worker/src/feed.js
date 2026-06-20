@@ -9,7 +9,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 // KV keys.
 export const FEED_KEY = "feed";
-export const TELEGRAM_STATE_KEY = "telegram_state";
+export const MAINTENANCE_KEY = "maintenance";
 
 export const DISTRICTS = [
   { terms: ["bajaur", "loi sam"], district: "Bajaur", province: "Khyber Pakhtunkhwa", lat: 34.72, lng: 71.5 },
@@ -175,18 +175,10 @@ export async function saveFeed(env, feed) {
   await env.INCIDENTS.put(FEED_KEY, JSON.stringify(feed));
 }
 
-export async function loadTelegramState(env) {
-  const raw = await env.INCIDENTS.get(TELEGRAM_STATE_KEY);
-  if (!raw) return { last_update_id: 0 };
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return { last_update_id: 0 };
-  }
-}
-
-export async function saveTelegramState(env, state) {
-  await env.INCIDENTS.put(TELEGRAM_STATE_KEY, JSON.stringify(state));
+export function deleteIncidentById(feed, id) {
+  const before = feed.incidents.length;
+  feed.incidents = feed.incidents.filter((incident) => incident.id !== id);
+  return feed.incidents.length !== before;
 }
 
 // Merge new incidents into the existing list: drop test rows, dedupe by id,
