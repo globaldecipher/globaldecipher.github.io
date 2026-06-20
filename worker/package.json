@@ -1,0 +1,15 @@
+{
+  "name": "tgd-incidents-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker: polls Telegram/X for security incidents and serves the feed from KV.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

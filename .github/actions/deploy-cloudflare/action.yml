@@ -1,0 +1,28 @@
+name: Build and deploy to Cloudflare Pages
+description: Build the static site with build.mjs and deploy it to Cloudflare Pages via direct upload.
+
+inputs:
+  api-token:
+    description: Cloudflare API token with the Cloudflare Pages Edit permission.
+    required: true
+  account-id:
+    description: Cloudflare account ID.
+    required: true
+  project-name:
+    description: Cloudflare Pages project name.
+    required: false
+    default: theglobaldecipher
+
+runs:
+  using: composite
+  steps:
+    - name: Build static site
+      shell: bash
+      run: node build.mjs
+
+    - name: Deploy to Cloudflare Pages
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: npx --yes wrangler@4 pages deploy site --project-name="${{ inputs.project-name }}" --branch=main

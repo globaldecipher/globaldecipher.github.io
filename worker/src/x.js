@@ -1,31 +1,15 @@
-import fs from "fs";
+// X (Twitter) account polling -> incident objects.
+// Ported from .github/scripts/update-incidents-from-x.mjs.
 
-const DATA_PATH = "static/data/incidents.json";
-const RETENTION_DAYS = 31;
-const X_USERNAME = process.env.X_USERNAME || "Global_Decipher";
-const X_BEARER_TOKEN = process.env.X_BEARER_TOKEN || "";
+import { slug } from "./feed.js";
+
 const X_API = "https://api.twitter.com/2";
 
 const NUMBER_WORDS = new Map([
-  ["zero", 0],
-  ["one", 1],
-  ["two", 2],
-  ["three", 3],
-  ["four", 4],
-  ["five", 5],
-  ["six", 6],
-  ["seven", 7],
-  ["eight", 8],
-  ["nine", 9],
-  ["ten", 10],
-  ["eleven", 11],
-  ["twelve", 12],
-  ["thirteen", 13],
-  ["fourteen", 14],
-  ["fifteen", 15],
-  ["twenty", 20],
-  ["thirty", 30],
-  ["thirty-five", 35]
+  ["zero", 0], ["one", 1], ["two", 2], ["three", 3], ["four", 4], ["five", 5],
+  ["six", 6], ["seven", 7], ["eight", 8], ["nine", 9], ["ten", 10], ["eleven", 11],
+  ["twelve", 12], ["thirteen", 13], ["fourteen", 14], ["fifteen", 15],
+  ["twenty", 20], ["thirty", 30], ["thirty-five", 35]
 ]);
 
 const DISTRICTS = [
@@ -45,45 +29,8 @@ const DISTRICTS = [
   { match: /\bgilgit\b/i, district: "Gilgit", province: "Gilgit-Baltistan", lat: 35.92, lng: 74.31 }
 ];
 
-function setOutput(name, value) {
-  if (process.env.GITHUB_OUTPUT) {
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
-  }
-}
-
 function compactText(text) {
-  return String(text || "")
-    .replace(/https?:\/\/\S+/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function slug(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 56);
-}
-
-function dateValue(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function retentionCutoff(now = new Date()) {
-  const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  cutoff.setUTCDate(cutoff.getUTCDate() - RETENTION_DAYS + 1);
-  return cutoff;
-}
-
-function pruneOldIncidents(incidents, now = new Date()) {
-  const cutoff = retentionCutoff(now);
-  return incidents.filter((incident) => {
-    const incidentDate = dateValue(incident.date);
-    return !incidentDate || incidentDate >= cutoff;
-  });
+  return String(text || "").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim();
 }
 
 function toNumber(value) {
@@ -137,9 +84,9 @@ function buildTitle(category, district, text) {
   return `${category} reported in ${district}`;
 }
 
-async function xFetch(path) {
+async function xFetch(token, path) {
   const response = await fetch(`${X_API}${path}`, {
-    headers: { Authorization: `Bearer ${X_BEARER_TOKEN}` }
+    headers: { Authorization: `Bearer ${token}` }
   });
   if (!response.ok) {
     const body = await response.text();
@@ -148,26 +95,23 @@ async function xFetch(path) {
   return response.json();
 }
 
-async function main() {
-  if (!X_BEARER_TOKEN) {
-    console.log("X_BEARER_TOKEN is not configured; skipping X import.");
-    setOutput("added_count", 0);
-    return;
-  }
+// Poll the account and return new incidents not already present (by source_url).
+export async function pollX(env, existingIncidents) {
+  const token = env.X_BEARER_TOKEN || "";
+  const username = env.X_USERNAME || "Global_Decipher";
+  if (!token) return [];
 
-  const feed = JSON.parse(fs.readFileSync(DATA_PATH, "utf8"));
-  const incidents = Array.isArray(feed.incidents) ? feed.incidents : [];
-  const existingUrls = new Set(incidents.map((incident) => incident.source_url).filter(Boolean));
+  const existingUrls = new Set(existingIncidents.map((incident) => incident.source_url).filter(Boolean));
 
-  const user = await xFetch(`/users/by/username/${encodeURIComponent(X_USERNAME)}`);
+  const user = await xFetch(token, `/users/by/username/${encodeURIComponent(username)}`);
   const userId = user?.data?.id;
-  if (!userId) throw new Error(`Could not resolve X user ${X_USERNAME}`);
+  if (!userId) throw new Error(`Could not resolve X user ${username}`);
 
-  const tweets = await xFetch(`/users/${userId}/tweets?max_results=20&exclude=retweets,replies&tweet.fields=created_at`);
+  const tweets = await xFetch(token, `/users/${userId}/tweets?max_results=20&exclude=retweets,replies&tweet.fields=created_at`);
   const added = [];
 
   for (const tweet of (tweets.data || []).slice().reverse()) {
-    const sourceUrl = `https://x.com/${X_USERNAME}/status/${tweet.id}`;
+    const sourceUrl = `https://x.com/${username}/status/${tweet.id}`;
     if (existingUrls.has(sourceUrl)) continue;
 
     const text = compactText(tweet.text);
@@ -204,23 +148,5 @@ async function main() {
     });
   }
 
-  const nextIncidents = pruneOldIncidents(added.concat(incidents))
-    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-  const changed = added.length > 0 || nextIncidents.length !== incidents.length;
-
-  if (changed) {
-    feed.retention_days = RETENTION_DAYS;
-    feed.incidents = nextIncidents;
-    feed.last_updated = new Date().toISOString();
-    fs.writeFileSync(DATA_PATH, `${JSON.stringify(feed, null, 2)}\n`);
-  }
-
-  console.log(`Added ${added.length} incident(s) from X.`);
-  setOutput("added_count", added.length);
-  setOutput("changed_count", changed ? 1 : 0);
+  return added;
 }
-
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});

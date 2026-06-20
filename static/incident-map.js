@@ -2,7 +2,10 @@
   const root = document.querySelector("[data-incident-tracker]");
   if (!root) return;
 
-  const DATA_URL = "/assets/data/incidents.json";
+  // Incident feed is served dynamically by the Cloudflare Worker (KV-backed),
+  // not as a static file. Override with window.TGD_INCIDENTS_URL if the Worker
+  // lives on a different host (e.g. a *.workers.dev or api.* subdomain).
+  const DATA_URL = window.TGD_INCIDENTS_URL || "/api/incidents";
   const HUBS_URL = "/assets/data/hubs.json";
   const HUB_INDEX = { organisations: [], regions: [] };
   fetch(HUBS_URL, { cache: "default" })

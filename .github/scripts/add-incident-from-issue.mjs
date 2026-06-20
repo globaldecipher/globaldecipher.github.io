@@ -1,8 +1,4 @@
 import fs from "fs";
-import path from "path";
-
-const DATA_PATH = path.join("static", "data", "incidents.json");
-const RETENTION_DAYS = 31;
 
 const DISTRICT_COORDS = new Map(Object.entries({
   bajaur: [34.72, 71.50],
@@ -115,33 +111,6 @@ function lookupCoords(district) {
   return [30.3753, 69.3451];
 }
 
-function readData() {
-  if (!fs.existsSync(DATA_PATH)) {
-    return { last_updated: "", source_note: "Public-source incident feed.", incidents: [] };
-  }
-  return JSON.parse(fs.readFileSync(DATA_PATH, "utf8"));
-}
-
-function dateValue(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function retentionCutoff(now = new Date()) {
-  const cutoff = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  cutoff.setUTCDate(cutoff.getUTCDate() - RETENTION_DAYS + 1);
-  return cutoff;
-}
-
-function pruneOldIncidents(incidents, now = new Date()) {
-  const cutoff = retentionCutoff(now);
-  return incidents.filter((incident) => {
-    const incidentDate = dateValue(incident.date);
-    return !incidentDate || incidentDate >= cutoff;
-  });
-}
-
 function writeOutput(name, value) {
   if (!process.env.GITHUB_OUTPUT) return;
   fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${String(value).replace(/\n/g, " ")}\n`);
@@ -182,10 +151,10 @@ function main() {
   const lng = manualLng ?? lookupLng;
   const id = `${date}-${slugify(district)}-${slugify(title)}`;
 
-  const data = readData();
   const incident = {
     id,
     date,
+    reported_at: `${date}T12:00:00.000Z`,
     time_label: timeLabel,
     title,
     district,
@@ -205,22 +174,16 @@ function main() {
     verified: status.toLowerCase() === "confirmed"
   };
 
-  const incidents = Array.isArray(data.incidents) ? data.incidents : [];
-  const existingIndex = incidents.findIndex((item) => item.id === id);
-  if (existingIndex >= 0) incidents[existingIndex] = incident;
-  else incidents.unshift(incident);
-
-  data.last_updated = new Date().toISOString();
-  data.retention_days = RETENTION_DAYS;
-  data.incidents = pruneOldIncidents(incidents)
-    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.id || "").localeCompare(String(a.id || "")));
-  fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
-  fs.writeFileSync(DATA_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  // Incidents now live in Cloudflare KV behind the Worker, not in a committed
+  // file. Emit the parsed incident as a payload; the workflow POSTs it to the
+  // Worker's authed ingest endpoint.
+  const payloadPath = "incident-payload.json";
+  fs.writeFileSync(payloadPath, JSON.stringify(incident, null, 2), "utf8");
 
   writeOutput("incident_title", title);
   writeOutput("incident_id", id);
-  writeOutput("incident_count", data.incidents.length);
-  console.log(`Updated ${DATA_PATH} with ${title}`);
+  writeOutput("incident_payload", payloadPath);
+  console.log(`Wrote incident payload for "${title}" to ${payloadPath}`);
 }
 
 try {

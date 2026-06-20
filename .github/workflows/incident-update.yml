@@ -8,7 +8,7 @@ on:
       - reopened
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -43,37 +43,46 @@ jobs:
         with:
           node-version: 22
 
-      - name: Update incident feed
+      - name: Parse incident from form
         id: make
         run: node .github/scripts/add-incident-from-issue.mjs
 
-      - name: Commit incident feed
-        id: commit
+      - name: Send incident to the feed Worker
+        id: ingest
         env:
-          INCIDENT_TITLE: ${{ steps.make.outputs.incident_title }}
+          WORKER_INGEST_URL: ${{ secrets.WORKER_INGEST_URL }}
+          ADMIN_TOKEN: ${{ secrets.TGD_ADMIN_TOKEN }}
+          PAYLOAD: ${{ steps.make.outputs.incident_payload }}
         run: |
-          if [ -z "$(git status --porcelain static/data/incidents.json)" ]; then
-            echo "committed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -z "$WORKER_INGEST_URL" ] || [ -z "$ADMIN_TOKEN" ]; then
+            echo "::error::WORKER_INGEST_URL and TGD_ADMIN_TOKEN secrets must be set so the form can reach the incident Worker."
+            exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add static/data/incidents.json
-          git commit -m "Update incident tracker: $INCIDENT_TITLE"
-          git push
-          echo "committed=true" >> "$GITHUB_OUTPUT"
+          response="$(curl -sS -w '\n%{http_code}' -X POST "$WORKER_INGEST_URL" \
+            -H "authorization: Bearer $ADMIN_TOKEN" \
+            -H "content-type: application/json" \
+            --data-binary "@$PAYLOAD")"
+          body="$(echo "$response" | head -n -1)"
+          code="$(echo "$response" | tail -n 1)"
+          echo "Worker responded $code: $body"
+          if [ "$code" != "200" ]; then
+            echo "::error::Worker ingest failed (HTTP $code)."
+            exit 1
+          fi
+          total="$(echo "$body" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).total||"")}catch{console.log("")}})')"
+          echo "incident_count=$total" >> "$GITHUB_OUTPUT"
 
       - name: Mark incident as published
-        if: steps.commit.outputs.committed == 'true'
+        if: steps.ingest.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
           INCIDENT_TITLE: ${{ steps.make.outputs.incident_title }}
           INCIDENT_ID: ${{ steps.make.outputs.incident_id }}
-          INCIDENT_COUNT: ${{ steps.make.outputs.incident_count }}
+          INCIDENT_COUNT: ${{ steps.ingest.outputs.incident_count }}
         run: |
-          gh issue comment "$ISSUE" --repo "$REPO" --body "Added **$INCIDENT_TITLE** to the incident tracker as \`$INCIDENT_ID\`. The feed now has $INCIDENT_COUNT incidents and the website will rebuild automatically."
+          gh issue comment "$ISSUE" --repo "$REPO" --body "Added **$INCIDENT_TITLE** to the live incident feed as \`$INCIDENT_ID\`. The feed now has $INCIDENT_COUNT incidents and the map updates within a minute (no rebuild needed)."
           gh issue edit "$ISSUE" --repo "$REPO" --add-label "incident-published"
           gh issue close "$ISSUE" --repo "$REPO" --comment "Done."
 

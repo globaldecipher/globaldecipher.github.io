@@ -63,6 +63,13 @@ jobs:
           git push
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Deploy to Cloudflare Pages
+        if: steps.commit.outputs.committed == 'true'
+        uses: ./.github/actions/deploy-cloudflare
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Mark issue as published
         if: steps.commit.outputs.committed == 'true'
         env:

@@ -1,0 +1,29 @@
+name = "tgd-incidents"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+# Poll Telegram every 5 minutes. X is polled inside the same handler on the
+# quarter hour (see src/index.js), so a single cron is enough.
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Non-secret config. Secrets (TELEGRAM_BOT_TOKEN, X_BEARER_TOKEN, ADMIN_TOKEN)
+# are set with `wrangler secret put`, never committed here.
+[vars]
+TELEGRAM_CHAT_ID = "-1003994704651"
+X_USERNAME = "Global_Decipher"
+
+# KV namespace that stores the incident feed + Telegram poll state.
+# Replace the placeholder id after running:
+#   wrangler kv namespace create INCIDENTS
+[[kv_namespaces]]
+binding = "INCIDENTS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Serve the feed from the production domain at /api/* so the site can fetch it
+# same-origin (no CORS). Uncomment and set after the zone + Pages domain exist.
+# A Workers route takes precedence over Pages for matching paths.
+# [[routes]]
+# pattern = "globaldecipher.com/api/*"
+# zone_name = "globaldecipher.com"
