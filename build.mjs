@@ -12,7 +12,7 @@ const SITE = {
   tagline: "Tracking terror threats in Pakistan and the wider region.",
   description:
     "Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.",
-  url: "https://globaldecipher.com",
+  url: "https://theglobaldecipher.com",
   defaultImage: "/assets/brand/tgd-og-default.png",
   email: "globaldecipher@gmail.com",
   x: "https://x.com/Global_Decipher",

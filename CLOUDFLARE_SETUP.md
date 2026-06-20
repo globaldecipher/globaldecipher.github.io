@@ -4,7 +4,7 @@ One-time setup to move The Global Decipher off GitHub Pages and onto Cloudflare.
 Run every command on **your own machine, logged into your own Cloudflare account**.
 
 After this:
-- The **site** is served by Cloudflare Pages on `globaldecipher.com`.
+- The **site** is served by Cloudflare Pages on `theglobaldecipher.com`.
 - The **incident feed** is polled by a Cloudflare Worker (cron) and stored in KV — no more git commits or site rebuilds for incident updates.
 - Publishing an **article** still rebuilds + deploys the site (a few times a week, well within free limits).
 
@@ -12,7 +12,7 @@ After this:
                  ┌─────────────── Cloudflare (free) ───────────────┐
  Telegram / X ──►│  Worker (cron every 5 min) ──► KV "feed"         │
                  │                                   ▲               │
- Browser ───────►│  globaldecipher.com (Pages, static)              │
+ Browser ───────►│  theglobaldecipher.com (Pages, static)              │
    map widget ──►│  GET /api/incidents ──► Worker ──┘  (KV blob)     │
                  └──────────────────────────────────────────────────┘
  GitHub Actions: build + `wrangler pages deploy` on content change only.
@@ -20,7 +20,7 @@ After this:
 
 ## 0. Prerequisites
 
-- The `globaldecipher.com` zone is already in this Cloudflare account. ✅ (you bought it)
+- The `theglobaldecipher.com` zone is already in this Cloudflare account. ✅ (you bought it)
 - Node 18+ and the repo cloned. Pull the latest `main` first.
 - Authenticate wrangler once: `npx wrangler login`.
 - Find your **Account ID**: `npx wrangler whoami` (or Cloudflare dashboard → right sidebar).
@@ -44,7 +44,7 @@ This prints a `*.pages.dev` URL — open it, confirm the site looks right (the m
 will say "Feed unavailable" until the Worker is up in step 2; that's expected).
 
 **Attach the domain** (Cloudflare dashboard → Workers & Pages → theglobaldecipher
-→ Custom domains): add `globaldecipher.com`, and add `www.globaldecipher.com` as a
+→ Custom domains): add `theglobaldecipher.com`, and add `www.theglobaldecipher.com` as a
 redirect to the apex if you want www to work.
 
 **Create the GitHub secrets** so Actions can deploy on future content changes
@@ -103,8 +103,8 @@ npx wrangler deploy
 
 ```toml
 [[routes]]
-pattern = "globaldecipher.com/api/*"
-zone_name = "globaldecipher.com"
+pattern = "theglobaldecipher.com/api/*"
+zone_name = "theglobaldecipher.com"
 ```
 
 then `npx wrangler deploy` again. (A Workers route overrides Pages for matching
@@ -113,7 +113,7 @@ paths, so `/api/incidents` hits the Worker while everything else is Pages.)
 **Verify:**
 
 ```bash
-curl https://globaldecipher.com/api/incidents | head -c 200
+curl https://theglobaldecipher.com/api/incidents | head -c 200
 npx wrangler tail        # live logs; watch a cron fire (every 5 min)
 ```
 
@@ -132,7 +132,7 @@ Add two more GitHub secrets:
 
 | Secret | Value |
 |---|---|
-| `WORKER_INGEST_URL` | `https://globaldecipher.com/api/incidents` |
+| `WORKER_INGEST_URL` | `https://theglobaldecipher.com/api/incidents` |
 | `TGD_ADMIN_TOKEN` | the same string you set as the Worker's `ADMIN_TOKEN` |
 
 The "Content upload" (article) form needs nothing extra — it reuses the
@@ -142,7 +142,7 @@ The "Content upload" (article) form needs nothing extra — it reuses the
 
 ## 4. Cut over and clean up
 
-1. Confirm `globaldecipher.com` serves from Pages and the map loads.
+1. Confirm `theglobaldecipher.com` serves from Pages and the map loads.
 2. In GitHub repo Settings → Pages, set source to **None** to turn off the old
    GitHub Pages site (optional — it just goes stale otherwise).
 

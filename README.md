@@ -17,7 +17,7 @@ The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opin
 | Frontend | Vanilla JS, no framework. [`main.js`](static/main.js) (client-side search), [`incident-map.js`](static/incident-map.js) (interactive map), [`network-graph.js`](static/network-graph.js) (network graph) + CSS. The map and graph are hand-built from SVG/JSON — no Leaflet/D3/Mapbox. |
 | Data | JSON under [`static/data/`](static/data) — `incidents.json`, `network-*.json`. |
 | Build runtime | Node.js 22. |
-| Hosting | Cloudflare Pages (static site) on `globaldecipher.com`. |
+| Hosting | Cloudflare Pages (static site) on `theglobaldecipher.com`. |
 | Live incident feed | Cloudflare **Worker** (cron poller) + **KV** store — see [`worker/`](worker). |
 | CI/CD & automation | GitHub Actions (build/deploy + content publishing). |
 
@@ -79,7 +79,7 @@ See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.
 | `x.js` | X (Twitter) account polling → incident objects |
 | `feed.js` | district lookup, date/archive helpers, KV read/write, merge/dedupe/prune |
 
-Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron `*/5 * * * *`, route `globaldecipher.com/api/*`. Secrets (`wrangler secret put`): `TELEGRAM_BOT_TOKEN`, `X_BEARER_TOKEN`, `ADMIN_TOKEN`.
+Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron `*/5 * * * *`, route `theglobaldecipher.com/api/*`. Secrets (`wrangler secret put`): `TELEGRAM_BOT_TOKEN`, `X_BEARER_TOKEN`, `ADMIN_TOKEN`.
 
 ### GitHub Actions (`.github/workflows/`)
 
@@ -117,7 +117,7 @@ python3 -m http.server 4173 --directory site
 
 ## Hosting / deployment
 
-Served by **Cloudflare Pages** on `globaldecipher.com`, with the incident feed on a **Cloudflare Worker + KV**. Full one-time provisioning steps (Pages project, KV namespace, secrets, domain, seeding) are in **[`CLOUDFLARE_SETUP.md`](CLOUDFLARE_SETUP.md)**.
+Served by **Cloudflare Pages** on `theglobaldecipher.com`, with the incident feed on a **Cloudflare Worker + KV**. Full one-time provisioning steps (Pages project, KV namespace, secrets, domain, seeding) are in **[`CLOUDFLARE_SETUP.md`](CLOUDFLARE_SETUP.md)**.
 
 `GITHUB_PAGES_SETUP.md` describes the previous GitHub Pages hosting and is kept for reference only.
 

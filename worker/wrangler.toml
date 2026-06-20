@@ -25,5 +25,5 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 # same-origin (no CORS). Uncomment and set after the zone + Pages domain exist.
 # A Workers route takes precedence over Pages for matching paths.
 # [[routes]]
-# pattern = "globaldecipher.com/api/*"
-# zone_name = "globaldecipher.com"
+# pattern = "theglobaldecipher.com/api/*"
+# zone_name = "theglobaldecipher.com"
