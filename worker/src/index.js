@@ -41,7 +41,7 @@ const CORS = {
   "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type"
 };
-const INCIDENT_CACHE_VERSION = "archive-v2";
+const INCIDENT_CACHE_VERSION = "archive-v4";
 
 function incidentCacheKey(url) {
   return new Request(`${url.origin}/api/incidents?cache=${INCIDENT_CACHE_VERSION}`, { method: "GET" });
