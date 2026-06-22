@@ -492,6 +492,27 @@ textarea.field { resize: vertical; min-height: 88px; }
   background: var(--surface-3);
 }
 .toastui-editor-dark .toastui-editor-toolbar-group { border-color: var(--line); }
+.editor-history-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 5px 8px 5px 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+}
+.editor-history-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 22px;
+  line-height: 1;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.editor-history-btn:hover { background: var(--surface-3); border-color: var(--line-strong); color: var(--ink); }
+.editor-history-btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 .toastui-editor-dark .toastui-editor-mode-switch {
   background: var(--surface-1);
   border-top: 1px solid var(--line);

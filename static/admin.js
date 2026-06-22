@@ -491,7 +491,8 @@
     toastDarkCss: "https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css",
     mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
     turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js",
-    turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js"
+    turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js",
+    jszipJs: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
   };
   function loadScript(url) {
     return new Promise((resolve, reject) => {
@@ -564,6 +565,7 @@
       }
     });
     decorateEditorToolbar(container);
+    addEditorHistoryControls(container, editor);
     return editor;
   }
 
@@ -595,12 +597,52 @@
     });
   }
 
+  function addEditorHistoryControls(container, editor) {
+    const toolbar = container.querySelector(".toastui-editor-toolbar");
+    if (!toolbar || toolbar.querySelector(".editor-history-controls")) return;
+    const controls = el("div", { class: "editor-history-controls" },
+      el("button", {
+        type: "button",
+        class: "editor-history-btn",
+        title: "Undo (Command/Ctrl + Z)",
+        "aria-label": "Undo",
+        onclick: () => sendHistoryShortcut(container, editor, false)
+      }, "↶"),
+      el("button", {
+        type: "button",
+        class: "editor-history-btn",
+        title: "Redo (Command/Ctrl + Shift + Z)",
+        "aria-label": "Redo",
+        onclick: () => sendHistoryShortcut(container, editor, true)
+      }, "↷")
+    );
+    toolbar.prepend(controls);
+  }
+
+  function sendHistoryShortcut(container, editor, redo) {
+    const isMac = /mac|iphone|ipad/i.test(navigator.platform || "");
+    editor.focus();
+    const target = container.querySelector(".ProseMirror, .toastui-editor-md-container textarea");
+    if (!target) return;
+    target.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "z",
+      code: "KeyZ",
+      metaKey: isMac,
+      ctrlKey: !isMac,
+      shiftKey: redo,
+      bubbles: true,
+      cancelable: true
+    }));
+  }
+
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
     await loadScript(CDN.mammothJs);
     await loadScript(CDN.turndownJs);
     await loadScript(CDN.turndownGfmJs);
+    await loadScript(CDN.jszipJs);
     const arrayBuffer = await file.arrayBuffer();
+    const tablesPromise = extractDocxTables(arrayBuffer);
     let imageIndex = 0;
     const result = await window.mammoth.convertToHtml(
       { arrayBuffer },
@@ -621,7 +663,11 @@
         return cap ? `\n\n![${alt}](${src} "${cap}")\n\n` : `\n\n![${alt}](${src})\n\n`;
       }
     });
-    const markdown = td.turndown(normalizeImportedTables(result.value)).replace(/\n{3,}/g, "\n\n").trim();
+    const importedTables = await tablesPromise;
+    const markdown = restoreDocxTables(
+      td.turndown(normalizeImportedTables(result.value)),
+      importedTables
+    ).replace(/\n{3,}/g, "\n\n").trim();
     // Best-effort title: first heading in the markdown
     const titleMatch = markdown.match(/^#+\s+(.+?)\s*$/m);
     const title = titleMatch ? titleMatch[1].trim() : file.name.replace(/\.docx?$/i, "").replace(/[-_]+/g, " ");
@@ -643,6 +689,56 @@
       });
     });
     return doc.body.innerHTML;
+  }
+
+  async function extractDocxTables(arrayBuffer) {
+    const zip = await window.JSZip.loadAsync(arrayBuffer);
+    const documentFile = zip.file("word/document.xml");
+    if (!documentFile) return [];
+    const xml = await documentFile.async("string");
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    const descendants = (node, name) => Array.from(node.getElementsByTagNameNS("*", name));
+    const directChildren = (node, name) => Array.from(node.children).filter((child) => child.localName === name);
+    const textFromCell = (cell) => descendants(cell, "p")
+      .map((paragraph) => descendants(paragraph, "t").map((text) => text.textContent || "").join("").trim())
+      .filter(Boolean)
+      .join(" ");
+
+    return descendants(doc, "tbl")
+      .map((table) => directChildren(table, "tr")
+        .map((row) => directChildren(row, "tc").map(textFromCell))
+        .filter((row) => row.some(Boolean)))
+      .filter((table) => table.length > 1 && table[0].length > 1);
+  }
+
+  function restoreDocxTables(markdown, tables) {
+    const blocks = String(markdown || "").split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+    const comparable = (value) => String(value || "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[\\*_`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const tableCell = (value) => String(value || "").replace(/\r?\n+/g, "<br>").replace(/\|/g, "\\|").trim();
+
+    for (const rows of tables) {
+      const width = Math.max(...rows.map((row) => row.length));
+      const normalizedRows = rows.map((row) => Array.from({ length: width }, (_, index) => tableCell(row[index])));
+      const cells = normalizedRows.flat();
+      if (!cells.length || cells.some((cell) => !cell)) continue;
+      const start = blocks.findIndex((block, index) => (
+        index + cells.length <= blocks.length
+        && cells.every((cell, offset) => comparable(blocks[index + offset]) === comparable(cell))
+      ));
+      if (start < 0) continue;
+      const tableMarkdown = [
+        `| ${normalizedRows[0].join(" | ")} |`,
+        `| ${normalizedRows[0].map(() => "---").join(" | ")} |`,
+        ...normalizedRows.slice(1).map((row) => `| ${row.join(" | ")} |`)
+      ].join("\n");
+      blocks.splice(start, cells.length, tableMarkdown);
+    }
+    return blocks.join("\n\n");
   }
 
   // ============================ TAG CHIPS ============================
