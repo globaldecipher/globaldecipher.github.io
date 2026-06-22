@@ -170,7 +170,7 @@ a:hover { text-decoration: underline; }
 .switch:disabled { cursor: not-allowed; }
 @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
 
-.view { max-width: 1040px; margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-7); }
+.view { max-width: 1280px; margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-7); }
 
 /* ============================== PAGE HEAD ============================== */
 .page-head {
@@ -474,6 +474,10 @@ textarea.field { resize: vertical; min-height: 88px; }
   border-bottom: 1px solid var(--line);
   min-height: 54px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) var(--surface-1);
 }
 .toastui-editor-dark .toastui-editor-toolbar-icons {
   border-color: transparent;
@@ -492,6 +496,7 @@ textarea.field { resize: vertical; min-height: 88px; }
   background: var(--surface-3);
 }
 .toastui-editor-dark .toastui-editor-toolbar-group { border-color: var(--line); }
+.toastui-editor-dark .toastui-editor-toolbar-group { flex: 0 0 auto; }
 .editor-history-controls {
   display: inline-flex;
   align-items: center;
@@ -592,6 +597,78 @@ textarea.field { resize: vertical; min-height: 88px; }
 .toastui-editor-dark .toastui-editor-md-preview {
   background: var(--surface-1);
 }
+.editor-workbench {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.editor-outline {
+  position: sticky;
+  top: 78px;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.editor-outline-title {
+  padding: 2px 4px var(--space-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.editor-outline-list { display: flex; flex-direction: column; gap: 2px; }
+.editor-outline-empty { padding: 5px 4px; color: var(--muted-2); font-size: 12px; }
+.editor-outline-item {
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 7px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-outline-item:hover { background: var(--surface-3); color: var(--ink); }
+.editor-outline-item.level-2 { padding-left: 15px; }
+.editor-outline-item.level-3 { padding-left: 23px; color: var(--muted); }
+.editor-canvas { min-width: 0; }
+.editor-utilitybar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.editor-stats { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.editor-focus-btn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 5px 9px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+.editor-focus-btn:hover { border-color: var(--line-strong); background: var(--surface-2); color: var(--ink); }
+body.editor-focus-active { overflow: hidden; }
+.editor-card.is-focus {
+  position: fixed;
+  inset: 16px;
+  z-index: 100;
+  margin: 0;
+  overflow: auto;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .58);
+}
+.editor-card.is-focus .editor-workbench { min-height: calc(100vh - 158px); }
+.editor-card.is-focus .editor-canvas { display: flex; flex-direction: column; }
+.editor-card.is-focus .editor-mount { flex: 1; }
 
 /* ============================== RESPONSIVE ============================== */
 @media (max-width: 720px) {
@@ -601,5 +678,8 @@ textarea.field { resize: vertical; min-height: 88px; }
   .view { padding: var(--space-4) var(--space-4) var(--space-6); }
   .row { grid-template-columns: 1fr; }
   .row-actions { justify-content: flex-end; }
+  .editor-workbench { grid-template-columns: 1fr; }
+  .editor-outline { display: none; }
+  .editor-card.is-focus { inset: 0; border-radius: 0; }
   .form-actions { position: static; box-shadow: none; }
 }

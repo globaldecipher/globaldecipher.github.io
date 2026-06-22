@@ -543,7 +543,7 @@
       usageStatistics: false,
       theme: "dark",
       autofocus: false,
-      hideModeSwitch: true,
+      hideModeSwitch: false,
       toolbarItems: [
         ["heading", "bold", "italic", "strike"],
         ["hr", "quote"],
@@ -566,6 +566,7 @@
     });
     decorateEditorToolbar(container);
     addEditorHistoryControls(container, editor);
+    setupEditorWorkspace(container, editor);
     return editor;
   }
 
@@ -635,6 +636,50 @@
     }));
   }
 
+  function setupEditorWorkspace(container, editor) {
+    const card = container.closest(".editor-card");
+    const outline = card?.querySelector(".editor-outline-list");
+    const stats = card?.querySelector(".editor-stats");
+    const focusButton = card?.querySelector(".editor-focus-btn");
+    if (!card || !outline || !stats) return;
+
+    const renderContext = () => {
+      const markdown = editor.getMarkdown();
+      const words = (markdown.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+      const minutes = Math.max(1, Math.ceil(words / 220));
+      stats.textContent = `${words.toLocaleString()} words · ${minutes} min read`;
+
+      const headings = [...markdown.matchAll(/^(#{1,3})\s+(.+)$/gm)].map((match) => ({
+        level: match[1].length,
+        label: match[2].replace(/[*_`]/g, "").trim()
+      }));
+      clear(outline);
+      if (!headings.length) {
+        outline.append(el("span", { class: "editor-outline-empty" }, "No headings"));
+        return;
+      }
+      headings.forEach((heading, index) => outline.append(el("button", {
+        type: "button",
+        class: `editor-outline-item level-${heading.level}`,
+        title: heading.label,
+        onclick: () => {
+          const targets = container.querySelectorAll(".ProseMirror h1, .ProseMirror h2, .ProseMirror h3");
+          targets[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, heading.label)));
+    };
+
+    focusButton?.addEventListener("click", () => {
+      const active = card.classList.toggle("is-focus");
+      document.body.classList.toggle("editor-focus-active", active);
+      focusButton.textContent = active ? "Exit focus" : "Focus editor";
+      focusButton.setAttribute("aria-pressed", active ? "true" : "false");
+      editor.setHeight(active ? "calc(100vh - 164px)" : "620px");
+    });
+    editor.on("change", renderContext);
+    renderContext();
+  }
+
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
     await loadScript(CDN.mammothJs);
@@ -671,7 +716,7 @@
     // Best-effort title: first heading in the markdown
     const titleMatch = markdown.match(/^#+\s+(.+?)\s*$/m);
     const title = titleMatch ? titleMatch[1].trim() : file.name.replace(/\.docx?$/i, "").replace(/[-_]+/g, " ");
-    return { markdown, title, warnings: result.messages || [] };
+    return { markdown, title, tables: importedTables.length, images: imageIndex, warnings: result.messages || [] };
   }
 
   function normalizeImportedTables(html) {
@@ -874,7 +919,7 @@
           add("eyebrow", "Eyebrow", { optional: true, placeholder: "e.g. About", hint: "Short label shown above the title." }),
           add("summary", "Summary", { type: "textarea", rows: 3, wide: true, optional: true, hint: "One or two sentences used in meta description and previews." })
         ),
-        editorSection("Page body", "Write directly here. Use the toolbar for formatting. Drag or paste images straight into the editor.")
+        editorSection("Page body", "")
       );
     } else {
       const initialTags = Array.isArray(fm.tags) ? fm.tags : (typeof fm.tags === "string" && fm.tags ? fm.tags.split(/\s*,\s*/) : []);
@@ -898,7 +943,7 @@
           add("status", "Publication status", { select: PUBLICATION_STATUS, default: fm.status || "draft", hint: "Drafts stay private until an editor publishes them." }),
           add("featured", "Feature on homepage", { type: "checkbox", wide: true, hint: "Pins this piece to the homepage hero rail." })
         ),
-        editorSection("Article body", "Write directly here. Use the toolbar for formatting. Drag or paste images — they save with the article.")
+        editorSection("Article body", "")
       );
       if (fm.featured) f.featured.checked = true;
     }
@@ -936,12 +981,24 @@
 
   // Section card that holds the editor mount point.
   function editorSection(title, subtitle) {
-    return el("section", { class: "card" },
+    return el("section", { class: "card editor-card" },
       el("div", { class: "section-head" },
         el("h3", {}, title),
         subtitle ? el("p", { class: "section-sub" }, subtitle) : null
       ),
-      el("div", { id: "editor-mount", class: "editor-mount" })
+      el("div", { class: "editor-workbench" },
+        el("aside", { class: "editor-outline", "aria-label": "Document outline" },
+          el("div", { class: "editor-outline-title" }, "Outline"),
+          el("div", { class: "editor-outline-list" })
+        ),
+        el("div", { class: "editor-canvas" },
+          el("div", { class: "editor-utilitybar" },
+            el("span", { class: "editor-stats", "aria-live": "polite" }, "0 words · 1 min read"),
+            el("button", { type: "button", class: "editor-focus-btn", "aria-pressed": "false" }, "Focus editor")
+          ),
+          el("div", { id: "editor-mount", class: "editor-mount" })
+        )
+      )
     );
   }
 
@@ -974,7 +1031,10 @@
       status.classList.remove("muted");
       try {
         const result = await importDocx(file);
-        status.textContent = `Imported ${file.name}` + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
+        const importedParts = [];
+        if (result.tables) importedParts.push(`${result.tables} table${result.tables === 1 ? "" : "s"}`);
+        if (result.images) importedParts.push(`${result.images} image${result.images === 1 ? "" : "s"}`);
+        status.textContent = `Imported ${file.name}` + (importedParts.length ? ` · ${importedParts.join(", ")}` : "") + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
         await onImported(result);
       } catch (err) {
         status.textContent = "Import failed: " + err.message;
