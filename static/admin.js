@@ -490,7 +490,8 @@
     toastCss: "https://uicdn.toast.com/editor/latest/toastui-editor.min.css",
     toastDarkCss: "https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css",
     mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
-    turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js"
+    turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js",
+    turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js"
   };
   function loadScript(url) {
     return new Promise((resolve, reject) => {
@@ -562,13 +563,43 @@
         }
       }
     });
+    decorateEditorToolbar(container);
     return editor;
+  }
+
+  function decorateEditorToolbar(container) {
+    const labels = {
+      heading: "Heading",
+      bold: "Bold",
+      italic: "Italic",
+      strike: "Strikethrough",
+      hr: "Divider",
+      quote: "Quote",
+      ul: "Bullet list",
+      ol: "Numbered list",
+      task: "Task list",
+      indent: "Increase indent",
+      outdent: "Decrease indent",
+      table: "Insert table",
+      image: "Upload image",
+      link: "Insert link",
+      code: "Inline code",
+      codeblock: "Code block",
+      scrollSync: "Scroll sync"
+    };
+    container.querySelectorAll(".toastui-editor-toolbar-icons").forEach((button) => {
+      const name = Object.keys(labels).find((key) => button.classList.contains(key));
+      if (!name) return;
+      button.setAttribute("title", labels[name]);
+      button.setAttribute("aria-label", labels[name]);
+    });
   }
 
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
     await loadScript(CDN.mammothJs);
     await loadScript(CDN.turndownJs);
+    await loadScript(CDN.turndownGfmJs);
     const arrayBuffer = await file.arrayBuffer();
     let imageIndex = 0;
     const result = await window.mammoth.convertToHtml(
@@ -578,6 +609,7 @@
       }
     );
     const td = new window.TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", emDelimiter: "*" });
+    if (window.turndownPluginGfm?.gfm) td.use(window.turndownPluginGfm.gfm);
     // Preserve <figure>/<figcaption> as markdown image with caption-as-title
     td.addRule("figureImage", {
       filter: (node) => node.nodeName === "FIGURE" && node.querySelector("img"),
@@ -589,11 +621,28 @@
         return cap ? `\n\n![${alt}](${src} "${cap}")\n\n` : `\n\n![${alt}](${src})\n\n`;
       }
     });
-    const markdown = td.turndown(result.value).replace(/\n{3,}/g, "\n\n").trim();
+    const markdown = td.turndown(normalizeImportedTables(result.value)).replace(/\n{3,}/g, "\n\n").trim();
     // Best-effort title: first heading in the markdown
     const titleMatch = markdown.match(/^#+\s+(.+?)\s*$/m);
     const title = titleMatch ? titleMatch[1].trim() : file.name.replace(/\.docx?$/i, "").replace(/[-_]+/g, " ");
     return { markdown, title, warnings: result.messages || [] };
+  }
+
+  function normalizeImportedTables(html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll("table").forEach((table) => {
+      const firstRow = table.rows[0];
+      if (!firstRow || firstRow.querySelector("th")) return;
+      // Word tables do not identify header cells. Treat the first row as the
+      // header so the imported Markdown retains a useful, editable structure.
+      [...firstRow.cells].forEach((cell) => {
+        const heading = doc.createElement("th");
+        for (const attribute of cell.attributes) heading.setAttribute(attribute.name, attribute.value);
+        heading.innerHTML = cell.innerHTML;
+        cell.replaceWith(heading);
+      });
+    });
+    return doc.body.innerHTML;
   }
 
   // ============================ TAG CHIPS ============================

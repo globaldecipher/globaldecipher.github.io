@@ -457,7 +457,7 @@ textarea.field { resize: vertical; min-height: 88px; }
 .tagchip-input::placeholder { color: var(--muted-2); }
 
 /* ============================== EDITOR MOUNT (Toast UI overrides) ============================== */
-.editor-mount { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); }
+.editor-mount { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); }
 .editor-loading { padding: var(--space-6); text-align: center; color: var(--muted); font-size: 13.5px; }
 
 /* Toast UI dark-theme overrides — match TGD admin palette */
@@ -472,15 +472,26 @@ textarea.field { resize: vertical; min-height: 88px; }
 .toastui-editor-dark .toastui-editor-toolbar {
   background: var(--surface-1);
   border-bottom: 1px solid var(--line);
+  min-height: 54px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 .toastui-editor-dark .toastui-editor-toolbar-icons {
   border-color: transparent;
   filter: brightness(0.95);
+  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
 }
 .toastui-editor-dark .toastui-editor-toolbar-icons:hover {
   background: var(--surface-3);
   border-color: var(--line-strong);
 }
+.toastui-editor-dark .toastui-editor-toolbar-icons:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  background: var(--surface-3);
+}
+.toastui-editor-dark .toastui-editor-toolbar-group { border-color: var(--line); }
 .toastui-editor-dark .toastui-editor-mode-switch {
   background: var(--surface-1);
   border-top: 1px solid var(--line);
@@ -496,6 +507,67 @@ textarea.field { resize: vertical; min-height: 88px; }
   background: var(--surface-2);
   color: var(--ink);
 }
+.toastui-editor-dark .toastui-editor-ww-container {
+  background: var(--surface-2);
+  scrollbar-color: var(--line-strong) var(--surface-2);
+}
+.toastui-editor-dark .toastui-editor-ww-container::-webkit-scrollbar { width: 10px; height: 10px; }
+.toastui-editor-dark .toastui-editor-ww-container::-webkit-scrollbar-track { background: var(--surface-2); }
+.toastui-editor-dark .toastui-editor-ww-container::-webkit-scrollbar-thumb { background: var(--line-strong); border: 2px solid var(--surface-2); border-radius: var(--radius-pill); }
+.toastui-editor-dark .toastui-editor-ww-container::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+.toastui-editor-dark .ProseMirror {
+  max-width: 980px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+  font-size: 16px;
+  line-height: 1.72;
+}
+.toastui-editor-dark .ProseMirror h1,
+.toastui-editor-dark .ProseMirror h2,
+.toastui-editor-dark .ProseMirror h3 { color: var(--ink); margin-top: 1.6em; }
+.toastui-editor-dark .ProseMirror p { margin: 0.65em 0; }
+.toastui-editor-dark .ProseMirror blockquote { border-left-color: var(--accent); color: var(--ink-2); }
+.toastui-editor-dark .ProseMirror table,
+.toastui-editor-dark .toastui-editor-contents table {
+  width: 100%;
+  margin: 1.5em 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  background: var(--surface-1);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+.toastui-editor-dark .ProseMirror th,
+.toastui-editor-dark .toastui-editor-contents th {
+  padding: 11px 14px;
+  background: var(--accent-soft);
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  vertical-align: top;
+}
+.toastui-editor-dark .ProseMirror td,
+.toastui-editor-dark .toastui-editor-contents td {
+  min-width: 140px;
+  padding: 11px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: top;
+}
+.toastui-editor-dark .ProseMirror tr:last-child td,
+.toastui-editor-dark .toastui-editor-contents tr:last-child td { border-bottom: 0; }
+.toastui-editor-dark .ProseMirror th:last-child,
+.toastui-editor-dark .ProseMirror td:last-child,
+.toastui-editor-dark .toastui-editor-contents th:last-child,
+.toastui-editor-dark .toastui-editor-contents td:last-child { border-right: 0; }
+.toastui-editor-dark .ProseMirror tbody tr:nth-child(even) td,
+.toastui-editor-dark .toastui-editor-contents tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.018); }
 .toastui-editor-dark .toastui-editor-md-preview {
   background: var(--surface-1);
 }
