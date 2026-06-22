@@ -483,6 +483,145 @@
   }
   const clearView = (view) => { const v = document.getElementById("view"); clear(v); return v; };
 
+  // ============================ EXTERNAL LIBS (loaded on demand) ============================
+  const CDN = {
+    toastJs: "https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js",
+    toastCss: "https://uicdn.toast.com/editor/latest/toastui-editor.min.css",
+    mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
+    turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js"
+  };
+  function loadScript(url) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[data-tgd-src="${url}"]`)) return resolve();
+      const s = document.createElement("script");
+      s.src = url; s.async = true; s.dataset.tgdSrc = url;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("Failed to load " + url));
+      document.head.appendChild(s);
+    });
+  }
+  function loadCss(url) {
+    if (document.querySelector(`link[data-tgd-href="${url}"]`)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = url; l.dataset.tgdHref = url;
+    document.head.appendChild(l);
+  }
+
+  // ============================ WYSIWYG EDITOR ============================
+  // Mounts Toast UI Editor on a div. Returns an instance with .getMarkdown() / .setMarkdown().
+  // Images dropped/pasted into the editor are inlined as data URIs so they save with the post.
+  async function mountMarkdownEditor(container, initialMarkdown, opts = {}) {
+    loadCss(CDN.toastCss);
+    await loadScript(CDN.toastJs);
+    const editor = new window.toastui.Editor({
+      el: container,
+      initialValue: initialMarkdown || "",
+      initialEditType: "wysiwyg",
+      previewStyle: "tab",
+      height: opts.height || "560px",
+      usageStatistics: false,
+      theme: "dark",
+      autofocus: false,
+      hideModeSwitch: false,
+      toolbarItems: [
+        ["heading", "bold", "italic", "strike"],
+        ["hr", "quote"],
+        ["ul", "ol", "task", "indent", "outdent"],
+        ["table", "image", "link"],
+        ["code", "codeblock"],
+        ["scrollSync"]
+      ],
+      hooks: {
+        addImageBlobHook: async (blob, callback) => {
+          try {
+            const dataUri = await blobToDataUri(blob);
+            const altText = (blob.name || "image").replace(/\.[a-z]+$/i, "");
+            callback(dataUri, altText);
+          } catch (err) {
+            toast("Could not embed image: " + err.message, "err");
+          }
+        }
+      }
+    });
+    return editor;
+  }
+
+  function blobToDataUri(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error || new Error("read failed"));
+      r.readAsDataURL(blob);
+    });
+  }
+
+  // ============================ WORD (.docx) IMPORT ============================
+  async function importDocx(file) {
+    await loadScript(CDN.mammothJs);
+    await loadScript(CDN.turndownJs);
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await window.mammoth.convertToHtml(
+      { arrayBuffer },
+      {
+        convertImage: window.mammoth.images.imgElement((image) =>
+          image.read("base64").then((b64) => ({ src: `data:${image.contentType};base64,${b64}` }))
+        )
+      }
+    );
+    const td = new window.TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", emDelimiter: "*" });
+    // Preserve <figure>/<figcaption> as markdown image with caption-as-title
+    td.addRule("figureImage", {
+      filter: (node) => node.nodeName === "FIGURE" && node.querySelector("img"),
+      replacement: (_c, node) => {
+        const img = node.querySelector("img");
+        const cap = node.querySelector("figcaption")?.textContent?.trim() || "";
+        const alt = img.getAttribute("alt") || cap || "";
+        const src = img.getAttribute("src") || "";
+        return cap ? `\n\n![${alt}](${src} "${cap}")\n\n` : `\n\n![${alt}](${src})\n\n`;
+      }
+    });
+    const markdown = td.turndown(result.value).replace(/\n{3,}/g, "\n\n").trim();
+    // Best-effort title: first heading in the markdown
+    const titleMatch = markdown.match(/^#+\s+(.+?)\s*$/m);
+    const title = titleMatch ? titleMatch[1].trim() : file.name.replace(/\.docx?$/i, "").replace(/[-_]+/g, " ");
+    return { markdown, title, warnings: result.messages || [] };
+  }
+
+  // ============================ TAG CHIPS ============================
+  function makeTagChips(initial = []) {
+    const wrap = el("div", { class: "tagchips" });
+    const input = el("input", { class: "tagchip-input", type: "text", placeholder: "Type a tag and press Enter" });
+    let tags = Array.isArray(initial) ? [...initial] : (typeof initial === "string" && initial ? initial.split(/\s*,\s*/) : []);
+
+    function render() {
+      clear(wrap);
+      for (const tag of tags) {
+        const chip = el("span", { class: "tagchip" },
+          el("span", {}, tag),
+          el("button", { type: "button", class: "tagchip-remove", "aria-label": "Remove tag",
+            onclick: () => { tags = tags.filter((t) => t !== tag); render(); } }, "×")
+        );
+        wrap.append(chip);
+      }
+      wrap.append(input);
+    }
+    function add(value) {
+      const t = String(value || "").trim();
+      if (!t || tags.includes(t)) return;
+      tags.push(t);
+      input.value = "";
+      render();
+    }
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(input.value); }
+      else if (e.key === "Backspace" && !input.value && tags.length) { tags.pop(); render(); }
+    });
+    input.addEventListener("blur", () => { if (input.value.trim()) add(input.value); });
+    wrap.addEventListener("click", (e) => { if (e.target === wrap) input.focus(); });
+    render();
+    return { wrap, getTags: () => [...tags] };
+  }
+
   // ============================ CONTENT (markdown) ============================
   const FOLDERS = [
     { key: "news", label: "News", singular: "news article", type: "news", author: "TGD News Desk" },
@@ -533,7 +672,7 @@
     const folder = FOLDERS.find((f) => f.key === activeFolder);
     let fm = {}, body = "", sha = null, path = file ? file.path : null;
     if (file) {
-      try { const got = await api("/content/file?path=" + encodeURIComponent(file.path)); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
+      try { const got = await api("/content/file?path=" + encodeURIComponent(file.path), { auth: false }); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
       catch (e) { return toast("Could not open file: " + e.message, "err"); }
     }
     const f = {};
@@ -548,9 +687,25 @@
     clear(view);
     view.append(pageHead(
       (file ? "Edit " : "New ") + folder.singular,
-      file ? `Editing ${file.path}` : `Publishing into content/${folder.key}/. The file name is generated from the title and date.`,
+      file ? `Editing ${path}` : "Drop a Word document below to auto-fill the form, or write from scratch.",
       el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "← Back to list")
     ));
+
+    // ---- Word import drop zone (skip for Pages) ----
+    let importCard = null;
+    if (activeFolder !== "pages") {
+      importCard = makeImportCard(async ({ markdown, title }) => {
+        if (!f.title.value && title) f.title.value = title;
+        const stripFirstHeading = markdown.replace(/^#+\s+.+\n+/, "");
+        if (window.__tgdEditor) {
+          window.__tgdEditor.setMarkdown(stripFirstHeading);
+        }
+        toast("Word document imported. Review and publish when ready.");
+      });
+    }
+
+    // ---- Tag chips (for non-page collections) ----
+    let tagChips = null;
 
     let form;
     if (activeFolder === "pages") {
@@ -561,15 +716,11 @@
           add("eyebrow", "Eyebrow", { optional: true, placeholder: "e.g. About", hint: "Short label shown above the title." }),
           add("summary", "Summary", { type: "textarea", rows: 3, wide: true, optional: true, hint: "One or two sentences used in meta description and previews." })
         ),
-        section("Page body", "Markdown content. The first heading is rendered as the page title.",
-          (() => {
-            const { wrap, input } = makeField("Body (Markdown)", { type: "textarea", rows: 18, mono: true, wide: true, required: true, hint: "Standard markdown: headings, paragraphs, lists, links, images." }, body);
-            f.__body = input;
-            return wrap;
-          })()
-        )
+        editorSection("Page body", "Write directly here. Use the toolbar for formatting. Drag or paste images straight into the editor.")
       );
     } else {
+      const initialTags = Array.isArray(fm.tags) ? fm.tags : (typeof fm.tags === "string" && fm.tags ? fm.tags.split(/\s*,\s*/) : []);
+      tagChips = makeTagChips(initialTags);
       form = el("div", { class: "form" },
         section("Identity", "Title, date, and the desk that filed it. Used in the article header and feed listings.",
           add("title", "Title", { required: true, placeholder: "Headline" }),
@@ -580,32 +731,110 @@
         section("Classification & tags", "How the article is filed and surfaced.",
           add("category", "Category", { optional: true, placeholder: "e.g. KP, Security operations" }),
           add("region", "Region", { default: "Pakistan", hint: "Geographic region. Used for filtering." }),
-          add("tags", "Tags", { optional: true, placeholder: "comma, separated, tags", hint: "Comma-separated. Used for related-article links." }),
+          el("div", { class: "fld wide" },
+            el("label", { class: "fld-label" }, el("span", {}, "Tags"), el("span", { class: "opt" }, "Optional")),
+            tagChips.wrap,
+            el("p", { class: "fld-hint" }, "Press Enter or comma to add. Backspace clears the last one. Used for related-article links.")
+          ),
           add("sensitivity", "Sensitivity", { select: SENSITIVITY, default: fm.sensitivity || "standard", hint: "“Elevated” adds an editorial note. “Restricted” hides from public listings." }),
           add("featured", "Feature on homepage", { type: "checkbox", wide: true, hint: "Pins this piece to the homepage hero rail." })
         ),
-        section("Article body", "Markdown content. The build script renders headings, lists, links, blockquotes, and inline images.",
-          (() => {
-            const { wrap, input } = makeField("Body (Markdown)", { type: "textarea", rows: 20, mono: true, wide: true, required: true }, body);
-            f.__body = input;
-            return wrap;
-          })()
-        )
+        editorSection("Article body", "Write directly here. Use the toolbar for formatting. Drag or paste images — they save with the article.")
       );
+      if (fm.featured) f.featured.checked = true;
     }
 
+    if (importCard) view.append(importCard);
     view.append(form);
     view.append(el("div", { class: "form-actions" },
-      el("span", { class: "form-hint" }, file ? "Saves a commit to GitHub and rebuilds the site." : "Creates a new file and rebuilds the site."),
+      el("span", { class: "form-hint" }, file ? "Changes go live in ~15 seconds." : "Publishes to D1 and rebuilds the site in ~15 seconds."),
       el("span", { class: "spacer" }),
       el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "Cancel"),
-      el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f }, view) }, file ? "Save changes" : "Publish")
+      el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save changes" : "Publish")
     ));
+
+    // Mount the WYSIWYG editor into the placeholder div after the DOM is in place.
+    const editorMount = document.getElementById("editor-mount");
+    if (editorMount) {
+      editorMount.innerHTML = '<div class="editor-loading">Loading editor…</div>';
+      try {
+        const editor = await mountMarkdownEditor(editorMount, body, { height: "560px" });
+        window.__tgdEditor = editor;
+      } catch (err) {
+        editorMount.innerHTML = "";
+        const { wrap, input } = makeField("Body (Markdown)", { type: "textarea", rows: 20, mono: true, wide: true, required: true, hint: "Editor failed to load — falling back to raw markdown." }, body);
+        editorMount.append(wrap);
+        f.__fallbackBody = input;
+        toast("Rich editor failed to load — using markdown fallback.", "warn");
+      }
+    }
   }
 
-  async function saveContent({ folder, file, path, sha, f }, view) {
+  // Section card that holds the editor mount point.
+  function editorSection(title, subtitle) {
+    return el("section", { class: "card" },
+      el("div", { class: "section-head" },
+        el("h3", {}, title),
+        subtitle ? el("p", { class: "section-sub" }, subtitle) : null
+      ),
+      el("div", { id: "editor-mount", class: "editor-mount" })
+    );
+  }
+
+  // The blue drop zone at the top of an article form.
+  function makeImportCard(onImported) {
+    const input = el("input", { type: "file", accept: ".docx", id: "docx-input", style: "display:none" });
+    const status = el("p", { class: "import-status muted" }, "Supports .docx files. Images embed automatically.");
+    const card = el("section", { class: "card import-card" },
+      el("div", { class: "import-head" },
+        el("div", {},
+          el("h3", { class: "import-title" }, "Import from Word document"),
+          el("p", { class: "section-sub" }, "Drag a .docx file here, or click to browse. The system extracts the title, body, formatting, hyperlinks, and embedded images.")
+        ),
+        el("button", { class: "btn primary", onclick: () => input.click() }, "Choose .docx")
+      ),
+      el("div", { class: "import-drop", id: "import-drop" },
+        el("div", { class: "import-drop-inner" },
+          el("div", { class: "import-icon" }, "↑"),
+          el("div", { class: "import-drop-text" }, "Drop a Word document anywhere in this box"),
+          status
+        )
+      ),
+      input
+    );
+
+    async function handleFile(file) {
+      if (!file) return;
+      if (!/\.docx$/i.test(file.name)) { toast("Please drop a .docx file.", "err"); return; }
+      status.textContent = "Reading " + file.name + "…";
+      status.classList.remove("muted");
+      try {
+        const result = await importDocx(file);
+        status.textContent = `Imported ${file.name}` + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
+        await onImported(result);
+      } catch (err) {
+        status.textContent = "Import failed: " + err.message;
+        status.classList.add("err");
+        toast("Could not import: " + err.message, "err");
+      }
+    }
+
+    input.addEventListener("change", () => handleFile(input.files[0]));
+    setTimeout(() => {
+      const drop = document.getElementById("import-drop");
+      if (!drop) return;
+      ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("is-over"); }));
+      ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("is-over"); }));
+      drop.addEventListener("drop", (e) => { const file = e.dataTransfer?.files?.[0]; if (file) handleFile(file); });
+    }, 0);
+
+    return card;
+  }
+
+  async function saveContent({ folder, file, path, sha, f, tagChips }, view) {
     const title = f.title.value.trim();
     if (!title) return toast("Title is required.", "err");
+    const editorBody = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody ? f.__fallbackBody.value : "");
     let fm, filePath;
     if (folder.key === "pages") {
       const pageSlug = (f.slug.value.trim() || slug(title));
@@ -616,7 +845,7 @@
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Date must be YYYY-MM-DD.", "err");
       const summary = f.summary.value.trim();
       if (!summary) return toast("Summary is required.", "err");
-      const tags = f.tags.value.split(/[,;\n]/).map((t) => t.trim()).filter(Boolean);
+      const tags = tagChips ? tagChips.getTags() : [];
       fm = {
         title, date,
         author: f.author.value.trim() || folder.author,
@@ -631,15 +860,17 @@
       };
       filePath = path || `content/${folder.key}/${date}-${slug(title)}.md`;
     }
-    const markdown = buildMarkdown(fm, f.__body.value);
+    const markdown = buildMarkdown(fm, editorBody);
 
     try {
-      // creating a brand-new file: if the path already exists, fetch its sha to overwrite
       if (!sha) {
-        try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
+        try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath), { auth: false }); sha = existing.sha; } catch {}
       }
       await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
-      toast("Saved. Site rebuilds in ~1 minute.");
+      toast("Saved. Site rebuilds in ~15 seconds.");
+      // Clean up editor instance to avoid leaks on re-mount
+      try { window.__tgdEditor?.destroy(); } catch {}
+      window.__tgdEditor = null;
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
   }
