@@ -1,6 +1,6 @@
 // The Global Decipher — incident-feed + admin API Worker.
 //
-//   scheduled(): poll X (every 15 min) and prune the feed to the archive window.
+//   scheduled(): optionally poll X and maintain the historical incident archive.
 //   fetch():
 //     GET    /api/incidents          public — serve the KV feed (the map reads this)
 //     POST   /api/incidents          authed — add/edit incident(s) (merge by id)
@@ -13,6 +13,8 @@
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
 //     PUT    /api/content/file       authed — create/update an article (D1) + trigger Pages rebuild
 //     DELETE /api/content/file       authed — delete an article (D1) + trigger Pages rebuild
+//     POST   /api/media              authed — upload an image, PDF, or DOCX to R2
+//     GET    /media/<key>            public — serve uploaded research media
 //     GET    /                       health check
 //
 // KV binding: INCIDENTS   D1 binding: CONTENT_DB
@@ -32,12 +34,18 @@ import {
 } from "./feed.js";
 import { pollX } from "./x.js";
 import { listContent, getFile, putFile, deleteFile, dumpCollection, triggerRebuild } from "./content.js";
+import { uploadMedia, readMedia } from "./media.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "authorization, content-type"
 };
+const INCIDENT_CACHE_VERSION = "archive-v2";
+
+function incidentCacheKey(url) {
+  return new Request(`${url.origin}/api/incidents?cache=${INCIDENT_CACHE_VERSION}`, { method: "GET" });
+}
 
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
@@ -69,10 +77,20 @@ export default {
     if (path === "/" || path === "/health") return json({ ok: true, service: "tgd-incidents" });
 
     try {
+      if (path.startsWith("/media/") && method === "GET") {
+        const object = await readMedia(env, path.slice("/media/".length));
+        if (!object) return new Response("Not found", { status: 404 });
+        const headers = new Headers();
+        headers.set("content-type", object.httpMetadata?.contentType || "application/octet-stream");
+        headers.set("cache-control", object.httpMetadata?.cacheControl || "public, max-age=31536000, immutable");
+        if (object.httpEtag) headers.set("etag", object.httpEtag);
+        return new Response(object.body, { headers });
+      }
+
       // ---- Incident feed (public read) ----
       if ((path === "/api/incidents" || path === "/incidents") && method === "GET") {
         const cache = caches.default;
-        const cacheKey = new Request(`${url.origin}${path}`, { method: "GET" });
+        const cacheKey = incidentCacheKey(url);
         const hit = await cache.match(cacheKey);
         if (hit) return hit;
         const feed = await loadFeed(env);
@@ -87,15 +105,7 @@ export default {
         return json({ on: flag === "on" });
       }
 
-      // ---- Content reads (public) — admin panel reads these too without auth ----
-      if (path === "/api/content" && method === "GET") {
-        const folder = url.searchParams.get("folder") || "";
-        return json({ files: await listContent(env, folder) });
-      }
-      if (path === "/api/content/file" && method === "GET") {
-        const filePath = url.searchParams.get("path") || "";
-        return json(await getFile(env, filePath));
-      }
+      // ---- Published content dump (public, used by the static-site build) ----
       if (path === "/api/content/dump" && method === "GET") {
         const folder = url.searchParams.get("folder") || "";
         return json({ items: await dumpCollection(env, folder) });
@@ -106,6 +116,20 @@ export default {
       if (needsAuth && !authed(request, env)) return json({ error: "Unauthorized" }, 401);
 
       if (path === "/api/admin/ping") return json({ ok: true });
+
+      // ---- Admin content reads (drafts are never exposed publicly) ----
+      if (path === "/api/content" && method === "GET") {
+        const folder = url.searchParams.get("folder") || "";
+        return json({ files: await listContent(env, folder) });
+      }
+      if (path === "/api/content/file" && method === "GET") {
+        const filePath = url.searchParams.get("path") || "";
+        return json(await getFile(env, filePath));
+      }
+
+      if (path === "/api/media" && method === "POST") {
+        return json(await uploadMedia(request, env), 201);
+      }
 
       if (path === "/api/maintenance" && method === "POST") {
         const body = await readJson(request);
@@ -125,6 +149,7 @@ export default {
         feed.incidents = mergeIncidents(feed.incidents, valid, today);
         stampFeed(feed, today);
         await saveFeed(env, feed);
+        ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
         return json({ ok: true, added: valid.length, total: feed.incidents.length });
       }
 
@@ -137,6 +162,7 @@ export default {
         if (removed) {
           stampFeed(feed, today);
           await saveFeed(env, feed);
+          ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
         }
         return json({ ok: removed, removed, total: feed.incidents.length });
       }

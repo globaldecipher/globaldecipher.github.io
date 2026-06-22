@@ -22,11 +22,12 @@
   };
   const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); };
 
-  async function api(path, { method = "GET", body, auth = true } = {}) {
+  async function api(path, { method = "GET", body, formData, auth = true } = {}) {
     const headers = {};
     if (auth && KEY) headers.authorization = "Bearer " + KEY;
     if (body !== undefined) headers["content-type"] = "application/json";
-    const res = await fetch(API + path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    const payload = formData || (body !== undefined ? JSON.stringify(body) : undefined);
+    const res = await fetch(API + path, { method, headers, body: payload });
     let data = {};
     try { data = await res.json(); } catch {}
     if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
@@ -487,6 +488,7 @@
   const CDN = {
     toastJs: "https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js",
     toastCss: "https://uicdn.toast.com/editor/latest/toastui-editor.min.css",
+    toastDarkCss: "https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css",
     mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
     turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js"
   };
@@ -508,10 +510,27 @@
   }
 
   // ============================ WYSIWYG EDITOR ============================
-  // Mounts Toast UI Editor on a div. Returns an instance with .getMarkdown() / .setMarkdown().
-  // Images dropped/pasted into the editor are inlined as data URIs so they save with the post.
+  async function uploadMedia(blob, name = "image") {
+    const file = blob instanceof File ? blob : new File([blob], name, { type: blob.type || "application/octet-stream" });
+    const formData = new FormData();
+    formData.append("file", file, file.name || name);
+    return api("/media", { method: "POST", formData });
+  }
+
+  async function imageFromMammoth(image, index) {
+    const base64 = await image.read("base64");
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    const extension = image.contentType?.split("/").pop() || "png";
+    const blob = new Blob([bytes], { type: image.contentType || "image/png" });
+    const uploaded = await uploadMedia(blob, `word-image-${index + 1}.${extension}`);
+    return { src: uploaded.url };
+  }
+
+  // Mounts the visual editor. Uploaded media is stored in R2 and saved as a
+  // normal image URL, never as unreadable base64 text inside an article.
   async function mountMarkdownEditor(container, initialMarkdown, opts = {}) {
     loadCss(CDN.toastCss);
+    loadCss(CDN.toastDarkCss);
     await loadScript(CDN.toastJs);
     const editor = new window.toastui.Editor({
       el: container,
@@ -522,7 +541,7 @@
       usageStatistics: false,
       theme: "dark",
       autofocus: false,
-      hideModeSwitch: false,
+      hideModeSwitch: true,
       toolbarItems: [
         ["heading", "bold", "italic", "strike"],
         ["hr", "quote"],
@@ -534,11 +553,11 @@
       hooks: {
         addImageBlobHook: async (blob, callback) => {
           try {
-            const dataUri = await blobToDataUri(blob);
+            const uploaded = await uploadMedia(blob, blob.name || "image");
             const altText = (blob.name || "image").replace(/\.[a-z]+$/i, "");
-            callback(dataUri, altText);
+            callback(uploaded.url, altText);
           } catch (err) {
-            toast("Could not embed image: " + err.message, "err");
+            toast("Could not upload image: " + err.message, "err");
           }
         }
       }
@@ -546,26 +565,16 @@
     return editor;
   }
 
-  function blobToDataUri(blob) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.onerror = () => reject(r.error || new Error("read failed"));
-      r.readAsDataURL(blob);
-    });
-  }
-
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
     await loadScript(CDN.mammothJs);
     await loadScript(CDN.turndownJs);
     const arrayBuffer = await file.arrayBuffer();
+    let imageIndex = 0;
     const result = await window.mammoth.convertToHtml(
       { arrayBuffer },
       {
-        convertImage: window.mammoth.images.imgElement((image) =>
-          image.read("base64").then((b64) => ({ src: `data:${image.contentType};base64,${b64}` }))
-        )
+        convertImage: window.mammoth.images.imgElement((image) => imageFromMammoth(image, imageIndex++))
       }
     );
     const td = new window.TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", emDelimiter: "*" });
@@ -632,6 +641,7 @@
     { key: "pages", label: "Pages", singular: "page", type: "page", author: "" }
   ];
   const SENSITIVITY = ["standard", "elevated", "restricted"];
+  const PUBLICATION_STATUS = ["draft", "published"];
   let activeFolder = "news";
 
   async function renderContent(view) {
@@ -640,7 +650,7 @@
     for (const fo of FOLDERS) sel.append(el("option", { value: fo.key, selected: fo.key === activeFolder }, fo.label));
     view.append(pageHead(
       "Articles & Profiles",
-      "Edit any markdown file in the repo. Changes commit to GitHub and rebuild the public site within about a minute.",
+      "Create and review research drafts before making them public.",
       el("label", { class: "fld-label", style: "margin:0" }, el("span", {}, "Section"), sel),
       el("button", { class: "btn primary", onclick: () => contentForm(view, null) }, "+ New " + folder.singular)
     ));
@@ -654,7 +664,7 @@
         listEl.append(el("div", { class: "row" },
           el("div", { class: "row-main" },
             el("div", { class: "row-title" }, file.slug),
-            el("div", { class: "row-meta" }, el("span", {}, file.path))
+            el("div", { class: "row-meta" }, el("span", {}, file.path), el("span", { class: `chip ${file.status === "published" ? "chip-verified" : ""}` }, file.status === "published" ? "Published" : "Draft"))
           ),
           el("div", { class: "row-actions" },
             el("button", { class: "btn small", onclick: () => contentForm(view, file) }, "Edit"),
@@ -664,7 +674,7 @@
       }
     } catch (e) {
       clear(listEl);
-      listEl.append(el("p", { class: "err" }, "Could not list files: " + e.message + (/configured|404/.test(e.message) ? " (is GITHUB_TOKEN set on the Worker?)" : "")));
+      listEl.append(el("p", { class: "err" }, "Could not list files: " + e.message));
     }
   }
 
@@ -672,7 +682,7 @@
     const folder = FOLDERS.find((f) => f.key === activeFolder);
     let fm = {}, body = "", sha = null, path = file ? file.path : null;
     if (file) {
-      try { const got = await api("/content/file?path=" + encodeURIComponent(file.path), { auth: false }); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
+      try { const got = await api("/content/file?path=" + encodeURIComponent(file.path)); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
       catch (e) { return toast("Could not open file: " + e.message, "err"); }
     }
     const f = {};
@@ -737,6 +747,7 @@
             el("p", { class: "fld-hint" }, "Press Enter or comma to add. Backspace clears the last one. Used for related-article links.")
           ),
           add("sensitivity", "Sensitivity", { select: SENSITIVITY, default: fm.sensitivity || "standard", hint: "“Elevated” adds an editorial note. “Restricted” hides from public listings." }),
+          add("status", "Publication status", { select: PUBLICATION_STATUS, default: fm.status || "draft", hint: "Drafts stay private until an editor publishes them." }),
           add("featured", "Feature on homepage", { type: "checkbox", wide: true, hint: "Pins this piece to the homepage hero rail." })
         ),
         editorSection("Article body", "Write directly here. Use the toolbar for formatting. Drag or paste images — they save with the article.")
@@ -747,10 +758,10 @@
     if (importCard) view.append(importCard);
     view.append(form);
     view.append(el("div", { class: "form-actions" },
-      el("span", { class: "form-hint" }, file ? "Changes go live in ~15 seconds." : "Publishes to D1 and rebuilds the site in ~15 seconds."),
+      el("span", { class: "form-hint" }, "Drafts stay private. Published work appears after the site refreshes."),
       el("span", { class: "spacer" }),
       el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "Cancel"),
-      el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save changes" : "Publish")
+      el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save" : "Save draft")
     ));
 
     // Mount the WYSIWYG editor into the placeholder div after the DOM is in place.
@@ -856,6 +867,7 @@
         tags,
         access: "free",
         sensitivity: f.sensitivity.value.trim() || "standard",
+        status: f.status.value === "published" ? "published" : "draft",
         featured: f.featured.checked
       };
       filePath = path || `content/${folder.key}/${date}-${slug(title)}.md`;
@@ -864,10 +876,10 @@
 
     try {
       if (!sha) {
-        try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath), { auth: false }); sha = existing.sha; } catch {}
+        try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
       }
       await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
-      toast("Saved. Site rebuilds in ~15 seconds.");
+      toast(fm.status === "published" ? "Published. Site refreshes shortly." : "Draft saved.");
       // Clean up editor instance to avoid leaks on re-mount
       try { window.__tgdEditor?.destroy(); } catch {}
       window.__tgdEditor = null;

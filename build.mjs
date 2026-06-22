@@ -306,11 +306,18 @@ function markdownToHtml(markdown) {
 // Override with CONTENT_API env var for local development.
 const CONTENT_API = process.env.CONTENT_API || "https://theglobaldecipher.com/api";
 
+function refreshManagedAssetUrls(value = "") {
+  return String(value)
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260622-archive")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260622-archive4");
+}
+
 async function readCollection(collection) {
   const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`);
   if (!res.ok) throw new Error(`Failed to fetch ${collection} from ${CONTENT_API}: HTTP ${res.status}`);
   const { items } = await res.json();
   return (items || [])
+    .filter((row) => collection === "pages" || row.status === "published")
     .map((row) => {
       const slug = slugify(row.slug);
       if (!slug) throw new Error(`Invalid slug for ${collection} row: ${row.slug}`);
@@ -325,15 +332,17 @@ async function readCollection(collection) {
         tags: row.tags || [],
         access: row.access,
         sensitivity: row.sensitivity,
+        status: row.status || (collection === "pages" ? "published" : "draft"),
         featured: row.featured,
         eyebrow: row.eyebrow
       };
+      const body = refreshManagedAssetUrls(row.body || "");
       return {
         ...data,
         collection,
         slug,
-        body: row.body || "",
-        html: markdownToHtml(row.body || ""),
+        body,
+        html: markdownToHtml(body),
         url: collection === "pages" ? `/${slug}/` : `/${collection}/${slug}/`
       };
     })
@@ -1146,13 +1155,18 @@ function pageTemplate(page) {
       </div>
     </div>
   </section>`;
+  const managedPageHead = page.slug === "incident-map"
+    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260622-archive">'
+    : page.slug === "network-graph"
+      ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing">'
+      : page.extra_head || "";
   return shell({
     title: page.title,
     description: page.summary || SITE.description,
     body,
     current: page.url,
     pagePath: page.url,
-    extraHead: page.extra_head || "",
+    extraHead: managedPageHead,
     image: page.og_image || page.image || SITE.defaultImage
   });
 }
@@ -1595,11 +1609,11 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css">
+<link rel="stylesheet" href="/assets/admin.css?v=20260622-publishing">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js" defer></script>
+<script src="/assets/admin.js?v=20260622-publishing" defer></script>
 </body>
 </html>
 `;

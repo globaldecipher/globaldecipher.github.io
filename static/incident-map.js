@@ -6,6 +6,7 @@
   // not as a static file. Override with window.TGD_INCIDENTS_URL if the Worker
   // lives on a different host (e.g. a *.workers.dev or api.* subdomain).
   const DATA_URL = window.TGD_INCIDENTS_URL || "/api/incidents";
+  const ARCHIVE_URL = "/assets/data/incidents.json?v=20260622-archive2";
   const HUBS_URL = "/assets/data/hubs.json";
   const HUB_INDEX = { organisations: [], regions: [] };
   fetch(HUBS_URL, { cache: "default" })
@@ -55,7 +56,7 @@
     return esc(text);
   }
   const TZ = "Asia/Karachi";
-  const ARCHIVE_DAYS = 31;
+  const ARCHIVE_DAYS = 0;
   const DAY_MS = 86400000;
   const PLAYBACK_MS = 1300;
   const FATALITY_GROUPS = [
@@ -147,10 +148,11 @@
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
   function addDays(date, days) { return fromMs(ms(date) + days * DAY_MS); }
-  function archiveStart() { return addDays(state.today, -(ARCHIVE_DAYS - 1)); }
+  function archiveStart() { return ARCHIVE_DAYS ? addDays(state.today, -(ARCHIVE_DAYS - 1)) : ""; }
   function playbackStart() { return addDays(state.today, -29); }
   function inArchive(date) {
     const value = ms(date);
+    if (!ARCHIVE_DAYS) return Number.isFinite(value) && value <= ms(state.today);
     return Number.isFinite(value) && value >= ms(archiveStart()) && value <= ms(state.today);
   }
   function formatDay(date, compact = false) {
@@ -203,12 +205,14 @@
   function topLabels(map, limit = 3) { return top(map, limit).map(([label]) => label); }
   function playbackDates() { return Array.from({ length: 30 }, (_item, index) => addDays(playbackStart(), index)); }
   function rangeLabel() {
+    if (state.mode === "archive") return "HISTORICAL ARCHIVE";
     if (state.mode === "last7") return "LAST 7 DAYS";
     if (state.mode === "last30") return "LAST 30 DAYS";
     if (state.mode === "week") return state.week.toUpperCase();
     return formatDay(state.date).toUpperCase();
   }
   function rangeContext() {
+    if (state.mode === "archive") return "in the historical archive";
     if (state.mode === "last7") return "in the last 7 days";
     if (state.mode === "last30") return "in the last 30 days";
     if (state.mode === "week") return `in the ${state.week}`;
@@ -224,6 +228,7 @@
   }
 
   function selectedRange() {
+    if (state.mode === "archive") return state.archive;
     if (state.mode === "last7") {
       const start = ms(addDays(state.today, -6));
       const end = ms(state.today);
@@ -369,6 +374,7 @@
     const dates = Array.from(new Set(state.archive.map((incident) => incident.date))).sort().slice(-31);
     const buttons = [
       [state.playback ? "Pause timeline" : "Play timeline", "playback", "playback"],
+      ["Historical archive", "archive", "archive"],
       ["Today", "date", state.today],
       ["Yesterday", "date", addDays(state.today, -1)],
       ["Last 7 days", "last7", "last7"],
@@ -377,7 +383,7 @@
     ];
     els.timeline.innerHTML = buttons.map(([label, mode, value]) => {
       if (mode === "playback") return `<button type="button" class="playback-button${state.playback ? " is-active" : ""}" data-playback-toggle>${esc(label)}</button>`;
-      const active = (mode === "last7" && state.mode === "last7") || (mode === "last30" && state.mode === "last30") || (mode === "date" && state.mode === "date" && state.date === value);
+      const active = (mode === "archive" && state.mode === "archive") || (mode === "last7" && state.mode === "last7") || (mode === "last30" && state.mode === "last30") || (mode === "date" && state.mode === "date" && state.date === value);
       return `<button type="button" class="${active ? "is-active" : ""}" data-timeline-mode="${esc(mode)}" data-timeline-value="${esc(value)}">${esc(label)}</button>`;
     }).join("");
   }
@@ -454,8 +460,9 @@
       const width = split.total ? Math.round(value / split.total * 100) : 0;
       return `<div class="archive-split-row"><span>${esc(label)}</span><strong>${count(value)}</strong><i><b style="width:${Math.max(value ? 8 : 0, width)}%"></b></i></div>`;
     }).join("");
+    const firstDate = state.archive.map((incident) => incident.date).sort()[0] || state.today;
     els.weekly.innerHTML = `
-      <div class="weekly-chart-head"><span>Archive graphs</span><strong>${esc(formatDay(archiveStart(), true))} to ${esc(formatDay(state.today, true))}</strong><div class="archive-mode-switch"><button type="button" class="${state.archiveMode === "weekly" ? "is-active" : ""}" data-archive-mode="weekly">Weekly</button><button type="button" class="${state.archiveMode === "monthly" ? "is-active" : ""}" data-archive-mode="monthly">30 days</button></div></div>
+      <div class="weekly-chart-head"><span>Archive graphs</span><strong>${esc(formatDay(firstDate, true))} to ${esc(formatDay(state.today, true))}</strong><div class="archive-mode-switch"><button type="button" class="${state.archiveMode === "weekly" ? "is-active" : ""}" data-archive-mode="weekly">Weekly</button><button type="button" class="${state.archiveMode === "monthly" ? "is-active" : ""}" data-archive-mode="monthly">Recent days</button></div></div>
       <div class="archive-panel ${state.archiveMode === "monthly" ? "show-monthly" : "show-weekly"}">
         ${groupedWeekChart(weeks)}
         ${weekProfileRich(selected, previous)}
@@ -513,7 +520,7 @@
     ].map(([fill, label]) => `<span class="legend-item"><i style="background:${fill}"></i>${esc(label)}</span>`).join("");
     return `<article class="weekly-chart-card grouped-week-chart">
       <div class="grouped-chart-head"><h3>Monthly trend</h3><div class="grouped-chart-legend">${legend}</div></div>
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weekly incidents, fatalities, and injuries across the rolling 31-day archive">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weekly incidents, fatalities, and injuries across the historical archive">
         ${gridLines}
         ${groups}
       </svg>
@@ -609,7 +616,7 @@
     const dowLabels = dows.map((d, i) => `<span class="cal-dow" style="grid-column:1; grid-row:${i + 1};">${d}</span>`).join("");
     const legend = fills.slice(1).map((fill) => `<span style="background:${fill}"></span>`).join("");
     return `<article class="weekly-chart-card calendar-heatmap">
-      <div class="cal-head"><h3>31-day calendar</h3><div class="cal-legend"><span>Low</span>${legend}<span>High</span></div></div>
+      <div class="cal-head"><h3>Recent calendar</h3><div class="cal-legend"><span>Low</span>${legend}<span>High</span></div></div>
       <div class="cal-grid" style="grid-template-columns: 36px repeat(${cols}, minmax(0, 1fr));">
         ${dowLabels}
         ${cellHtml}
@@ -724,12 +731,12 @@
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
     const topProvince = Array.from(map.values()).sort((a, b) => b.count - a.count)[0];
     const topActorLabel = topLabels(countBy(state.filtered, "actor"), 1)[0] || "None";
-    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${statRaw("Top province", topProvince?.count ? hubLink(topProvince.label, "region") : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${statRaw("Top actor", topActorLabel === "None" ? "None" : hubLink(topActorLabel, "org"))}${stat("Archive", `${ARCHIVE_DAYS} days`)}</div>`;
+    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${statRaw("Top province", topProvince?.count ? hubLink(topProvince.label, "region") : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${statRaw("Top actor", topActorLabel === "None" ? "None" : hubLink(topActorLabel, "org"))}${stat("Archive", "Historical record")}</div>`;
   }
   function renderList() {
     els.resultCount.textContent = `${count(state.filtered.length)} shown`;
     if (!state.filtered.length) {
-      const message = state.range.length ? "No incidents match these filters." : state.mode === "date" && !inArchive(state.date) ? `Date is outside the ${ARCHIVE_DAYS}-day archive window.` : `No incidents logged ${rangeContext()} (Pakistan time).`;
+      const message = state.range.length ? "No incidents match these filters." : state.mode === "date" && !inArchive(state.date) ? "Date is outside the available historical record." : `No incidents logged ${rangeContext()} (Pakistan time).`;
       els.list.innerHTML = `<p class="tracker-empty">${esc(message)}</p>`;
       return;
     }
@@ -754,7 +761,7 @@
     renderDetail();
     renderList();
     renderTabs();
-    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} ${rangeContext()}. Archive covers the latest ${ARCHIVE_DAYS} Pakistan-time days.`;
+    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} ${rangeContext()}. Historical records remain available on this map.`;
   }
   function stopPlayback(renderControls = true) {
     if (playbackTimer) window.clearInterval(playbackTimer);
@@ -781,12 +788,27 @@
   async function loadFeed() {
     try {
       state.today = pkToday();
-      const response = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Feed returned ${response.status}`);
-      const data = await response.json();
-      state.all = Array.isArray(data.incidents) ? data.incidents.slice().sort((a, b) => text(b.date).localeCompare(text(a.date)) || text(b.reported_at).localeCompare(text(a.reported_at))) : [];
-      state.archive = state.all.filter((incident) => inArchive(incident.date));
-      if (!state.loaded && !state.archive.some((incident) => incident.date === state.date)) setDate(state.archive[0]?.date || state.today);
+      const readJson = async (url, options) => {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`Feed returned ${response.status}`);
+        return response.json();
+      };
+      const [liveResult, archiveResult] = await Promise.allSettled([
+        readJson(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" }),
+        readJson(ARCHIVE_URL, { cache: "default" })
+      ]);
+      const live = liveResult.status === "fulfilled" ? liveResult.value : {};
+      const archive = archiveResult.status === "fulfilled" ? archiveResult.value : {};
+      const byId = new Map();
+      for (const incident of Array.isArray(archive.incidents) ? archive.incidents : []) byId.set(incident.id, incident);
+      for (const incident of Array.isArray(live.incidents) ? live.incidents : []) byId.set(incident.id, incident);
+      state.all = [...byId.values()].sort((a, b) => text(b.date).localeCompare(text(a.date)) || text(b.reported_at).localeCompare(text(a.reported_at)));
+      if (!state.all.length) throw new Error("No incident records are available.");
+      state.archive = state.all;
+      if (!state.loaded) {
+        state.date = state.archive[0]?.date || state.today;
+        state.mode = "archive";
+      }
       state.loaded = true;
       const latestDate = state.archive[0]?.date;
       els.lastUpdated.textContent = latestDate ? `Data through ${formatDay(latestDate)}` : "No recent records";
@@ -808,7 +830,11 @@
     const timeline = event.target.closest("[data-timeline-mode]");
     if (timeline) {
       stopPlayback(false);
-      if (timeline.dataset.timelineMode === "last7") {
+      if (timeline.dataset.timelineMode === "archive") {
+        state.mode = "archive";
+        state.week = "";
+        state.selectedIncident = "";
+      } else if (timeline.dataset.timelineMode === "last7") {
         state.mode = "last7";
         state.week = "";
         state.selectedIncident = "";

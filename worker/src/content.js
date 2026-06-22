@@ -51,6 +51,7 @@ function parseMarkdown(text) {
 function rowToFrontMatter(row, collection) {
   const fm = {};
   if (row.title) fm.title = row.title;
+  if (row.status) fm.status = row.status;
   if (collection === "pages") {
     if (row.slug) fm.slug = row.slug;
     if (row.type) fm.type = row.type;
@@ -79,7 +80,7 @@ export async function listContent(env, folder) {
   const collection = String(folder || "").toLowerCase();
   if (!VALID_COLLECTIONS.has(collection)) throw new Error(`Unknown collection: ${collection}`);
   const { results } = await env.CONTENT_DB
-    .prepare("SELECT slug, title, date, updated_at FROM content WHERE collection = ? ORDER BY COALESCE(date, '') DESC, slug DESC")
+    .prepare("SELECT slug, title, date, status, updated_at FROM content WHERE collection = ? ORDER BY COALESCE(date, '') DESC, slug DESC")
     .bind(collection)
     .all();
   return (results || []).map((row) => ({
@@ -88,6 +89,7 @@ export async function listContent(env, folder) {
     slug: row.slug,
     title: row.title,
     date: row.date,
+    status: row.status || (collection === "pages" ? "published" : "draft"),
     updated_at: row.updated_at
   }));
 }
@@ -113,6 +115,8 @@ export async function putFile(env, filePath, content) {
   const { fm, body } = parseMarkdown(content);
   const tagsJson = JSON.stringify(Array.isArray(fm.tags) ? fm.tags : []);
   const now = new Date().toISOString();
+  const status = collection === "pages" ? "published" : (fm.status === "published" ? "published" : "draft");
+  const publishedAt = status === "published" ? now : null;
   // upsert by (collection, slug)
   const existing = await env.CONTENT_DB
     .prepare("SELECT id FROM content WHERE collection = ? AND slug = ?")
@@ -122,7 +126,7 @@ export async function putFile(env, filePath, content) {
     await env.CONTENT_DB
       .prepare(`UPDATE content SET
         type = ?, title = ?, date = ?, author = ?, category = ?, region = ?,
-        summary = ?, tags = ?, access = ?, sensitivity = ?, featured = ?,
+        summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
         eyebrow = ?, body = ?, updated_at = ?
         WHERE id = ?`)
       .bind(
@@ -136,6 +140,8 @@ export async function putFile(env, filePath, content) {
         tagsJson,
         fm.access || "free",
         fm.sensitivity || "standard",
+        status,
+        publishedAt,
         fm.featured ? 1 : 0,
         fm.eyebrow || null,
         body,
@@ -146,8 +152,8 @@ export async function putFile(env, filePath, content) {
   } else {
     await env.CONTENT_DB
       .prepare(`INSERT INTO content
-        (collection, slug, type, title, date, author, category, region, summary, tags, access, sensitivity, featured, eyebrow, body, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        (collection, slug, type, title, date, author, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(
         collection,
         slug,
@@ -161,6 +167,8 @@ export async function putFile(env, filePath, content) {
         tagsJson,
         fm.access || "free",
         fm.sensitivity || "standard",
+        status,
+        publishedAt,
         fm.featured ? 1 : 0,
         fm.eyebrow || null,
         body,
@@ -192,7 +200,9 @@ export async function dumpCollection(env, folder) {
   const collection = String(folder || "").toLowerCase();
   if (!VALID_COLLECTIONS.has(collection)) throw new Error(`Unknown collection: ${collection}`);
   const { results } = await env.CONTENT_DB
-    .prepare("SELECT * FROM content WHERE collection = ? ORDER BY COALESCE(date, '') DESC, slug DESC")
+    .prepare(collection === "pages"
+      ? "SELECT * FROM content WHERE collection = ? ORDER BY COALESCE(date, '') DESC, slug DESC"
+      : "SELECT * FROM content WHERE collection = ? AND status = 'published' ORDER BY COALESCE(date, '') DESC, slug DESC")
     .bind(collection)
     .all();
   return (results || []).map((row) => {
@@ -211,6 +221,7 @@ export async function dumpCollection(env, folder) {
       tags,
       access: row.access,
       sensitivity: row.sensitivity,
+      status: row.status || (collection === "pages" ? "published" : "draft"),
       featured: Boolean(row.featured),
       eyebrow: row.eyebrow,
       body: row.body || "",

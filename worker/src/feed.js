@@ -4,7 +4,9 @@
 // with what the front-end map (static/incident-map.js) expects.
 
 export const PAKISTAN_TIME_ZONE = "Asia/Karachi";
-export const ARCHIVE_DAYS = 31;
+// Zero means retain the full curated archive. The public map is a research
+// record, not a rolling alert feed, so older verified incidents stay visible.
+export const ARCHIVE_DAYS = 0;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // KV keys.
@@ -121,11 +123,13 @@ function dateFromUtcMs(ms) {
 }
 
 export function archiveStartDate(today) {
+  if (!ARCHIVE_DAYS) return "";
   return dateFromUtcMs(dateToUtcMs(today) - (ARCHIVE_DAYS - 1) * DAY_MS);
 }
 
 export function withinArchiveWindow(incident, today) {
   const value = dateToUtcMs(incident?.date);
+  if (!ARCHIVE_DAYS) return !Number.isFinite(value) || value <= dateToUtcMs(today);
   const start = dateToUtcMs(archiveStartDate(today));
   const end = dateToUtcMs(today);
   // Keep records with an unparseable date so nothing is silently dropped.

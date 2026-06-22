@@ -29,9 +29,20 @@ id = "e57a43705200465a985ccf86ae4d4a0f"
 binding = "CONTENT_DB"
 database_name = "tgd-content"
 database_id = "f73c5100-c9fd-41b3-9e20-d6f1986ad5b4"
+migrations_dir = "migrations"
 
-# Serve the feed from the production domain at /api/* so the site can fetch it
-# same-origin (no CORS). A Workers route takes precedence over Pages for matching paths.
+# Report files, charts, diagrams, and article images. The bucket will be
+# created and connected only after the local preview is approved.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "tgd-media"
+
+# Serve the feed and uploaded research media from the production domain.
+# A Workers route takes precedence over Pages for matching paths.
 [[routes]]
 pattern = "theglobaldecipher.com/api/*"
+zone_name = "theglobaldecipher.com"
+
+[[routes]]
+pattern = "theglobaldecipher.com/media/*"
 zone_name = "theglobaldecipher.com"
