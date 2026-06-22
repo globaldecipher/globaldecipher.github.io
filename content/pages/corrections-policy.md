@@ -16,4 +16,4 @@ Security reporting develops over time. When new public information changes an as
 
 ## Reader requests
 
-Readers can send correction requests to **globaldecipher@gmail.com** with the page title, disputed claim, and supporting public source.
+Readers can send correction requests to **contact@theglobaldecipher.com** with the page title, disputed claim, and supporting public source.

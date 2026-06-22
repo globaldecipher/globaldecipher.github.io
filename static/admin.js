@@ -99,7 +99,8 @@
     root.append(el("div", { class: "login" },
       el("div", { class: "login-card" },
         el("div", { class: "wordmark" }, "THE GLOBAL DECIPHER"),
-        el("div", { class: "login-sub" }, "Admin panel"),
+        el("h2", {}, "Admin panel"),
+        el("p", { class: "login-sub" }, "Sign in with the shared access key to manage incidents and content."),
         input,
         el("button", { class: "btn primary", onclick: submit }, "Enter"),
         msg ? el("p", { class: "err" }, msg) : null
@@ -118,9 +119,20 @@
   let activeTab = "incidents";
   function renderApp() {
     clear(root);
-    const maint = el("label", { class: "maint" }, el("input", { type: "checkbox", id: "maint-toggle" }), el("span", {}, "Maintenance mode"));
+    const sw = el("button", {
+      type: "button",
+      class: "switch",
+      role: "switch",
+      "aria-checked": "false",
+      "aria-label": "Toggle maintenance mode",
+      id: "maint-switch"
+    });
+    const labelText = el("span", { class: "maint-title" }, "Maintenance mode");
+    const status = el("span", { class: "maint-status", id: "maint-status" }, "Checking…");
+    const labelBox = el("span", { class: "maint-label", id: "maint-label" }, labelText, status);
+    const maint = el("div", { class: "maint", title: "Toggle public-site maintenance gate" }, sw, labelBox);
     const header = el("header", { class: "topbar" },
-      el("div", { class: "brand" }, "TGD Admin"),
+      el("div", { class: "brand" }, "TGD ADMIN"),
       el("nav", { class: "tabs" },
         tabBtn("incidents", "Incidents"),
         tabBtn("content", "Articles & Profiles")
@@ -148,24 +160,171 @@
   }
 
   // ---- maintenance toggle ----
+  function applyMaintenanceState(on) {
+    const sw = document.getElementById("maint-switch");
+    const label = document.getElementById("maint-label");
+    const status = document.getElementById("maint-status");
+    if (!sw) return;
+    sw.setAttribute("aria-checked", on ? "true" : "false");
+    sw.removeAttribute("aria-busy");
+    sw.disabled = false;
+    label.classList.toggle("is-on", on);
+    label.classList.remove("is-loading");
+    status.textContent = on ? "Site locked" : "Site live";
+  }
+  function setMaintenanceLoading(text) {
+    const sw = document.getElementById("maint-switch");
+    const label = document.getElementById("maint-label");
+    const status = document.getElementById("maint-status");
+    if (!sw) return;
+    sw.setAttribute("aria-busy", "true");
+    sw.disabled = true;
+    label.classList.add("is-loading");
+    status.textContent = text || "Updating…";
+  }
+
   async function initMaintenance() {
-    const cb = document.getElementById("maint-toggle");
-    try { cb.checked = (await api("/maintenance", { auth: false })).on; } catch {}
-    cb.addEventListener("change", async () => {
+    setMaintenanceLoading("Checking…");
+    let current = false;
+    try { current = Boolean((await api("/maintenance", { auth: false })).on); } catch {}
+    applyMaintenanceState(current);
+    document.getElementById("maint-switch").addEventListener("click", async (e) => {
+      const sw = e.currentTarget;
+      if (sw.getAttribute("aria-busy") === "true") return;
+      const next = sw.getAttribute("aria-checked") !== "true";
+      setMaintenanceLoading(next ? "Locking site…" : "Unlocking site…");
       try {
-        await api("/maintenance", { method: "POST", body: { on: cb.checked } });
-        toast(cb.checked ? "Maintenance mode ON — site is now locked." : "Maintenance mode OFF — site is live.", cb.checked ? "warn" : "ok");
-      } catch (e) { cb.checked = !cb.checked; toast(e.message, "err"); }
+        await api("/maintenance", { method: "POST", body: { on: next } });
+        applyMaintenanceState(next);
+        toast(next ? "Maintenance mode ON — site is now locked." : "Maintenance mode OFF — site is live.", next ? "warn" : "ok");
+      } catch (err) {
+        applyMaintenanceState(!next);
+        toast(err.message, "err");
+      }
     });
+  }
+
+  // ============================ UI PRIMITIVES ============================
+  function pageHead(title, subtitle, ...actions) {
+    return el("div", { class: "page-head" },
+      el("div", { class: "page-head-text" },
+        el("h1", {}, title),
+        subtitle ? el("p", { class: "page-sub" }, subtitle) : null
+      ),
+      actions.length ? el("div", { class: "page-head-actions" }, ...actions) : null
+    );
+  }
+
+  function section(title, subtitle, ...children) {
+    return el("section", { class: "card" },
+      el("div", { class: "section-head" },
+        el("h3", {}, title),
+        subtitle ? el("p", { class: "section-sub" }, subtitle) : null
+      ),
+      el("div", { class: "fields" }, ...children)
+    );
+  }
+
+  /* Field renderer.
+     opts: {
+       type: "text"|"date"|"number"|"textarea"|"checkbox"|"url",
+       select: [...options],
+       datalist: [...suggestions],
+       default, placeholder, rows, hint, required, wide, optional, min, max, step
+     }
+     Returns { wrap, input } so the caller can stash the input ref. */
+  function makeField(label, opts = {}, currentValue) {
+    let input;
+    const inputId = "fld-" + Math.random().toString(36).slice(2, 9);
+    if (opts.type === "textarea") {
+      input = el("textarea", { class: "field" + (opts.mono ? " mono" : ""), rows: opts.rows || 4, id: inputId, placeholder: opts.placeholder || "" });
+      input.value = currentValue != null ? currentValue : (opts.default || "");
+    } else if (opts.select) {
+      input = el("select", { class: "field", id: inputId });
+      const cur = currentValue != null && currentValue !== "" ? currentValue : opts.default;
+      for (const o of opts.select) input.append(el("option", { value: o, selected: cur === o }, o));
+    } else if (opts.type === "checkbox") {
+      input = el("input", { type: "checkbox", id: inputId });
+      input.checked = Boolean(currentValue);
+    } else {
+      const attrs = { class: "field", type: opts.type || "text", id: inputId, placeholder: opts.placeholder || "" };
+      if (opts.min != null) attrs.min = opts.min;
+      if (opts.max != null) attrs.max = opts.max;
+      if (opts.step != null) attrs.step = opts.step;
+      if (opts.datalist) attrs.list = inputId + "-list";
+      input = el("input", attrs);
+      input.value = currentValue != null && currentValue !== "" ? currentValue : (opts.default || "");
+    }
+
+    // checkbox uses a different layout (label sits to the right)
+    if (opts.type === "checkbox") {
+      const wrap = el("label", { class: "fld chk" + (opts.wide ? " wide" : ""), for: inputId },
+        input,
+        el("div", { class: "chk-body" },
+          el("span", { class: "fld-label" }, label),
+          opts.hint ? el("span", { class: "fld-hint" }, opts.hint) : null
+        )
+      );
+      return { wrap, input };
+    }
+
+    const labelNode = el("label", { class: "fld-label", for: inputId },
+      el("span", {}, label),
+      opts.required ? el("span", { class: "req", title: "Required" }, "*") :
+      opts.optional ? el("span", { class: "opt" }, "Optional") : null
+    );
+    const children = [labelNode, input];
+    if (opts.datalist) {
+      const dl = el("datalist", { id: inputId + "-list" });
+      for (const v of opts.datalist) dl.append(el("option", { value: v }));
+      children.push(dl);
+    }
+    if (opts.hint) children.push(el("p", { class: "fld-hint" }, opts.hint));
+
+    const wrap = el("div", { class: "fld" + (opts.wide ? " wide" : "") }, ...children);
+    return { wrap, input };
   }
 
   // ============================ INCIDENTS ============================
   const SEVERITY = ["High", "Medium", "Low"];
-  const PROVINCES = ["Khyber Pakhtunkhwa", "Balochistan", "Sindh", "Punjab", "Gilgit-Baltistan", "Islamabad"];
+  const PROVINCES = ["Khyber Pakhtunkhwa", "Balochistan", "Sindh", "Punjab", "Gilgit-Baltistan", "Islamabad", "Azad Kashmir"];
+  const CATEGORIES = [
+    "Attack",
+    "Suicide Bombing / Explosion",
+    "IED / Explosion",
+    "IED Recovery / Defusal",
+    "Targeted Killing / Shooting",
+    "Clash / Armed Encounter",
+    "Counterterrorism Operation",
+    "Intelligence-Based Operation",
+    "Search Operation / Clash",
+    "Curfew / Security Operation",
+    "Security incident"
+  ];
+  const STATUSES = ["Initial report", "Developing", "Confirmed", "Resolved", "Disputed"];
+  const ACTORS = [
+    "Tehreek-e-Taliban Pakistan (TTP)",
+    "Hafiz Gul Bahadur Group",
+    "Jamaat-ul-Ahrar",
+    "Hizb-ul-Ahrar",
+    "Lashkar-e-Islam",
+    "Islamic State Khorasan Province (ISKP)",
+    "Balochistan Liberation Army (BLA)",
+    "Baloch Raji Aajoi Sangar (BRAS)",
+    "Security Forces",
+    "Counter Terrorism Department (CTD)",
+    "Security Forces / Tehreek-e-Taliban Pakistan (TTP)",
+    "Security Forces / Militants",
+    "Unidentified Militants",
+    "Unidentified Terrorists",
+    "Unidentified"
+  ];
+  const SEV_CHIP = { High: "chip chip-high", Medium: "chip chip-medium", Low: "chip chip-low" };
 
   async function renderIncidents(view) {
-    view.append(el("div", { class: "panel-head" },
-      el("h2", {}, "Incidents"),
+    view.append(pageHead(
+      "Incidents",
+      "Live feed that powers the public incident map. Edits show up on the map within a minute.",
       el("button", { class: "btn primary", onclick: () => incidentForm(view) }, "+ New incident")
     ));
     const listEl = el("div", { class: "list" }, el("p", { class: "muted" }, "Loading…"));
@@ -174,12 +333,21 @@
       const feed = await api("/incidents", { auth: false });
       const items = feed.incidents || [];
       clear(listEl);
-      if (!items.length) listEl.append(el("p", { class: "muted" }, "No incidents yet."));
+      if (!items.length) { listEl.append(el("div", { class: "list-empty" }, "No incidents yet. Click “+ New incident” to add one.")); return; }
       for (const it of items) {
+        const sevChip = it.severity ? el("span", { class: SEV_CHIP[it.severity] || "chip" }, it.severity) : null;
+        const verChip = it.verified ? el("span", { class: "chip chip-verified" }, "Verified") : null;
+        const metaBits = [];
+        metaBits.push(el("span", {}, it.date || "—"));
+        metaBits.push(el("span", { class: "dot" }));
+        metaBits.push(el("span", {}, [it.district, it.province].filter(Boolean).join(", ") || "Unspecified"));
+        if (it.category) { metaBits.push(el("span", { class: "dot" })); metaBits.push(el("span", {}, it.category)); }
+        if (sevChip) metaBits.push(sevChip);
+        if (verChip) metaBits.push(verChip);
         listEl.append(el("div", { class: "row" },
           el("div", { class: "row-main" },
             el("div", { class: "row-title" }, it.title || it.id),
-            el("div", { class: "row-meta" }, `${it.date} · ${it.district || "?"}, ${it.province || ""} · ${it.severity || ""} · ${it.source || ""}`)
+            el("div", { class: "row-meta" }, ...metaBits)
           ),
           el("div", { class: "row-actions" },
             el("button", { class: "btn small", onclick: () => incidentForm(view, it) }, "Edit"),
@@ -196,45 +364,74 @@
   function incidentForm(view, existing) {
     const it = existing || {};
     const f = {};
-    const field = (label, key, opts = {}) => {
-      let input;
-      if (opts.type === "textarea") input = el("textarea", { class: "field", rows: opts.rows || 4 });
-      else if (opts.select) { input = el("select", { class: "field" }); for (const o of opts.select) input.append(el("option", { value: o, selected: (it[key] || opts.default) === o }, o)); }
-      else if (opts.type === "checkbox") input = el("input", { type: "checkbox" });
-      else input = el("input", { class: "field", type: opts.type || "text" });
-      if (opts.type === "checkbox") input.checked = Boolean(it[key]);
-      else if (!opts.select) input.value = it[key] != null ? it[key] : (opts.default || "");
+    const add = (key, label, opts) => {
+      const { wrap, input } = makeField(label, opts, it[key]);
       f[key] = input;
-      return el("label", { class: "fld" }, el("span", {}, label), input);
+      return wrap;
     };
 
     clear(view);
-    view.append(el("div", { class: "panel-head" },
-      el("h2", {}, existing ? "Edit incident" : "New incident"),
-      el("button", { class: "btn ghost", onclick: () => showTab("incidents") }, "← Back")
+    view.append(pageHead(
+      existing ? "Edit incident" : "New incident",
+      existing ? "Update the fields below. Required fields are marked with a red asterisk." : "Fill in the fields below to publish a new incident to the live feed. Required fields are marked with a red asterisk.",
+      el("button", { class: "btn ghost", onclick: () => showTab("incidents") }, "← Back to list")
     ));
-    const form = el("div", { class: "form grid2" },
-      field("Date (YYYY-MM-DD)", "date", { type: "date", default: today() }),
-      field("Title", "title"),
-      field("District / area", "district"),
-      field("Province", "province", { select: PROVINCES }),
-      field("Category", "category", { default: "Security incident" }),
-      field("Severity", "severity", { select: SEVERITY, default: "Medium" }),
-      field("Status", "status", { default: "Initial report" }),
-      field("Reported actor", "actor", { default: "Unidentified" }),
-      field("Fatalities", "fatalities", { type: "number", default: 0 }),
-      field("Injuries", "injuries", { type: "number", default: 0 }),
-      field("Latitude (optional)", "lat", { type: "number" }),
-      field("Longitude (optional)", "lng", { type: "number" }),
-      field("Source name", "source", { default: "TGD Desk" }),
-      field("Source link", "source_url"),
-      el("label", { class: "fld chk" }, el("span", {}, "Verified"), f.verified = el("input", { type: "checkbox" })),
-      field("Summary", "summary", { type: "textarea", rows: 4 })
+
+    const form = el("div", { class: "form" },
+      // ---- Basics ----
+      section("Basics", "When it happened and a short headline. This is what readers see first.",
+        add("date", "Date", { type: "date", default: today(), required: true, hint: "Use the local date in Pakistan." }),
+        add("title", "Headline", { required: true, placeholder: "e.g. Swabi school attack", hint: "Short, plain-language summary of the event." }),
+        (() => {
+          const { wrap, input } = makeField("Brief summary", {
+            type: "textarea",
+            rows: 4,
+            required: true,
+            wide: true,
+            placeholder: "1–3 sentences describing what happened, where, and what's confirmed.",
+            hint: "Shown on the map popup and incident list. Keep it factual."
+          }, it.summary);
+          f.summary = input;
+          return wrap;
+        })()
+      ),
+
+      // ---- Location ----
+      section("Location", "Where the incident took place. District + province are required; coordinates are optional but improve map accuracy.",
+        add("district", "District / area", { required: true, placeholder: "e.g. Swabi", hint: "City, town, or district name." }),
+        add("province", "Province", { select: PROVINCES, default: it.province || "Khyber Pakhtunkhwa", required: true }),
+        add("lat", "Latitude", { type: "number", step: "any", optional: true, placeholder: "e.g. 34.1167", hint: "Decimal degrees. Leave blank to default to the Pakistan centroid (30.3753)." }),
+        add("lng", "Longitude", { type: "number", step: "any", optional: true, placeholder: "e.g. 72.4667", hint: "Decimal degrees. Leave blank to default to the Pakistan centroid (69.3451)." })
+      ),
+
+      // ---- Classification ----
+      section("Classification", "Type and severity. Used to filter the public map and surface trends in the monthly report.",
+        add("category", "Category", { required: true, default: "Security incident", datalist: CATEGORIES, placeholder: "Pick or type a category", hint: "Pick from suggestions or enter a new one." }),
+        add("severity", "Severity", { select: SEVERITY, default: it.severity || "Medium", required: true, hint: "High = mass casualty or strategic target. Low = minor or contained." }),
+        add("status", "Reporting status", { default: it.status || "Initial report", datalist: STATUSES, hint: "How firm is the information at the time of publishing." })
+      ),
+
+      // ---- Actors & casualties ----
+      section("Actors & casualties", "Who was involved, and the human toll. Use the slash-separated convention to capture both sides where applicable (e.g. “Security Forces / TTP”).",
+        add("actor", "Reported actor(s)", { default: it.actor || "Unidentified", datalist: ACTORS, wide: true, placeholder: "e.g. Security Forces / Tehreek-e-Taliban Pakistan (TTP)", hint: "Pick from suggestions for known groups, or enter custom. Use “/” to list two sides." }),
+        add("fatalities", "Fatalities", { type: "number", min: 0, default: 0, hint: "Confirmed dead, including attackers if known." }),
+        add("injuries", "Injuries", { type: "number", min: 0, default: 0, hint: "Reported wounded." })
+      ),
+
+      // ---- Source & verification ----
+      section("Source & verification", "Where the report comes from and whether the desk has confirmed it.",
+        add("source", "Source name", { default: it.source || "TGD Desk", placeholder: "e.g. Dawn, AFP, TGD Desk", hint: "Outlet or desk that filed the report." }),
+        add("source_url", "Source link", { type: "url", optional: true, placeholder: "https://…", hint: "Direct link to the article or official statement." }),
+        add("verified", "Mark as verified", { type: "checkbox", wide: true, hint: "Tick once the desk has confirmed details through a second source." })
+      )
     );
-    if (it.verified) f.verified.checked = true;
+
     view.append(form);
     view.append(el("div", { class: "form-actions" },
-      el("button", { class: "btn primary", onclick: () => saveIncident(it, f, view) }, "Save incident")
+      el("span", { class: "form-hint" }, existing ? "Changes go live immediately." : "Will appear on the map within ~1 minute."),
+      el("span", { class: "spacer" }),
+      el("button", { class: "btn ghost", onclick: () => showTab("incidents") }, "Cancel"),
+      el("button", { class: "btn primary", onclick: () => saveIncident(it, f, view) }, existing ? "Save changes" : "Publish incident")
     ));
   }
 
@@ -242,14 +439,18 @@
     const date = f.date.value || today();
     const title = f.title.value.trim();
     const district = f.district.value.trim();
-    if (!date || !title) return toast("Date and title are required.", "err");
+    const summary = f.summary.value.trim();
+    if (!date) return toast("Date is required.", "err");
+    if (!title) return toast("Headline is required.", "err");
+    if (!district) return toast("District / area is required.", "err");
+    if (!summary) return toast("Brief summary is required.", "err");
     const id = existing.id || `${date}-${slug(district || "incident")}-${slug(title)}`;
     const incident = {
       id, date,
       reported_at: existing.reported_at || `${date}T12:00:00.000Z`,
       time_label: existing.time_label || "Added by desk",
       title,
-      district: district || "Unspecified",
+      district,
       province: f.province.value,
       country: "Pakistan",
       lat: Number(f.lat.value) || 30.3753,
@@ -260,7 +461,7 @@
       severity: f.severity.value,
       fatalities: Number(f.fatalities.value) || 0,
       injuries: Number(f.injuries.value) || 0,
-      summary: f.summary.value.trim(),
+      summary,
       source: f.source.value.trim() || "TGD Desk",
       source_url: f.source_url.value.trim(),
       verified: f.verified.checked
@@ -284,31 +485,38 @@
 
   // ============================ CONTENT (markdown) ============================
   const FOLDERS = [
-    { key: "news", label: "News", type: "news", author: "TGD News Desk" },
-    { key: "opinion", label: "Opinion", type: "opinion", author: "TGD Opinion Desk" },
-    { key: "monitoring", label: "Monitoring", type: "monitoring", author: "TGD Monitoring Desk" },
-    { key: "reports", label: "Reports", type: "reports", author: "TGD Research Desk" },
-    { key: "profiles", label: "Profiles", type: "profiles", author: "TGD Research Desk" },
-    { key: "pages", label: "Pages", type: "page", author: "" }
+    { key: "news", label: "News", singular: "news article", type: "news", author: "TGD News Desk" },
+    { key: "opinion", label: "Opinion", singular: "opinion piece", type: "opinion", author: "TGD Opinion Desk" },
+    { key: "monitoring", label: "Monitoring", singular: "monitoring note", type: "monitoring", author: "TGD Monitoring Desk" },
+    { key: "reports", label: "Reports", singular: "report", type: "reports", author: "TGD Research Desk" },
+    { key: "profiles", label: "Profiles", singular: "profile", type: "profiles", author: "TGD Research Desk" },
+    { key: "pages", label: "Pages", singular: "page", type: "page", author: "" }
   ];
+  const SENSITIVITY = ["standard", "elevated", "restricted"];
   let activeFolder = "news";
 
   async function renderContent(view) {
+    const folder = FOLDERS.find((f) => f.key === activeFolder);
     const sel = el("select", { class: "field inline", onchange: (e) => { activeFolder = e.target.value; renderContent(clearView(view)); } });
     for (const fo of FOLDERS) sel.append(el("option", { value: fo.key, selected: fo.key === activeFolder }, fo.label));
-    view.append(el("div", { class: "panel-head" },
-      el("h2", {}, "Content"),
-      el("div", { class: "head-tools" }, sel, el("button", { class: "btn primary", onclick: () => contentForm(view, null) }, "+ New"))
+    view.append(pageHead(
+      "Articles & Profiles",
+      "Edit any markdown file in the repo. Changes commit to GitHub and rebuild the public site within about a minute.",
+      el("label", { class: "fld-label", style: "margin:0" }, el("span", {}, "Section"), sel),
+      el("button", { class: "btn primary", onclick: () => contentForm(view, null) }, "+ New " + folder.singular)
     ));
     const listEl = el("div", { class: "list" }, el("p", { class: "muted" }, "Loading…"));
     view.append(listEl);
     try {
       const { files } = await api("/content?folder=" + encodeURIComponent(activeFolder));
       clear(listEl);
-      if (!files.length) listEl.append(el("p", { class: "muted" }, "No files yet."));
+      if (!files.length) { listEl.append(el("div", { class: "list-empty" }, "No files in this section yet.")); return; }
       for (const file of files) {
         listEl.append(el("div", { class: "row" },
-          el("div", { class: "row-main" }, el("div", { class: "row-title" }, file.slug)),
+          el("div", { class: "row-main" },
+            el("div", { class: "row-title" }, file.slug),
+            el("div", { class: "row-meta" }, el("span", {}, file.path))
+          ),
           el("div", { class: "row-actions" },
             el("button", { class: "btn small", onclick: () => contentForm(view, file) }, "Edit"),
             el("button", { class: "btn small danger", onclick: () => deleteContent(file, view) }, "Delete")
@@ -329,54 +537,68 @@
       catch (e) { return toast("Could not open file: " + e.message, "err"); }
     }
     const f = {};
-    const fld = (label, key, opts = {}) => {
-      let input;
-      if (opts.type === "textarea") input = el("textarea", { class: "field mono", rows: opts.rows || 16 });
-      else if (opts.type === "checkbox") input = el("input", { type: "checkbox" });
-      else input = el("input", { class: "field", type: opts.type || "text" });
-      if (opts.type === "checkbox") input.checked = Boolean(fm[key]);
-      else input.value = fm[key] != null ? (Array.isArray(fm[key]) ? fm[key].join(", ") : fm[key]) : (opts.default || "");
+    const add = (key, label, opts) => {
+      let current = fm[key];
+      if (Array.isArray(current)) current = current.join(", ");
+      const { wrap, input } = makeField(label, opts, current);
       f[key] = input;
-      return el("label", { class: "fld" + (opts.wide ? " wide" : "") }, el("span", {}, label), input);
+      return wrap;
     };
 
     clear(view);
-    view.append(el("div", { class: "panel-head" },
-      el("h2", {}, (file ? "Edit " : "New ") + folder.label.replace(/s$/, "")),
-      el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "← Back")
+    view.append(pageHead(
+      (file ? "Edit " : "New ") + folder.singular,
+      file ? `Editing ${file.path}` : `Publishing into content/${folder.key}/. The file name is generated from the title and date.`,
+      el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "← Back to list")
     ));
 
     let form;
     if (activeFolder === "pages") {
       form = el("div", { class: "form" },
-        el("div", { class: "grid2" },
-          fld("Title", "title"),
-          fld("Slug (url)", "slug", { default: file ? file.slug : "" }),
-          fld("Eyebrow", "eyebrow"),
-          fld("Summary", "summary", { wide: true })
+        section("Identity", "How the page is named and addressed.",
+          add("title", "Title", { required: true, placeholder: "e.g. About TGD" }),
+          add("slug", "Slug (URL)", { required: true, default: file ? file.slug : "", placeholder: "about", hint: "Becomes /pages/{slug}/ on the site." }),
+          add("eyebrow", "Eyebrow", { optional: true, placeholder: "e.g. About", hint: "Short label shown above the title." }),
+          add("summary", "Summary", { type: "textarea", rows: 3, wide: true, optional: true, hint: "One or two sentences used in meta description and previews." })
         ),
-        fld("Body (Markdown)", "__body", { type: "textarea" })
+        section("Page body", "Markdown content. The first heading is rendered as the page title.",
+          (() => {
+            const { wrap, input } = makeField("Body (Markdown)", { type: "textarea", rows: 18, mono: true, wide: true, required: true, hint: "Standard markdown: headings, paragraphs, lists, links, images." }, body);
+            f.__body = input;
+            return wrap;
+          })()
+        )
       );
     } else {
       form = el("div", { class: "form" },
-        el("div", { class: "grid2" },
-          fld("Title", "title"),
-          fld("Date (YYYY-MM-DD)", "date", { type: "date", default: today() }),
-          fld("Author / desk", "author", { default: folder.author }),
-          fld("Category", "category"),
-          fld("Region", "region", { default: "Pakistan" }),
-          fld("Tags (comma separated)", "tags"),
-          fld("Sensitivity", "sensitivity", { default: "standard" }),
-          el("label", { class: "fld chk" }, el("span", {}, "Featured on homepage"), f.featured = el("input", { type: "checkbox" }))
+        section("Identity", "Title, date, and the desk that filed it. Used in the article header and feed listings.",
+          add("title", "Title", { required: true, placeholder: "Headline" }),
+          add("date", "Publish date", { type: "date", default: today(), required: true }),
+          add("author", "Author / desk", { default: folder.author, hint: "Defaults to the desk for this section." }),
+          add("summary", "Summary", { type: "textarea", rows: 3, wide: true, required: true, hint: "Shown in feed cards, search results, and social previews." })
         ),
-        fld("Summary", "summary", { wide: true }),
-        fld("Body (Markdown)", "__body", { type: "textarea" })
+        section("Classification & tags", "How the article is filed and surfaced.",
+          add("category", "Category", { optional: true, placeholder: "e.g. KP, Security operations" }),
+          add("region", "Region", { default: "Pakistan", hint: "Geographic region. Used for filtering." }),
+          add("tags", "Tags", { optional: true, placeholder: "comma, separated, tags", hint: "Comma-separated. Used for related-article links." }),
+          add("sensitivity", "Sensitivity", { select: SENSITIVITY, default: fm.sensitivity || "standard", hint: "“Elevated” adds an editorial note. “Restricted” hides from public listings." }),
+          add("featured", "Feature on homepage", { type: "checkbox", wide: true, hint: "Pins this piece to the homepage hero rail." })
+        ),
+        section("Article body", "Markdown content. The build script renders headings, lists, links, blockquotes, and inline images.",
+          (() => {
+            const { wrap, input } = makeField("Body (Markdown)", { type: "textarea", rows: 20, mono: true, wide: true, required: true }, body);
+            f.__body = input;
+            return wrap;
+          })()
+        )
       );
-      if (fm.featured) f.featured.checked = true;
     }
-    f.__body.value = body;
+
     view.append(form);
     view.append(el("div", { class: "form-actions" },
+      el("span", { class: "form-hint" }, file ? "Saves a commit to GitHub and rebuilds the site." : "Creates a new file and rebuilds the site."),
+      el("span", { class: "spacer" }),
+      el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "Cancel"),
       el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f }, view) }, file ? "Save changes" : "Publish")
     ));
   }
@@ -392,6 +614,8 @@
     } else {
       const date = f.date.value || today();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Date must be YYYY-MM-DD.", "err");
+      const summary = f.summary.value.trim();
+      if (!summary) return toast("Summary is required.", "err");
       const tags = f.tags.value.split(/[,;\n]/).map((t) => t.trim()).filter(Boolean);
       fm = {
         title, date,
@@ -399,7 +623,7 @@
         type: folder.type,
         category: f.category.value.trim() || "",
         region: f.region.value.trim() || "",
-        summary: f.summary.value.trim(),
+        summary,
         tags,
         access: "free",
         sensitivity: f.sensitivity.value.trim() || "standard",

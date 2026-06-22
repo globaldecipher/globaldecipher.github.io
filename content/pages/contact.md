@@ -10,7 +10,7 @@ summary: "Contact The Global Decipher for reports, Monitoring Desk access, edito
 
 For Monitoring Desk access, report requests, institutional subscriptions, partnerships, and editorial inquiries, contact:
 
-[globaldecipher@gmail.com](mailto:globaldecipher@gmail.com?subject=TGD%20inquiry)
+[contact@theglobaldecipher.com](mailto:contact@theglobaldecipher.com?subject=TGD%20inquiry)
 
 ## Public channels
 

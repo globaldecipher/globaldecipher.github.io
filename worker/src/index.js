@@ -8,14 +8,16 @@
 //     GET    /api/maintenance        public — { on: bool }
 //     POST   /api/maintenance        authed — { on: bool } toggle site maintenance
 //     GET    /api/admin/ping         authed — validate the access key
-//     GET    /api/content?folder=    authed — list markdown files in content/<folder>
-//     GET    /api/content/file?path= authed — read one markdown file { content, sha }
-//     PUT    /api/content/file       authed — create/update a markdown file (commits to GitHub)
-//     DELETE /api/content/file       authed — delete a markdown file (commits to GitHub)
+//     GET    /api/content?folder=    public — list articles in a collection (D1)
+//     GET    /api/content/file?path= public — read one article { content, sha }
+//     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
+//     PUT    /api/content/file       authed — create/update an article (D1) + trigger Pages rebuild
+//     DELETE /api/content/file       authed — delete an article (D1) + trigger Pages rebuild
 //     GET    /                       health check
 //
-// KV binding: INCIDENTS   Secrets: ADMIN_TOKEN, GITHUB_TOKEN, X_BEARER_TOKEN (optional)
-// Vars: X_USERNAME, GITHUB_REPO, GITHUB_BRANCH
+// KV binding: INCIDENTS   D1 binding: CONTENT_DB
+// Secrets: ADMIN_TOKEN, X_BEARER_TOKEN (optional), PAGES_DEPLOY_HOOK (optional)
+// Vars: X_USERNAME
 
 import {
   loadFeed,
@@ -29,7 +31,7 @@ import {
   MAINTENANCE_KEY
 } from "./feed.js";
 import { pollX } from "./x.js";
-import { listContent, getFile, putFile, deleteFile } from "./github.js";
+import { listContent, getFile, putFile, deleteFile, dumpCollection, triggerRebuild } from "./content.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -85,6 +87,20 @@ export default {
         return json({ on: flag === "on" });
       }
 
+      // ---- Content reads (public) — admin panel reads these too without auth ----
+      if (path === "/api/content" && method === "GET") {
+        const folder = url.searchParams.get("folder") || "";
+        return json({ files: await listContent(env, folder) });
+      }
+      if (path === "/api/content/file" && method === "GET") {
+        const filePath = url.searchParams.get("path") || "";
+        return json(await getFile(env, filePath));
+      }
+      if (path === "/api/content/dump" && method === "GET") {
+        const folder = url.searchParams.get("folder") || "";
+        return json({ items: await dumpCollection(env, folder) });
+      }
+
       // ---- Everything below requires the access key ----
       const needsAuth = path.startsWith("/api/");
       if (needsAuth && !authed(request, env)) return json({ error: "Unauthorized" }, 401);
@@ -125,24 +141,20 @@ export default {
         return json({ ok: removed, removed, total: feed.incidents.length });
       }
 
-      // ---- Content (markdown files via GitHub) ----
-      if (path === "/api/content" && method === "GET") {
-        const folder = url.searchParams.get("folder") || "";
-        return json({ files: await listContent(env, folder) });
-      }
-      if (path === "/api/content/file" && method === "GET") {
-        const filePath = url.searchParams.get("path") || "";
-        return json(await getFile(env, filePath));
-      }
+      // ---- Content writes (D1) — trigger Pages rebuild after a successful change ----
       if (path === "/api/content/file" && method === "PUT") {
         const body = await readJson(request);
         if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
-        return json(await putFile(env, body.path, body.content, body.message, body.sha));
+        const result = await putFile(env, body.path, body.content);
+        ctx.waitUntil(triggerRebuild(env));
+        return json(result);
       }
       if (path === "/api/content/file" && method === "DELETE") {
         const body = await readJson(request);
-        if (!body?.path || !body?.sha) return json({ error: "path and sha are required" }, 400);
-        return json(await deleteFile(env, body.path, body.sha, body.message));
+        if (!body?.path) return json({ error: "path is required" }, 400);
+        const result = await deleteFile(env, body.path);
+        ctx.waitUntil(triggerRebuild(env));
+        return json(result);
       }
 
       return json({ error: "Not found" }, 404);

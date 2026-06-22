@@ -14,7 +14,7 @@ const SITE = {
     "Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.",
   url: "https://theglobaldecipher.com",
   defaultImage: "/assets/brand/tgd-og-default.png",
-  email: "globaldecipher@gmail.com",
+  email: "contact@theglobaldecipher.com",
   x: "https://x.com/Global_Decipher",
   whatsapp: "https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31",
   substack: "https://theglobaldecipher.substack.com/"
@@ -302,24 +302,38 @@ function markdownToHtml(markdown) {
   return html.join("\n");
 }
 
-function readCollection(collection) {
-  const dir = path.join(CONTENT_DIR, collection);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((file) => file.endsWith(".md"))
-    .map((file) => {
-      const filePath = path.join(dir, file);
-      const parsed = parseFrontMatter(filePath);
-      const slug = slugify(parsed.data.slug || file.replace(/\.md$/, ""));
-      if (!slug) throw new Error(`Could not create a valid slug for ${filePath}`);
+// Content is fetched at build time from the Worker (D1-backed).
+// Override with CONTENT_API env var for local development.
+const CONTENT_API = process.env.CONTENT_API || "https://theglobaldecipher.com/api";
+
+async function readCollection(collection) {
+  const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`);
+  if (!res.ok) throw new Error(`Failed to fetch ${collection} from ${CONTENT_API}: HTTP ${res.status}`);
+  const { items } = await res.json();
+  return (items || [])
+    .map((row) => {
+      const slug = slugify(row.slug);
+      if (!slug) throw new Error(`Invalid slug for ${collection} row: ${row.slug}`);
+      const data = {
+        title: row.title,
+        date: row.date,
+        author: row.author,
+        type: row.type,
+        category: row.category,
+        region: row.region,
+        summary: row.summary,
+        tags: row.tags || [],
+        access: row.access,
+        sensitivity: row.sensitivity,
+        featured: row.featured,
+        eyebrow: row.eyebrow
+      };
       return {
-        ...parsed.data,
+        ...data,
         collection,
         slug,
-        sourcePath: filePath,
-        body: parsed.body,
-        html: markdownToHtml(parsed.body),
+        body: row.body || "",
+        html: markdownToHtml(row.body || ""),
         url: collection === "pages" ? `/${slug}/` : `/${collection}/${slug}/`
       };
     })
@@ -1591,8 +1605,9 @@ function adminPage() {
 `;
 }
 
-// Self-contained (no external assets) so it renders even while maintenance mode
-// gates /assets/*.
+// Self-contained (no external assets from this origin) so it renders even while
+// maintenance mode gates /assets/*. Brand mark and fonts are inlined or loaded
+// from Google Fonts (third-party, unaffected by the gate).
 function maintenancePage() {
   return `<!doctype html>
 <html lang="en">
@@ -1601,20 +1616,120 @@ function maintenancePage() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${escapeHtml(SITE.title)} — Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap">
 <style>
-  html,body{height:100%;margin:0}
-  body{background:#0e1116;color:#e6edf3;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center;text-align:center;padding:24px}
-  .wordmark{font-family:"IBM Plex Mono",ui-monospace,monospace;letter-spacing:3px;font-weight:600;font-size:14px;color:#c8a24a;margin-bottom:28px}
-  h1{font-size:28px;margin:0 0 10px;font-weight:600}
-  p{color:#8b96a5;margin:0;max-width:32rem}
-  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d98b2b;margin-right:8px;vertical-align:middle}
+  :root {
+    --paper: #fafaf7;
+    --paper-2: #f3efe6;
+    --ink: #0d1b2a;
+    --muted: #6b6b66;
+    --gold: #a17328;
+    --red: #b91c2c;
+    --line: #d8d3c5;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.65 "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 32px 20px;
+    background-image:
+      radial-gradient(1100px 600px at 50% -10%, rgba(185, 28, 44, 0.06), transparent 60%),
+      radial-gradient(900px 500px at 50% 110%, rgba(161, 115, 40, 0.06), transparent 60%);
+    -webkit-font-smoothing: antialiased;
+  }
+  main { width: 100%; max-width: 560px; text-align: center; }
+  .mark { width: 84px; height: 84px; margin: 0 auto 28px; display: block; filter: drop-shadow(0 6px 18px rgba(13, 27, 42, 0.18)); }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 0 0 rgba(185, 28, 44, 0.55);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(185, 28, 44, 0.55); }
+    70%  { box-shadow: 0 0 0 11px rgba(185, 28, 44, 0); }
+    100% { box-shadow: 0 0 0 0   rgba(185, 28, 44, 0); }
+  }
+  h1 {
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    font-size: clamp(28px, 4.4vw, 38px);
+    line-height: 1.18;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  .lede { color: var(--muted); margin: 0 0 30px; font-size: 16px; line-height: 1.6; }
+  .divider { width: 56px; height: 1px; background: var(--line); margin: 30px auto; border: 0; }
+  .channels { display: flex; flex-wrap: wrap; gap: 14px 20px; justify-content: center; font-size: 13.5px; }
+  .channels a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 2px;
+    transition: color .15s, border-color .15s;
+  }
+  .channels a:hover { color: var(--red); border-color: var(--red); }
+  footer {
+    margin-top: 44px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 </style>
 </head>
 <body>
 <main>
-  <div class="wordmark">THE GLOBAL DECIPHER</div>
-  <h1><span class="dot"></span>We'll be right back</h1>
-  <p>The site is briefly offline for maintenance. Please check back shortly.</p>
+  <svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Global Decipher">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#c4202f"/>
+        <stop offset="1" stop-color="#8b1420"/>
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="11" fill="url(#bg)"/>
+    <line x1="32" y1="6" x2="32" y2="58" stroke="#d4a852" stroke-width="0.8" opacity="0.42"/>
+    <line x1="6" y1="32" x2="58" y2="32" stroke="#d4a852" stroke-width="0.8" opacity="0.42"/>
+    <text x="32" y="41" text-anchor="middle"
+          font-family="'Source Serif 4','Source Serif Pro',Georgia,'Times New Roman',serif"
+          font-size="22" font-weight="900" fill="#fafaf7" letter-spacing="0.4">TGD</text>
+    <circle cx="52" cy="14" r="2.6" fill="#0d1b2a"/>
+    <circle cx="52" cy="14" r="1.2" fill="#d4a852"/>
+  </svg>
+  <div class="eyebrow"><span class="pulse" aria-hidden="true"></span><span>Status — Brief Maintenance</span></div>
+  <h1>We'll be right back.</h1>
+  <p class="lede">The Global Decipher is briefly offline while the desk pushes an update. Coverage will resume in a few minutes — thanks for your patience.</p>
+  <hr class="divider">
+  <p style="margin:0 0 14px;color:var(--muted);font-size:13px;letter-spacing:0.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">Stay in the loop</p>
+  <div class="channels">
+    <a href="${escapeHtml(SITE.x)}" rel="noopener">X / Twitter</a>
+    <a href="${escapeHtml(SITE.whatsapp)}" rel="noopener">WhatsApp channel</a>
+    <a href="${escapeHtml(SITE.substack)}" rel="noopener">Substack</a>
+    <a href="mailto:${escapeHtml(SITE.email)}">Email the desk</a>
+  </div>
+  <footer>THE GLOBAL DECIPHER · TRACKING TERROR THREATS</footer>
 </main>
 </body>
 </html>
@@ -1652,19 +1767,20 @@ export default {
 `;
 }
 
-function main() {
+async function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
   copyDir(STATIC_DIR, path.join(OUT_DIR, "assets"));
 
-  const allContent = [
-    ...readCollection("news"),
-    ...readCollection("opinion"),
-    ...readCollection("monitoring"),
-    ...readCollection("reports"),
-    ...readCollection("profiles")
-  ];
-  const pages = readCollection("pages");
+  const [news, opinion, monitoring, reports, profiles, pages] = await Promise.all([
+    readCollection("news"),
+    readCollection("opinion"),
+    readCollection("monitoring"),
+    readCollection("reports"),
+    readCollection("profiles"),
+    readCollection("pages")
+  ]);
+  const allContent = [...news, ...opinion, ...monitoring, ...reports, ...profiles];
 
   const hubs = buildHubIndex(allContent);
   HUB_ORG_SLUGS.clear();
@@ -1779,4 +1895,4 @@ function main() {
   console.log(`Built ${allContent.length + pages.length + hubCount + 6} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);
 }
 
-main();
+main().catch((err) => { console.error(err); process.exit(1); });
