@@ -667,6 +667,9 @@
             el("div", { class: "row-meta" }, el("span", {}, file.path), el("span", { class: `chip ${file.status === "published" ? "chip-verified" : ""}` }, file.status === "published" ? "Published" : "Draft"))
           ),
           el("div", { class: "row-actions" },
+            file.status === "published"
+              ? null
+              : el("button", { class: "btn small primary", onclick: () => publishContent(file, view) }, "Publish to website"),
             el("button", { class: "btn small", onclick: () => contentForm(view, file) }, "Edit"),
             el("button", { class: "btn small danger", onclick: () => deleteContent(file, view) }, "Delete")
           )
@@ -761,7 +764,12 @@
       el("span", { class: "form-hint" }, "Drafts stay private. Published work appears after the site refreshes."),
       el("span", { class: "spacer" }),
       el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "Cancel"),
-      el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save" : "Save draft")
+      activeFolder === "pages"
+        ? el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save changes" : "Save page")
+        : el("button", { class: "btn ghost", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view, "draft") }, "Save draft"),
+      activeFolder === "pages"
+        ? null
+        : el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view, "published") }, "Publish to website")
     ));
 
     // Mount the WYSIWYG editor into the placeholder div after the DOM is in place.
@@ -842,7 +850,7 @@
     return card;
   }
 
-  async function saveContent({ folder, file, path, sha, f, tagChips }, view) {
+  async function saveContent({ folder, file, path, sha, f, tagChips }, view, statusOverride) {
     const title = f.title.value.trim();
     if (!title) return toast("Title is required.", "err");
     const editorBody = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody ? f.__fallbackBody.value : "");
@@ -867,7 +875,7 @@
         tags,
         access: "free",
         sensitivity: f.sensitivity.value.trim() || "standard",
-        status: f.status.value === "published" ? "published" : "draft",
+        status: statusOverride || (f.status.value === "published" ? "published" : "draft"),
         featured: f.featured.checked
       };
       filePath = path || `content/${folder.key}/${date}-${slug(title)}.md`;
@@ -883,6 +891,26 @@
       // Clean up editor instance to avoid leaks on re-mount
       try { window.__tgdEditor?.destroy(); } catch {}
       window.__tgdEditor = null;
+      renderContent(clearView(view));
+    } catch (e) { toast(e.message, "err"); }
+  }
+
+  async function publishContent(file, view) {
+    if (!confirm(`Publish “${file.slug}” to the website? It will become public after the site refreshes.`)) return;
+    try {
+      const got = await api("/content/file?path=" + encodeURIComponent(file.path));
+      const parsed = parseMarkdown(got.content);
+      parsed.fm.status = "published";
+      await api("/content/file", {
+        method: "PUT",
+        body: {
+          path: file.path,
+          content: buildMarkdown(parsed.fm, parsed.body),
+          sha: got.sha,
+          message: `Publish ${file.path}`
+        }
+      });
+      toast("Published. Site refreshes shortly.");
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
   }
