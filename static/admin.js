@@ -534,6 +534,9 @@
   // Mounts the visual editor. Uploaded media is stored in R2 and saved as a
   // normal image URL, never as unreadable base64 text inside an article.
   async function mountMarkdownEditor(container, initialMarkdown, opts = {}) {
+    // Toast UI only activates its dark theme when this class is present in the
+    // page. The option alone does not add it for the CDN build.
+    container.classList.add("toastui-editor-dark");
     loadCss(CDN.toastCss);
     loadCss(CDN.toastDarkCss);
     await loadScript(CDN.toastJs);
@@ -581,7 +584,7 @@
     const toolbar = container.querySelector(".toastui-editor-toolbar");
     if (!toolbar || toolbar.querySelector(".editor-format-controls")) return;
     const actions = [
-      ["heading", "Heading", "H"],
+      ["heading", "Heading levels 1 to 3", "H1–H3"],
       ["bold", "Bold", "B"],
       ["italic", "Italic", "I"],
       ["strike", "Strikethrough", "S"],
@@ -592,7 +595,17 @@
       ["table", "Insert table", "Table"],
       ["image", "Upload image", "Image"]
     ];
+    const fontPicker = el("select", {
+      class: "editor-font-picker",
+      "aria-label": "Editor font",
+      title: "Editor font — published articles use the TGD reading font",
+      onchange: (event) => applyEditorFont(container, event.target.value)
+    },
+    el("option", { value: "serif" }, "TGD article font"),
+    el("option", { value: "sans" }, "Sans serif"),
+    el("option", { value: "mono" }, "Monospace"));
     const controls = el("div", { class: "editor-format-controls", role: "toolbar", "aria-label": "Text formatting" },
+      fontPicker,
       actions.map(([action, label, text]) => el("button", {
         type: "button",
         class: `editor-format-btn editor-format-${action}`,
@@ -607,7 +620,8 @@
 
   function runEditorAction(container, editor, action) {
     editor.focus();
-    const nativeButton = container.querySelector(`.toastui-editor-toolbar-icons.${action}`);
+    const nativeAction = { ul: "bullet-list", ol: "ordered-list" }[action] || action;
+    const nativeButton = container.querySelector(`.toastui-editor-toolbar-icons.${nativeAction}`);
     if (nativeButton && !nativeButton.disabled) {
       nativeButton.click();
       return;
@@ -615,6 +629,11 @@
     // The native button is preferred because it also handles dialogs (links,
     // tables, and uploads). This fallback covers straightforward formatting.
     try { editor.exec(action); } catch {}
+  }
+
+  function applyEditorFont(container, font) {
+    container.classList.remove("editor-font-serif", "editor-font-sans", "editor-font-mono");
+    container.classList.add(`editor-font-${font}`);
   }
 
   function decorateEditorToolbar(container) {
@@ -768,17 +787,13 @@
 
   function normalizeImportedTables(html) {
     const doc = new DOMParser().parseFromString(html, "text/html");
-    doc.querySelectorAll("table").forEach((table) => {
-      const firstRow = table.rows[0];
-      if (!firstRow || firstRow.querySelector("th")) return;
-      // Word tables do not identify header cells. Treat the first row as the
-      // header so the imported Markdown retains a useful, editable structure.
-      [...firstRow.cells].forEach((cell) => {
-        const heading = doc.createElement("th");
-        for (const attribute of cell.attributes) heading.setAttribute(attribute.name, attribute.value);
-        heading.innerHTML = cell.innerHTML;
-        cell.replaceWith(heading);
-      });
+    // Turndown's table output and Word's table markup disagree often enough to
+    // split a table into ordinary paragraphs. Preserve a stable placeholder;
+    // `restoreDocxTables` replaces it with clean Markdown after conversion.
+    doc.querySelectorAll("table").forEach((table, index) => {
+      const placeholder = doc.createElement("p");
+      placeholder.textContent = `[[TGD_TABLE_${index}]]`;
+      table.replaceWith(placeholder);
     });
     return doc.body.innerHTML;
   }
@@ -804,33 +819,18 @@
   }
 
   function restoreDocxTables(markdown, tables) {
-    const blocks = String(markdown || "").split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
-    const comparable = (value) => String(value || "")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      .replace(/[\\*_`]/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase();
     const tableCell = (value) => String(value || "").replace(/\r?\n+/g, "<br>").replace(/\|/g, "\\|").trim();
-
-    for (const rows of tables) {
+    const tableMarkdown = (rows) => {
       const width = Math.max(...rows.map((row) => row.length));
       const normalizedRows = rows.map((row) => Array.from({ length: width }, (_, index) => tableCell(row[index])));
-      const cells = normalizedRows.flat();
-      if (!cells.length || cells.some((cell) => !cell)) continue;
-      const start = blocks.findIndex((block, index) => (
-        index + cells.length <= blocks.length
-        && cells.every((cell, offset) => comparable(blocks[index + offset]) === comparable(cell))
-      ));
-      if (start < 0) continue;
-      const tableMarkdown = [
+      if (!normalizedRows.length || normalizedRows[0].some((cell) => !cell)) return "";
+      return [
         `| ${normalizedRows[0].join(" | ")} |`,
         `| ${normalizedRows[0].map(() => "---").join(" | ")} |`,
         ...normalizedRows.slice(1).map((row) => `| ${row.join(" | ")} |`)
       ].join("\n");
-      blocks.splice(start, cells.length, tableMarkdown);
-    }
-    return blocks.join("\n\n");
+    };
+    return String(markdown || "").replace(/\[\[TGD_TABLE_(\d+)\]\]/g, (_match, index) => tableMarkdown(tables[Number(index)] || []));
   }
 
   // ============================ TAG CHIPS ============================
