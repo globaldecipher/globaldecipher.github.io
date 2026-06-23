@@ -1609,11 +1609,11 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260623-editor-studio">
+<link rel="stylesheet" href="/assets/admin.css?v=20260623-editor-final">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260623-editor-studio" defer></script>
+<script src="/assets/admin.js?v=20260623-editor-final" defer></script>
 </body>
 </html>
 `;

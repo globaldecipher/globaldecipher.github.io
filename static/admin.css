@@ -497,6 +497,50 @@ textarea.field { resize: vertical; min-height: 88px; }
 }
 .toastui-editor-dark .toastui-editor-toolbar-group { border-color: var(--line); }
 .toastui-editor-dark .toastui-editor-toolbar-group { flex: 0 0 auto; }
+.editor-format-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 5px 8px 5px 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.editor-font-picker {
+  width: 132px;
+  height: 34px;
+  padding: 0 26px 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+.editor-font-picker:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.editor-format-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.editor-format-btn:hover { background: var(--surface-3); border-color: var(--line-strong); color: var(--ink); }
+.editor-format-btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.editor-format-bold { font-size: 16px; font-weight: 800; }
+.editor-format-italic { font-size: 16px; font-style: italic; font-family: Georgia, serif; }
+.editor-format-strike { text-decoration: line-through; }
+.editor-font-sans .ProseMirror { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+.editor-font-mono .ProseMirror { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+.editor-font-serif .ProseMirror { font-family: Georgia, "Times New Roman", serif; }
 .editor-history-controls {
   display: inline-flex;
   align-items: center;
@@ -528,6 +572,37 @@ textarea.field { resize: vertical; min-height: 88px; }
   border-color: var(--accent);
 }
 .toastui-editor-dark .toastui-editor-defaultUI-toolbar { padding: 6px 8px; }
+.toastui-editor-dark .toastui-editor-toolbar-icons {
+  background-color: transparent;
+  background-image: none !important;
+  color: var(--ink-2);
+  font-size: 0;
+  min-width: 36px;
+  width: auto;
+  padding: 0 8px;
+}
+.toastui-editor-dark .toastui-editor-toolbar-icons::after {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 34px;
+}
+.toastui-editor-dark .toastui-editor-toolbar-icons.heading { min-width: 58px; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.heading::after { content: "H1–H3"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.bold::after { content: "B"; font-size: 16px; font-weight: 800; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.italic::after { content: "I"; font-size: 16px; font-family: Georgia, serif; font-style: italic; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.strike::after { content: "S"; text-decoration: line-through; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.hrline::after { content: "—"; font-size: 18px; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.quote::after { content: "Quote"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.bullet-list::after { content: "• List"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.ordered-list::after { content: "1. List"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.task-list::after { content: "Task"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.indent::after { content: "→"; font-size: 17px; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.outdent::after { content: "←"; font-size: 17px; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.table::after { content: "Table"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.image::after { content: "Image"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.link::after { content: "Link"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.code::after { content: "Code"; }
+.toastui-editor-dark .toastui-editor-toolbar-icons.codeblock::after { content: "Block"; }
 .toastui-editor-dark .ProseMirror,
 .toastui-editor-dark .toastui-editor-md-container {
   background: var(--surface-2);
@@ -669,6 +744,12 @@ body.editor-focus-active { overflow: hidden; }
 .editor-card.is-focus .editor-workbench { min-height: calc(100vh - 158px); }
 .editor-card.is-focus .editor-canvas { display: flex; flex-direction: column; }
 .editor-card.is-focus .editor-mount { flex: 1; }
+
+@media (max-width: 880px) {
+  .editor-font-picker { width: 118px; }
+  .editor-format-controls { margin-right: 5px; padding-right: 5px; }
+  .editor-format-btn { min-width: 32px; padding: 0 7px; }
+}
 
 /* ============================== RESPONSIVE ============================== */
 @media (max-width: 720px) {
