@@ -497,6 +497,34 @@ textarea.field { resize: vertical; min-height: 88px; }
 }
 .toastui-editor-dark .toastui-editor-toolbar-group { border-color: var(--line); }
 .toastui-editor-dark .toastui-editor-toolbar-group { flex: 0 0 auto; }
+.editor-format-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 5px 8px 5px 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.editor-format-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.editor-format-btn:hover { background: var(--surface-3); border-color: var(--line-strong); color: var(--ink); }
+.editor-format-btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.editor-format-bold { font-size: 16px; font-weight: 800; }
+.editor-format-italic { font-size: 16px; font-style: italic; font-family: Georgia, serif; }
+.editor-format-strike { text-decoration: line-through; }
 .editor-history-controls {
   display: inline-flex;
   align-items: center;
@@ -669,6 +697,11 @@ body.editor-focus-active { overflow: hidden; }
 .editor-card.is-focus .editor-workbench { min-height: calc(100vh - 158px); }
 .editor-card.is-focus .editor-canvas { display: flex; flex-direction: column; }
 .editor-card.is-focus .editor-mount { flex: 1; }
+
+@media (max-width: 880px) {
+  .editor-format-controls { margin-right: 5px; padding-right: 5px; }
+  .editor-format-btn { min-width: 32px; padding: 0 7px; }
+}
 
 /* ============================== RESPONSIVE ============================== */
 @media (max-width: 720px) {

@@ -486,9 +486,12 @@
 
   // ============================ EXTERNAL LIBS (loaded on demand) ============================
   const CDN = {
-    toastJs: "https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js",
-    toastCss: "https://uicdn.toast.com/editor/latest/toastui-editor.min.css",
-    toastDarkCss: "https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css",
+    // Keep the editor JavaScript, stylesheet, and icon sheet on one known-good
+    // version. `latest` can update one asset before the others, leaving the
+    // editor usable but its formatting icons blank.
+    toastJs: "https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js",
+    toastCss: "https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css",
+    toastDarkCss: "https://uicdn.toast.com/editor/3.2.2/theme/toastui-editor-dark.min.css",
     mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
     turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js",
     turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js",
@@ -564,10 +567,54 @@
         }
       }
     });
+    addVisibleEditorToolbar(container, editor);
     decorateEditorToolbar(container);
     addEditorHistoryControls(container, editor);
     setupEditorWorkspace(container, editor);
     return editor;
+  }
+
+  // A labelled toolbar is intentionally kept alongside Toast UI's icon toolbar.
+  // It makes the common writing actions obvious (and still usable if a CDN icon
+  // sprite is slow to load or blocked by a browser extension).
+  function addVisibleEditorToolbar(container, editor) {
+    const toolbar = container.querySelector(".toastui-editor-toolbar");
+    if (!toolbar || toolbar.querySelector(".editor-format-controls")) return;
+    const actions = [
+      ["heading", "Heading", "H"],
+      ["bold", "Bold", "B"],
+      ["italic", "Italic", "I"],
+      ["strike", "Strikethrough", "S"],
+      ["link", "Insert link", "Link"],
+      ["ul", "Bullet list", "• List"],
+      ["ol", "Numbered list", "1. List"],
+      ["quote", "Quote", "Quote"],
+      ["table", "Insert table", "Table"],
+      ["image", "Upload image", "Image"]
+    ];
+    const controls = el("div", { class: "editor-format-controls", role: "toolbar", "aria-label": "Text formatting" },
+      actions.map(([action, label, text]) => el("button", {
+        type: "button",
+        class: `editor-format-btn editor-format-${action}`,
+        title: label,
+        "aria-label": label,
+        onmousedown: (event) => event.preventDefault(),
+        onclick: () => runEditorAction(container, editor, action)
+      }, text))
+    );
+    toolbar.prepend(controls);
+  }
+
+  function runEditorAction(container, editor, action) {
+    editor.focus();
+    const nativeButton = container.querySelector(`.toastui-editor-toolbar-icons.${action}`);
+    if (nativeButton && !nativeButton.disabled) {
+      nativeButton.click();
+      return;
+    }
+    // The native button is preferred because it also handles dialogs (links,
+    // tables, and uploads). This fallback covers straightforward formatting.
+    try { editor.exec(action); } catch {}
   }
 
   function decorateEditorToolbar(container) {
