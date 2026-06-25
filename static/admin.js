@@ -1477,10 +1477,34 @@
     return `${Math.floor(diff / 3600)}h ago`;
   }
 
+  // Probe once per session: is the updated worker live? If not, autosave is
+  // disabled (the old worker would treat each tick as a real publish and
+  // trigger a Pages rebuild). The check pings /api/audit which only exists in
+  // the new worker.
+  let workerSupportsAutosave = null;
+  async function probeWorkerForAutosave() {
+    if (workerSupportsAutosave !== null) return workerSupportsAutosave;
+    try {
+      await api("/audit?limit=1");
+      workerSupportsAutosave = true;
+    } catch {
+      workerSupportsAutosave = false;
+    }
+    return workerSupportsAutosave;
+  }
+
   function startAutosave(ctx) {
     stopAutosave();
     let savedAt = null;
+    let disabled = false;
+    probeWorkerForAutosave().then((ok) => {
+      if (!ok) {
+        disabled = true;
+        setAutosaveStatus(null, "Autosave off (worker pending)");
+      }
+    });
     const tick = async () => {
+      if (disabled) return;
       const title = ctx.f.title?.value?.trim() || "";
       const body = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (ctx.f.__fallbackBody?.value || "");
       // Need a title to derive a slug. No title → nothing to save yet.
