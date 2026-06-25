@@ -1,25 +1,10 @@
 /* The Global Decipher — admin panel styles. Self-contained (no dependency on the
-   public site CSS) so it loads even during maintenance mode. */
+   public site CSS) so it loads even during maintenance mode.
+   Themes:
+     [data-theme="dark"]  — default editorial dark
+     [data-theme="light"] — paper-white workspace
+   The body element receives data-theme; default is system preference. */
 :root {
-  --bg: #0e1116;
-  --surface-1: #161b22;
-  --surface-2: #1c232c;
-  --surface-3: #232a35;
-  --line: #2a323d;
-  --line-strong: #3a4452;
-  --ink: #e6edf3;
-  --ink-2: #c4ccd6;
-  --muted: #8b96a5;
-  --muted-2: #6b7280;
-  --accent: #c8a24a;
-  --accent-soft: rgba(200, 162, 74, 0.14);
-  --accent-ink: #1a1407;
-  --danger: #d6504a;
-  --danger-soft: rgba(214, 80, 74, 0.14);
-  --ok: #3fb47f;
-  --ok-soft: rgba(63, 180, 127, 0.14);
-  --warn: #d98b2b;
-  --warn-soft: rgba(217, 139, 43, 0.16);
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 14px;
@@ -31,8 +16,60 @@
   --space-5: 20px;
   --space-6: 28px;
   --space-7: 40px;
+}
+
+[data-theme="dark"] {
+  --bg: #0e1116;
+  --surface-1: #161b22;
+  --surface-2: #1c232c;
+  --surface-3: #232a35;
+  --line: #2a323d;
+  --line-strong: #3a4452;
+  --ink: #e6edf3;
+  --ink-2: #c4ccd6;
+  --muted: #8b96a5;
+  --muted-2: #6b7280;
+  --accent: #d4af5a;
+  --accent-hover: #e0bd6d;
+  --accent-soft: rgba(212, 175, 90, 0.14);
+  --accent-ink: #1a1407;
+  --danger: #e85f57;
+  --danger-soft: rgba(232, 95, 87, 0.14);
+  --ok: #4cc090;
+  --ok-soft: rgba(76, 192, 144, 0.14);
+  --warn: #e2952f;
+  --warn-soft: rgba(226, 149, 47, 0.16);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--line);
   --shadow-focus: 0 0 0 3px var(--accent-soft);
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #f6f5f1;
+  --surface-1: #ffffff;
+  --surface-2: #faf8f3;
+  --surface-3: #f0ede4;
+  --line: #e3dfd4;
+  --line-strong: #cdc7b8;
+  --ink: #1c1a14;
+  --ink-2: #3a352a;
+  --muted: #6b6555;
+  --muted-2: #8a8472;
+  --accent: #9c7b1f;
+  --accent-hover: #876a18;
+  --accent-soft: rgba(156, 123, 31, 0.10);
+  --accent-ink: #ffffff;
+  --danger: #b03328;
+  --danger-soft: rgba(176, 51, 40, 0.08);
+  --ok: #1f7d4d;
+  --ok-soft: rgba(31, 125, 77, 0.10);
+  --warn: #a85d12;
+  --warn-soft: rgba(168, 93, 18, 0.10);
+  --shadow-card: 0 1px 2px rgba(28, 26, 20, 0.04), 0 0 0 1px var(--line);
+  --shadow-focus: 0 0 0 3px var(--accent-soft);
+  --shadow-pop: 0 18px 50px rgba(28, 26, 20, 0.18);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -43,6 +80,7 @@ body {
   color: var(--ink);
   font: 15px/1.55 "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color .2s ease, color .2s ease;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -52,6 +90,35 @@ h2 { font-size: 18px; }
 h3 { font-size: 15px; letter-spacing: 0; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* ============================== THEME TOGGLE ============================== */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+}
+.theme-toggle-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  transition: background .15s, color .15s;
+  padding: 0;
+}
+.theme-toggle-btn:hover { color: var(--ink); background: var(--surface-2); }
+.theme-toggle-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.theme-toggle-btn svg { width: 14px; height: 14px; }
 
 /* ============================== LOGIN ============================== */
 .login { min-height: 100vh; display: grid; place-items: center; padding: var(--space-6) var(--space-4); }
@@ -76,17 +143,36 @@ a:hover { text-decoration: underline; }
 .topbar {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
   padding: 0 var(--space-5);
-  height: 60px;
+  height: 58px;
   background: var(--surface-1);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 10;
   flex-wrap: wrap;
+  backdrop-filter: saturate(140%) blur(8px);
 }
-.brand { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; color: var(--accent); letter-spacing: 1.2px; font-size: 14px; }
+.brand {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 1.5px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: inset 0 0 0 2px var(--surface-1);
+}
 .tabs { display: flex; gap: var(--space-1); }
 .tab {
   background: none;
@@ -186,6 +272,62 @@ a:hover { text-decoration: underline; }
 .page-head .page-sub { color: var(--muted); font-size: 13.5px; max-width: 56ch; }
 .page-head-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
 
+/* ============================== LIST TOOLBAR (search + bulk) ============================== */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.list-search {
+  flex: 1;
+  min-width: 240px;
+  position: relative;
+}
+.list-search input {
+  width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px 9px 36px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.list-search input::placeholder { color: var(--muted-2); }
+.list-search input:hover { border-color: var(--line-strong); }
+.list-search input:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.list-search::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b96a5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>");
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.list-meta { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+/* ============================== BULK BAR ============================== */
+.bulk-bar {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px var(--space-3) 8px var(--space-4);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.bulk-bar.is-active { display: flex; }
+.bulk-count { font-size: 13px; font-weight: 600; color: var(--accent); }
+.bulk-actions { display: flex; gap: var(--space-2); margin-left: auto; flex-wrap: wrap; }
+
 /* ============================== LISTS ============================== */
 .list { display: flex; flex-direction: column; gap: var(--space-2); }
 .list-empty {
@@ -199,16 +341,20 @@ a:hover { text-decoration: underline; }
 }
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-4);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
   align-items: center;
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   transition: border-color .15s, background .15s;
 }
+.row.no-check { grid-template-columns: minmax(0, 1fr) auto; }
 .row:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.row.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.row-check { display: grid; place-items: center; }
+.row-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
 .row-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .row-title {
   font-weight: 500;
@@ -227,7 +373,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
 }
 .row-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--muted-2); flex: none; }
-.row-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
+.row-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .muted { color: var(--muted); }
 
 /* Severity / status chips inside list rows */
@@ -325,17 +471,59 @@ textarea.field { resize: vertical; min-height: 88px; }
   gap: var(--space-3);
   align-items: center;
   justify-content: flex-end;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   position: sticky;
   bottom: var(--space-4);
   z-index: 4;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-pop);
 }
 .form-actions .spacer { flex: 1; }
 .form-actions .form-hint { color: var(--muted); font-size: 12.5px; }
+.form-actions .autosave-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.form-actions .autosave-status.is-saving { color: var(--accent); }
+.form-actions .autosave-status.is-saved { color: var(--ok); }
+.form-actions .autosave-status.is-error { color: var(--danger); }
+.form-actions .autosave-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted-2);
+}
+.form-actions .autosave-status.is-saving .autosave-dot { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+.form-actions .autosave-status.is-saved .autosave-dot { background: var(--ok); }
+.form-actions .autosave-status.is-error .autosave-dot { background: var(--danger); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ============================== SUMMARY COUNTER ============================== */
+.summary-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.summary-counter .chars { font-weight: 600; color: var(--ink-2); }
+.summary-counter.is-good .chars { color: var(--ok); }
+.summary-counter.is-over .chars { color: var(--warn); }
+.summary-counter.is-way-over .chars { color: var(--danger); }
+.fld-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+}
 
 /* ============================== BUTTONS ============================== */
 .btn {
@@ -360,6 +548,60 @@ textarea.field { resize: vertical; min-height: 88px; }
 .btn.small { padding: 6px 11px; font-size: 13px; }
 .btn.danger { color: var(--danger); border-color: transparent; background: transparent; }
 .btn.danger:hover { background: var(--danger-soft); border-color: transparent; }
+
+/* ============================== MODAL ============================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 200;
+  padding: var(--space-4);
+}
+[data-theme="light"] .modal-overlay { background: rgba(28, 26, 20, 0.35); }
+.modal {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  width: 100%;
+  max-width: 460px;
+  padding: var(--space-5);
+}
+.modal h3 { margin-bottom: var(--space-2); font-size: 16px; }
+.modal-body { color: var(--ink-2); font-size: 13.5px; margin-bottom: var(--space-4); }
+.modal-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+/* ============================== AUDIT LIST ============================== */
+.audit-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.audit-row {
+  display: grid;
+  grid-template-columns: 110px 90px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.audit-row:hover { background: var(--surface-2); }
+.audit-when { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+.audit-action {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+}
+.audit-action.create { color: var(--ok); }
+.audit-action.update { color: var(--accent); }
+.audit-action.publish { color: var(--accent); }
+.audit-action.delete { color: var(--danger); }
+.audit-target { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audit-kind { font-size: 11px; color: var(--muted); }
 
 /* ============================== TOAST ============================== */
 .toast {
@@ -460,11 +702,23 @@ textarea.field { resize: vertical; min-height: 88px; }
 .editor-mount { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); }
 .editor-loading { padding: var(--space-6); text-align: center; color: var(--muted); font-size: 13.5px; }
 
-/* Toast UI dark-theme overrides — match TGD admin palette */
-.toastui-editor-dark .toastui-editor-defaultUI,
+/* Toast UI overrides — match TGD admin palette in both themes.
+   Toast UI's "dark" stylesheet only activates when the .toastui-editor-dark class
+   is present. We apply that class in dark mode only; light mode falls back to
+   the library's default stylesheet, plus targeted token overrides below. */
 .toastui-editor-defaultUI {
   border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
 }
+[data-theme="light"] .toastui-editor-defaultUI { border: 1px solid var(--line); }
+[data-theme="light"] .toastui-editor-toolbar { background: var(--surface-1); border-bottom: 1px solid var(--line); }
+[data-theme="light"] .ProseMirror { background: var(--surface-1); color: var(--ink); }
+[data-theme="light"] .toastui-editor-md-container { background: var(--surface-1); color: var(--ink); }
+[data-theme="light"] .toastui-editor-md-container textarea { background: var(--surface-1); color: var(--ink); }
+[data-theme="light"] .toastui-editor-md-preview { background: var(--surface-2); }
+.toastui-editor-dark .toastui-editor-defaultUI,
+.toastui-editor-defaultUI.dummy { border: 0; }
 .toastui-editor-dark .toastui-editor-defaultUI {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -571,8 +825,8 @@ textarea.field { resize: vertical; min-height: 88px; }
   color: var(--accent-ink);
   border-color: var(--accent);
 }
-.toastui-editor-dark .toastui-editor-defaultUI-toolbar { padding: 6px 8px; }
-.toastui-editor-dark .toastui-editor-toolbar-icons {
+.toastui-editor-defaultUI-toolbar { padding: 6px 8px; }
+.toastui-editor-toolbar-icons {
   background-color: transparent;
   background-image: none !important;
   color: var(--ink-2);
@@ -581,28 +835,28 @@ textarea.field { resize: vertical; min-height: 88px; }
   width: auto;
   padding: 0 8px;
 }
-.toastui-editor-dark .toastui-editor-toolbar-icons::after {
+.toastui-editor-toolbar-icons::after {
   font-size: 12px;
   font-weight: 700;
   line-height: 34px;
 }
-.toastui-editor-dark .toastui-editor-toolbar-icons.heading { min-width: 58px; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.heading::after { content: "H1–H3"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.bold::after { content: "B"; font-size: 16px; font-weight: 800; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.italic::after { content: "I"; font-size: 16px; font-family: Georgia, serif; font-style: italic; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.strike::after { content: "S"; text-decoration: line-through; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.hrline::after { content: "—"; font-size: 18px; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.quote::after { content: "Quote"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.bullet-list::after { content: "• List"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.ordered-list::after { content: "1. List"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.task-list::after { content: "Task"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.indent::after { content: "→"; font-size: 17px; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.outdent::after { content: "←"; font-size: 17px; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.table::after { content: "Table"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.image::after { content: "Image"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.link::after { content: "Link"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.code::after { content: "Code"; }
-.toastui-editor-dark .toastui-editor-toolbar-icons.codeblock::after { content: "Block"; }
+.toastui-editor-toolbar-icons.heading { min-width: 58px; }
+.toastui-editor-toolbar-icons.heading::after { content: "H1–H3"; }
+.toastui-editor-toolbar-icons.bold::after { content: "B"; font-size: 16px; font-weight: 800; }
+.toastui-editor-toolbar-icons.italic::after { content: "I"; font-size: 16px; font-family: Georgia, serif; font-style: italic; }
+.toastui-editor-toolbar-icons.strike::after { content: "S"; text-decoration: line-through; }
+.toastui-editor-toolbar-icons.hrline::after { content: "—"; font-size: 18px; }
+.toastui-editor-toolbar-icons.quote::after { content: "Quote"; }
+.toastui-editor-toolbar-icons.bullet-list::after { content: "• List"; }
+.toastui-editor-toolbar-icons.ordered-list::after { content: "1. List"; }
+.toastui-editor-toolbar-icons.task-list::after { content: "Task"; }
+.toastui-editor-toolbar-icons.indent::after { content: "→"; font-size: 17px; }
+.toastui-editor-toolbar-icons.outdent::after { content: "←"; font-size: 17px; }
+.toastui-editor-toolbar-icons.table::after { content: "Table"; }
+.toastui-editor-toolbar-icons.image::after { content: "Image"; }
+.toastui-editor-toolbar-icons.link::after { content: "Link"; }
+.toastui-editor-toolbar-icons.code::after { content: "Code"; }
+.toastui-editor-toolbar-icons.codeblock::after { content: "Block"; }
 .toastui-editor-dark .ProseMirror,
 .toastui-editor-dark .toastui-editor-md-container {
   background: var(--surface-2);

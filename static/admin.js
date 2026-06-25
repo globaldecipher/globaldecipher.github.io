@@ -8,6 +8,26 @@
   const root = document.getElementById("admin-root");
   let KEY = sessionStorage.getItem("tgd_key") || "";
 
+  // ---- theme ----
+  const THEME_KEY = "tgd_theme";
+  function preferredTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  function applyTheme(theme) {
+    document.body.setAttribute("data-theme", theme);
+    document.documentElement.style.colorScheme = theme;
+    document.querySelectorAll(".theme-toggle-btn").forEach((b) => {
+      b.classList.toggle("is-active", b.dataset.theme === theme);
+    });
+    // Toast UI: its "dark" stylesheet only activates when this class is present.
+    document.querySelectorAll(".editor-mount").forEach((m) => {
+      m.classList.toggle("toastui-editor-dark", theme === "dark");
+    });
+  }
+  applyTheme(preferredTheme());
+
   // ---- helpers ----
   const el = (tag, attrs = {}, ...kids) => {
     const node = document.createElement(tag);
@@ -136,14 +156,46 @@
       el("div", { class: "brand" }, "TGD ADMIN"),
       el("nav", { class: "tabs" },
         tabBtn("incidents", "Incidents"),
-        tabBtn("content", "Articles & Profiles")
+        tabBtn("content", "Articles & Profiles"),
+        tabBtn("activity", "Activity")
       ),
-      el("div", { class: "topbar-right" }, maint, el("button", { class: "btn ghost", onclick: logout }, "Log out"))
+      el("div", { class: "topbar-right" }, themeToggle(), maint, el("button", { class: "btn ghost", onclick: logout }, "Log out"))
     );
     const main = el("main", { id: "view", class: "view" });
     root.append(header, main);
     initMaintenance();
     showTab(activeTab);
+  }
+
+  function themeToggle() {
+    const setTheme = (next) => {
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    };
+    const sun = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    const moon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    const current = document.body.getAttribute("data-theme") || "dark";
+    const wrap = el("div", { class: "theme-toggle", role: "group", "aria-label": "Theme" },
+      el("button", {
+        type: "button",
+        class: "theme-toggle-btn" + (current === "light" ? " is-active" : ""),
+        "data-theme": "light",
+        title: "Light theme",
+        "aria-label": "Light theme",
+        html: sun,
+        onclick: () => setTheme("light")
+      }),
+      el("button", {
+        type: "button",
+        class: "theme-toggle-btn" + (current === "dark" ? " is-active" : ""),
+        "data-theme": "dark",
+        title: "Dark theme",
+        "aria-label": "Dark theme",
+        html: moon,
+        onclick: () => setTheme("dark")
+      })
+    );
+    return wrap;
   }
 
   function tabBtn(id, label) {
@@ -157,6 +209,7 @@
     const view = document.getElementById("view");
     clear(view);
     if (id === "incidents") renderIncidents(view);
+    else if (id === "activity") renderActivity(view);
     else renderContent(view);
   }
 
@@ -328,14 +381,100 @@
       "Live feed that powers the public incident map. Edits show up on the map within a minute.",
       el("button", { class: "btn primary", onclick: () => incidentForm(view) }, "+ New incident")
     ));
+
+    const searchInput = el("input", { type: "search", placeholder: "Filter by title, district, category, actor…", "aria-label": "Search incidents" });
+    const countEl = el("div", { class: "list-meta" }, "Loading…");
+    view.append(el("div", { class: "list-toolbar" },
+      el("div", { class: "list-search" }, searchInput),
+      countEl
+    ));
+
+    const selected = new Set();
+    const bulkCount = el("span", { class: "bulk-count" }, "0 selected");
+    const bulkBar = el("div", { class: "bulk-bar", id: "incident-bulk-bar" },
+      bulkCount,
+      el("div", { class: "bulk-actions" },
+        el("button", { class: "btn small", onclick: () => bulkVerifyIncidents(true) }, "Verify"),
+        el("button", { class: "btn small", onclick: () => bulkVerifyIncidents(false) }, "Unverify"),
+        el("button", { class: "btn small", onclick: () => bulkCategorizeIncidents() }, "Re-categorize"),
+        el("button", { class: "btn small danger", onclick: () => bulkDeleteIncidents() }, "Delete"),
+        el("button", { class: "btn small ghost", onclick: () => clearSelection() }, "Clear")
+      )
+    );
+    view.append(bulkBar);
+
     const listEl = el("div", { class: "list" }, el("p", { class: "muted" }, "Loading…"));
     view.append(listEl);
-    try {
-      const feed = await api("/incidents", { auth: false });
-      const items = feed.incidents || [];
+
+    let items = [];
+
+    function clearSelection() {
+      selected.clear();
+      paintSelection();
+    }
+    function paintSelection() {
+      bulkBar.classList.toggle("is-active", selected.size > 0);
+      bulkCount.textContent = `${selected.size} selected`;
+      listEl.querySelectorAll(".row").forEach((r) => {
+        const id = r.dataset.id;
+        const isSel = selected.has(id);
+        r.classList.toggle("is-selected", isSel);
+        const cb = r.querySelector("input[type=checkbox]");
+        if (cb) cb.checked = isSel;
+      });
+    }
+
+    async function bulkVerifyIncidents(verified) {
+      const targets = items.filter((it) => selected.has(it.id));
+      if (!targets.length) return;
+      try {
+        await api("/incidents", { method: "POST", body: { incidents: targets.map((it) => ({ ...it, verified })) } });
+        toast(`${targets.length} incident${targets.length === 1 ? "" : "s"} ${verified ? "verified" : "unverified"}.`);
+        clearSelection();
+        await reload();
+      } catch (e) { toast(e.message, "err"); }
+    }
+    async function bulkDeleteIncidents() {
+      const targets = items.filter((it) => selected.has(it.id));
+      if (!targets.length) return;
+      if (!confirm(`Delete ${targets.length} incident${targets.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+      try {
+        for (const it of targets) {
+          await api("/incidents/" + encodeURIComponent(it.id), { method: "DELETE" });
+        }
+        toast(`${targets.length} deleted.`);
+        clearSelection();
+        await reload();
+      } catch (e) { toast(e.message, "err"); }
+    }
+    async function bulkCategorizeIncidents() {
+      const targets = items.filter((it) => selected.has(it.id));
+      if (!targets.length) return;
+      pickFromList("Re-categorize incidents", "Category to apply to " + targets.length + " selected incident" + (targets.length === 1 ? "" : "s") + ":", CATEGORIES, async (newCat) => {
+        if (!newCat) return;
+        try {
+          await api("/incidents", { method: "POST", body: { incidents: targets.map((it) => ({ ...it, category: newCat })) } });
+          toast(`Re-categorized ${targets.length} incident${targets.length === 1 ? "" : "s"} to “${newCat}”.`);
+          clearSelection();
+          await reload();
+        } catch (e) { toast(e.message, "err"); }
+      });
+    }
+
+    let query = "";
+    function renderRows() {
       clear(listEl);
-      if (!items.length) { listEl.append(el("div", { class: "list-empty" }, "No incidents yet. Click “+ New incident” to add one.")); return; }
-      for (const it of items) {
+      const q = query.trim().toLowerCase();
+      const filtered = !q ? items : items.filter((it) => {
+        const hay = [it.title, it.id, it.district, it.province, it.category, it.actor].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+      countEl.textContent = q ? `${filtered.length} of ${items.length} incidents` : `${items.length} incidents`;
+      if (!filtered.length) {
+        listEl.append(el("div", { class: "list-empty" }, q ? "No incidents match this filter." : "No incidents yet. Click “+ New incident” to add one."));
+        return;
+      }
+      for (const it of filtered) {
         const sevChip = it.severity ? el("span", { class: SEV_CHIP[it.severity] || "chip" }, it.severity) : null;
         const verChip = it.verified ? el("span", { class: "chip chip-verified" }, "Verified") : null;
         const metaBits = [];
@@ -345,7 +484,18 @@
         if (it.category) { metaBits.push(el("span", { class: "dot" })); metaBits.push(el("span", {}, it.category)); }
         if (sevChip) metaBits.push(sevChip);
         if (verChip) metaBits.push(verChip);
-        listEl.append(el("div", { class: "row" },
+        const checkbox = el("input", {
+          type: "checkbox",
+          "aria-label": "Select incident",
+          onchange: (e) => {
+            if (e.target.checked) selected.add(it.id);
+            else selected.delete(it.id);
+            paintSelection();
+          }
+        });
+        if (selected.has(it.id)) checkbox.checked = true;
+        const row = el("div", { class: "row" + (selected.has(it.id) ? " is-selected" : ""), "data-id": it.id },
+          el("div", { class: "row-check" }, checkbox),
           el("div", { class: "row-main" },
             el("div", { class: "row-title" }, it.title || it.id),
             el("div", { class: "row-meta" }, ...metaBits)
@@ -354,12 +504,24 @@
             el("button", { class: "btn small", onclick: () => incidentForm(view, it) }, "Edit"),
             el("button", { class: "btn small danger", onclick: () => deleteIncident(it, view) }, "Delete")
           )
-        ));
+        );
+        listEl.append(row);
       }
-    } catch (e) {
-      clear(listEl);
-      listEl.append(el("p", { class: "err" }, "Could not load feed: " + e.message));
     }
+
+    async function reload() {
+      try {
+        const feed = await api("/incidents", { auth: false });
+        items = feed.incidents || [];
+        renderRows();
+      } catch (e) {
+        clear(listEl);
+        listEl.append(el("p", { class: "err" }, "Could not load feed: " + e.message));
+      }
+    }
+
+    searchInput.addEventListener("input", () => { query = searchInput.value; renderRows(); });
+    await reload();
   }
 
   function incidentForm(view, existing) {
@@ -420,9 +582,11 @@
       ),
 
       // ---- Source & verification ----
+      // Source link sits above the verified checkbox so the verification step
+      // reads as a consequence of having a source on file.
       section("Source & verification", "Where the report comes from and whether the desk has confirmed it.",
         add("source", "Source name", { default: it.source || "TGD Desk", placeholder: "e.g. Dawn, AFP, TGD Desk", hint: "Outlet or desk that filed the report." }),
-        add("source_url", "Source link", { type: "url", optional: true, placeholder: "https://…", hint: "Direct link to the article or official statement." }),
+        add("source_url", "Source link", { type: "url", optional: true, wide: true, placeholder: "https://…", hint: "Direct link to the article or official statement." }),
         add("verified", "Mark as verified", { type: "checkbox", wide: true, hint: "Tick once the desk has confirmed details through a second source." })
       )
     );
@@ -534,9 +698,9 @@
   // Mounts the visual editor. Uploaded media is stored in R2 and saved as a
   // normal image URL, never as unreadable base64 text inside an article.
   async function mountMarkdownEditor(container, initialMarkdown, opts = {}) {
-    // Toast UI only activates its dark theme when this class is present in the
-    // page. The option alone does not add it for the CDN build.
-    container.classList.add("toastui-editor-dark");
+    const theme = document.body.getAttribute("data-theme") || "dark";
+    // Toast UI's dark stylesheet only activates when this class is present.
+    container.classList.toggle("toastui-editor-dark", theme === "dark");
     loadCss(CDN.toastCss);
     loadCss(CDN.toastDarkCss);
     await loadScript(CDN.toastJs);
@@ -547,7 +711,7 @@
       previewStyle: "tab",
       height: opts.height || "560px",
       usageStatistics: false,
-      theme: "dark",
+      theme: theme,
       autofocus: false,
       hideModeSwitch: false,
       toolbarItems: [
@@ -891,39 +1055,95 @@
       el("label", { class: "fld-label", style: "margin:0" }, el("span", {}, "Section"), sel),
       el("button", { class: "btn primary", onclick: () => contentForm(view, null) }, "+ New " + folder.singular)
     ));
+
+    const searchInput = el("input", { type: "search", placeholder: "Filter by title or slug…", "aria-label": "Search content" });
+    const countEl = el("div", { class: "list-meta" }, "Loading…");
+    view.append(el("div", { class: "list-toolbar" },
+      el("div", { class: "list-search" }, searchInput),
+      countEl
+    ));
+
     const listEl = el("div", { class: "list" }, el("p", { class: "muted" }, "Loading…"));
     view.append(listEl);
-    try {
-      const { files } = await api("/content?folder=" + encodeURIComponent(activeFolder));
+
+    let files = [];
+    let query = "";
+
+    function renderRows() {
       clear(listEl);
-      if (!files.length) { listEl.append(el("div", { class: "list-empty" }, "No files in this section yet.")); return; }
-      for (const file of files) {
-        listEl.append(el("div", { class: "row" },
+      const q = query.trim().toLowerCase();
+      const filtered = !q ? files : files.filter((file) => {
+        const hay = [file.title, file.slug, file.path].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+      countEl.textContent = q ? `${filtered.length} of ${files.length} in ${folder.label.toLowerCase()}` : `${files.length} in ${folder.label.toLowerCase()}`;
+      if (!filtered.length) {
+        listEl.append(el("div", { class: "list-empty" }, q ? "No files match this filter." : "No files in this section yet."));
+        return;
+      }
+      for (const file of filtered) {
+        listEl.append(el("div", { class: "row no-check" },
           el("div", { class: "row-main" },
-            el("div", { class: "row-title" }, file.slug),
-            el("div", { class: "row-meta" }, el("span", {}, file.path), el("span", { class: `chip ${file.status === "published" ? "chip-verified" : ""}` }, file.status === "published" ? "Published" : "Draft"))
+            el("div", { class: "row-title" }, file.title || file.slug),
+            el("div", { class: "row-meta" },
+              el("span", {}, file.slug),
+              el("span", { class: "dot" }),
+              el("span", {}, file.date || file.updated_at?.slice(0, 10) || "—"),
+              el("span", { class: `chip ${file.status === "published" ? "chip-verified" : ""}` }, file.status === "published" ? "Published" : "Draft")
+            )
           ),
           el("div", { class: "row-actions" },
             file.status === "published"
               ? null
-              : el("button", { class: "btn small primary", onclick: () => publishContent(file, view) }, "Publish to website"),
+              : el("button", { class: "btn small primary", onclick: () => publishContent(file, view) }, "Publish"),
             el("button", { class: "btn small", onclick: () => contentForm(view, file) }, "Edit"),
+            activeFolder === "pages"
+              ? null
+              : el("button", { class: "btn small", onclick: () => duplicateContent(file, view) }, "Duplicate"),
             el("button", { class: "btn small danger", onclick: () => deleteContent(file, view) }, "Delete")
           )
         ));
       }
+    }
+
+    searchInput.addEventListener("input", () => { query = searchInput.value; renderRows(); });
+
+    try {
+      const res = await api("/content?folder=" + encodeURIComponent(activeFolder));
+      files = res.files || [];
+      renderRows();
     } catch (e) {
       clear(listEl);
       listEl.append(el("p", { class: "err" }, "Could not list files: " + e.message));
     }
   }
 
-  async function contentForm(view, file) {
+  async function duplicateContent(file, view) {
+    try {
+      const got = await api("/content/file?path=" + encodeURIComponent(file.path));
+      const parsed = parseMarkdown(got.content);
+      // Start the duplicate as an unsaved draft pre-filled from the source.
+      // Date moves to today, status drops to draft, "(copy)" is appended so
+      // the slug derives differently.
+      const fm = { ...parsed.fm };
+      fm.title = (fm.title || file.slug) + " (copy)";
+      fm.date = today();
+      fm.status = "draft";
+      fm.featured = false;
+      const draft = { fm, body: parsed.body };
+      contentForm(view, null, draft);
+    } catch (e) { toast("Could not duplicate: " + e.message, "err"); }
+  }
+
+  async function contentForm(view, file, seed) {
     const folder = FOLDERS.find((f) => f.key === activeFolder);
     let fm = {}, body = "", sha = null, path = file ? file.path : null;
     if (file) {
       try { const got = await api("/content/file?path=" + encodeURIComponent(file.path)); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
       catch (e) { return toast("Could not open file: " + e.message, "err"); }
+    } else if (seed) {
+      fm = seed.fm || {};
+      body = seed.body || "";
     }
     const f = {};
     const add = (key, label, opts) => {
@@ -997,10 +1217,17 @@
 
     if (importCard) view.append(importCard);
     view.append(form);
+    const autosaveStatus = el("span", { class: "autosave-status", id: "autosave-status" },
+      el("span", { class: "autosave-dot" }),
+      el("span", { class: "autosave-text" }, "Not saved yet")
+    );
     view.append(el("div", { class: "form-actions" },
-      el("span", { class: "form-hint" }, "Drafts stay private. Published work appears after the site refreshes."),
+      autosaveStatus,
       el("span", { class: "spacer" }),
-      el("button", { class: "btn ghost", onclick: () => renderContent(clearView(view)) }, "Cancel"),
+      el("button", { class: "btn ghost", onclick: () => { stopAutosave(); renderContent(clearView(view)); } }, "Cancel"),
+      activeFolder === "pages"
+        ? null
+        : el("button", { class: "btn ghost", onclick: () => previewContent({ folder, f, tagChips }) }, "Preview"),
       activeFolder === "pages"
         ? el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view) }, file ? "Save changes" : "Save page")
         : el("button", { class: "btn ghost", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view, "draft") }, "Save draft"),
@@ -1008,6 +1235,9 @@
         ? null
         : el("button", { class: "btn primary", onclick: () => saveContent({ folder, file, path, sha, f, tagChips }, view, "published") }, "Publish to website")
     ));
+
+    // Wire up summary counter (live char/word count with sweet-spot signal).
+    if (f.summary) attachSummaryCounter(f.summary);
 
     // Mount the WYSIWYG editor into the placeholder div after the DOM is in place.
     const editorMount = document.getElementById("editor-mount");
@@ -1023,6 +1253,11 @@
         f.__fallbackBody = input;
         toast("Rich editor failed to load — using markdown fallback.", "warn");
       }
+    }
+
+    // Autosave drafts every ~15s. Pages are always published — skip them.
+    if (activeFolder !== "pages") {
+      startAutosave({ folder, file, sha, f, tagChips, view });
     }
   }
 
@@ -1140,6 +1375,7 @@
       }
       await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
       toast(fm.status === "published" ? "Published. Site refreshes shortly." : "Draft saved.");
+      stopAutosave();
       // Clean up editor instance to avoid leaks on re-mount
       try { window.__tgdEditor?.destroy(); } catch {}
       window.__tgdEditor = null;
@@ -1175,6 +1411,266 @@
       toast("Deleted. Site rebuilds in ~1 minute.");
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
+  }
+
+  // ============================ SUMMARY COUNTER ============================
+  // Live character + word counter for the summary field. The 155-char target
+  // matches Google's typical meta-description truncation point.
+  function attachSummaryCounter(input) {
+    const META_SWEET_SPOT = 155;
+    const counter = el("span", { class: "summary-counter" },
+      el("span", { class: "chars" }, "0"),
+      el("span", { class: "muted" }, "/ 155 chars"),
+      el("span", { class: "dot" }),
+      el("span", { class: "words" }, "0 words")
+    );
+
+    // Slot the counter into the field's label row instead of stacking it below.
+    const label = input.closest(".fld")?.querySelector(".fld-label");
+    if (label) label.append(counter);
+
+    const update = () => {
+      const v = input.value || "";
+      const chars = v.length;
+      const words = (v.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length;
+      counter.querySelector(".chars").textContent = String(chars);
+      counter.querySelector(".words").textContent = `${words} word${words === 1 ? "" : "s"}`;
+      counter.classList.remove("is-good", "is-over", "is-way-over");
+      if (chars === 0) { /* default */ }
+      else if (chars <= META_SWEET_SPOT) counter.classList.add("is-good");
+      else if (chars <= META_SWEET_SPOT + 30) counter.classList.add("is-over");
+      else counter.classList.add("is-way-over");
+    };
+    input.addEventListener("input", update);
+    update();
+  }
+
+  // ============================ AUTOSAVE ============================
+  // Polls the editor + form state every 15s; if anything changed since the
+  // last save, persists as a draft. Skipped for Pages (which are always
+  // published). The timer is cleared on cancel/save to avoid clobbering a
+  // future form mount.
+  let autosaveTimer = null;
+  let lastAutosaveBody = null;
+  let lastAutosaveTitle = null;
+
+  function stopAutosave() {
+    if (autosaveTimer) clearInterval(autosaveTimer);
+    autosaveTimer = null;
+    lastAutosaveBody = null;
+    lastAutosaveTitle = null;
+  }
+
+  function setAutosaveStatus(kind, text) {
+    const status = document.getElementById("autosave-status");
+    if (!status) return;
+    status.classList.remove("is-saving", "is-saved", "is-error");
+    if (kind) status.classList.add(`is-${kind}`);
+    status.querySelector(".autosave-text").textContent = text;
+  }
+
+  function formatRelative(date) {
+    const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (diff < 5) return "just now";
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  }
+
+  function startAutosave(ctx) {
+    stopAutosave();
+    let savedAt = null;
+    const tick = async () => {
+      const title = ctx.f.title?.value?.trim() || "";
+      const body = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (ctx.f.__fallbackBody?.value || "");
+      // Need a title to derive a slug. No title → nothing to save yet.
+      if (!title) {
+        if (!savedAt) setAutosaveStatus(null, "Autosave waits for a title");
+        return;
+      }
+      if (lastAutosaveBody === body && lastAutosaveTitle === title) {
+        if (savedAt) setAutosaveStatus("saved", `Saved ${formatRelative(savedAt)}`);
+        return;
+      }
+      setAutosaveStatus("saving", "Saving draft…");
+      try {
+        await saveDraftQuiet(ctx, title, body);
+        savedAt = new Date();
+        lastAutosaveBody = body;
+        lastAutosaveTitle = title;
+        setAutosaveStatus("saved", `Saved ${formatRelative(savedAt)}`);
+      } catch (e) {
+        setAutosaveStatus("error", "Autosave failed");
+      }
+    };
+    autosaveTimer = setInterval(tick, 15000);
+    // Refresh the "Saved Xs ago" label every 5s without re-hitting the API.
+    setInterval(() => {
+      const status = document.getElementById("autosave-status");
+      if (!status || !savedAt || !status.classList.contains("is-saved")) return;
+      status.querySelector(".autosave-text").textContent = `Saved ${formatRelative(savedAt)}`;
+    }, 5000);
+  }
+
+  // Lightweight save for autosave: writes draft status, doesn't redirect or
+  // toast, and doesn't trigger a public-site rebuild (the worker only rebuilds
+  // for status: "published" entries that change publish state).
+  async function saveDraftQuiet(ctx, title, body) {
+    const { folder, file, f, tagChips } = ctx;
+    const date = f.date?.value || today();
+    const tags = tagChips ? tagChips.getTags() : [];
+    const fm = {
+      title, date,
+      author: (f.author?.value || "").trim() || folder.author,
+      type: folder.type,
+      category: (f.category?.value || "").trim(),
+      region: (f.region?.value || "").trim(),
+      summary: (f.summary?.value || "").trim(),
+      tags,
+      access: "free",
+      sensitivity: (f.sensitivity?.value || "").trim() || "standard",
+      status: "draft",
+      featured: Boolean(f.featured?.checked)
+    };
+    const filePath = (file && file.path) || ctx.path || `content/${folder.key}/${date}-${slug(title)}.md`;
+    let sha = ctx.sha;
+    if (!sha) {
+      try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
+    }
+    const markdown = buildMarkdown(fm, body);
+    await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `Autosave ${filePath}`, autosave: true } });
+    // Update ctx so subsequent autosaves work against the existing row.
+    ctx.path = filePath;
+    ctx.sha = (await api("/content/file?path=" + encodeURIComponent(filePath)).catch(() => ({}))).sha || sha;
+  }
+
+  // ============================ PREVIEW ============================
+  // Opens a new tab with the current draft rendered into the public article
+  // shell. Client-side render — uses the Toast UI markdown-to-HTML pipeline
+  // already loaded for the editor, plus a minimal serif layout so it reads the
+  // way the published article will.
+  function previewContent({ folder, f, tagChips }) {
+    const title = f.title?.value?.trim() || "Untitled draft";
+    const date = f.date?.value || today();
+    const author = f.author?.value?.trim() || folder.author;
+    const summary = f.summary?.value?.trim() || "";
+    const category = f.category?.value?.trim() || "";
+    const tags = tagChips ? tagChips.getTags() : [];
+    const body = window.__tgdEditor ? window.__tgdEditor.getHTML() : "";
+
+    const tagsHtml = tags.length ? `<div class="preview-tags">${tags.map((t) => `<span>#${escapeHtml(t)}</span>`).join(" ")}</div>` : "";
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)} — preview</title>
+<style>
+  body { margin: 0; background: #f6f5f1; color: #1c1a14; font: 17px/1.7 Georgia, "Times New Roman", serif; }
+  .banner { background: #d4af5a; color: #1a1407; padding: 10px 24px; font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: 0.15em; text-transform: uppercase; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  .eyebrow { font: 600 11px/1 "IBM Plex Mono", monospace; letter-spacing: 0.18em; text-transform: uppercase; color: #9c7b1f; margin-bottom: 16px; }
+  h1 { font-size: 38px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .lede { font-size: 18px; line-height: 1.55; color: #3a352a; margin: 0 0 24px; }
+  .meta { color: #6b6555; font-size: 13.5px; border-top: 1px solid #e3dfd4; border-bottom: 1px solid #e3dfd4; padding: 12px 0; margin-bottom: 36px; }
+  article :is(h2, h3) { margin-top: 1.8em; }
+  article p { margin: 1em 0; }
+  article blockquote { border-left: 3px solid #d4af5a; margin: 1.5em 0; padding: 4px 0 4px 20px; color: #3a352a; font-style: italic; }
+  article img { max-width: 100%; height: auto; border-radius: 6px; }
+  article table { width: 100%; border-collapse: collapse; margin: 1.5em 0; font-size: 0.95em; }
+  article th, article td { padding: 10px 14px; border-bottom: 1px solid #e3dfd4; text-align: left; vertical-align: top; }
+  article th { background: rgba(212, 175, 90, 0.12); }
+  .preview-tags { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e3dfd4; color: #6b6555; font: 500 13px/1.4 "IBM Plex Sans", sans-serif; }
+  .preview-tags span { margin-right: 12px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0e1116; color: #e6edf3; }
+    .lede { color: #c4ccd6; }
+    .meta { color: #8b96a5; border-color: #2a323d; }
+    .eyebrow { color: #d4af5a; }
+    article blockquote { color: #c4ccd6; }
+    article th, article td { border-color: #2a323d; }
+    article th { background: rgba(212, 175, 90, 0.14); }
+    .preview-tags { border-color: #2a323d; color: #8b96a5; }
+  }
+</style></head>
+<body>
+  <div class="banner">Preview · not published</div>
+  <div class="wrap">
+    ${category ? `<div class="eyebrow">${escapeHtml(category)}</div>` : ""}
+    <h1>${escapeHtml(title)}</h1>
+    ${summary ? `<p class="lede">${escapeHtml(summary)}</p>` : ""}
+    <div class="meta">${escapeHtml(author || "")} · ${escapeHtml(date)}</div>
+    <article>${body}</article>
+    ${tagsHtml}
+  </div>
+</body></html>`;
+
+    const tab = window.open("", "_blank");
+    if (!tab) { toast("Pop-up blocked — allow pop-ups for preview.", "warn"); return; }
+    tab.document.open();
+    tab.document.write(html);
+    tab.document.close();
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // ============================ MODAL (small dialog) ============================
+  function pickFromList(title, message, options, onPick) {
+    const select = el("select", { class: "field" }, ...options.map((o) => el("option", { value: o }, o)));
+    const overlay = el("div", { class: "modal-overlay", onclick: (e) => { if (e.target === overlay) close(); } },
+      el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title },
+        el("h3", {}, title),
+        el("p", { class: "modal-body" }, message),
+        select,
+        el("div", { class: "modal-actions", style: "margin-top:16px" },
+          el("button", { class: "btn ghost", onclick: () => close() }, "Cancel"),
+          el("button", { class: "btn primary", onclick: () => { const v = select.value; close(); onPick(v); } }, "Apply")
+        )
+      )
+    );
+    function close() { overlay.remove(); document.removeEventListener("keydown", esc); }
+    function esc(e) { if (e.key === "Escape") close(); }
+    document.addEventListener("keydown", esc);
+    document.body.append(overlay);
+    select.focus();
+  }
+
+  // ============================ ACTIVITY LOG ============================
+  async function renderActivity(view) {
+    view.append(pageHead(
+      "Activity",
+      "Every content and incident change, newest first. Single shared key, so “who” is whoever holds it.",
+    ));
+    const listEl = el("div", { class: "audit-list" }, el("p", { class: "muted" }, "Loading…"));
+    view.append(listEl);
+    try {
+      const { entries } = await api("/audit?limit=200");
+      clear(listEl);
+      if (!entries.length) {
+        listEl.append(el("div", { class: "list-empty" }, "No activity logged yet. New saves, publishes, and deletes will appear here."));
+        return;
+      }
+      for (const e of entries) {
+        const when = e.timestamp ? formatAuditTimestamp(e.timestamp) : "—";
+        listEl.append(el("div", { class: "audit-row" },
+          el("span", { class: "audit-when", title: e.timestamp || "" }, when),
+          el("span", { class: `audit-action ${e.action}` }, e.action),
+          el("span", { class: "audit-target" }, e.label || e.target || "—"),
+          el("span", { class: "audit-kind" }, e.kind || "")
+        ));
+      }
+    } catch (err) {
+      clear(listEl);
+      listEl.append(el("p", { class: "err" }, "Could not load activity: " + err.message));
+    }
+  }
+
+  function formatAuditTimestamp(iso) {
+    try {
+      const d = new Date(iso);
+      const today = new Date();
+      const sameDay = d.toDateString() === today.toDateString();
+      const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      if (sameDay) return time;
+      return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+    } catch { return iso; }
   }
 
   // ---- boot ----

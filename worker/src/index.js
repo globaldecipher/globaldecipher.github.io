@@ -35,6 +35,7 @@ import {
 import { pollX } from "./x.js";
 import { listContent, getFile, putFile, deleteFile, dumpCollection, triggerRebuild } from "./content.js";
 import { uploadMedia, readMedia } from "./media.js";
+import { logAudit, listAudit, actorFingerprint } from "./audit.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -59,12 +60,35 @@ function authed(request, env) {
   return Boolean(env.ADMIN_TOKEN) && token === env.ADMIN_TOKEN;
 }
 
+function bearerToken(request) {
+  return (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+}
+
 async function readJson(request) {
   try {
     return await request.json();
   } catch {
     return null;
   }
+}
+
+// Light front-matter scrapers for audit-log labelling — cheaper than importing
+// the full markdown parser. They tolerate either bare or quoted YAML values.
+function frontMatter(content) {
+  const m = String(content || "").match(/^---\n([\s\S]*?)\n---/);
+  return m ? m[1] : "";
+}
+function parseTitle(content) {
+  const fm = frontMatter(content);
+  const m = fm.match(/^title:\s*(.+)$/m);
+  if (!m) return null;
+  return m[1].trim().replace(/^"|"$/g, "").replace(/^'|'$/g, "");
+}
+function parseStatus(content) {
+  const fm = frontMatter(content);
+  const m = fm.match(/^status:\s*(.+)$/m);
+  if (!m) return null;
+  return m[1].trim().replace(/^"|"$/g, "").replace(/^'|'$/g, "");
 }
 
 export default {
@@ -135,7 +159,21 @@ export default {
         const body = await readJson(request);
         const on = body?.on === true || body?.on === "on" || body?.on === "true";
         await env.INCIDENTS.put(MAINTENANCE_KEY, on ? "on" : "off");
+        const actor = await actorFingerprint(bearerToken(request));
+        ctx.waitUntil(logAudit(env, {
+          action: on ? "lock" : "unlock",
+          kind: "maintenance",
+          target: "site",
+          label: on ? "Site locked" : "Site live",
+          actor
+        }));
         return json({ ok: true, on });
+      }
+
+      // ---- Activity / audit log (admin-only read) ----
+      if (path === "/api/audit" && method === "GET") {
+        const limit = Number(url.searchParams.get("limit") || 200);
+        return json({ entries: await listAudit(env, limit) });
       }
 
       // ---- Incidents: add / edit ----
@@ -146,10 +184,21 @@ export default {
         if (!valid.length) return json({ error: "Each incident needs at least id and date" }, 400);
         const today = pakistanDateFromSeconds();
         const feed = await loadFeed(env);
+        const knownIds = new Set((feed.incidents || []).map((it) => it.id));
         feed.incidents = mergeIncidents(feed.incidents, valid, today);
         stampFeed(feed, today);
         await saveFeed(env, feed);
         ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
+        const actor = await actorFingerprint(bearerToken(request));
+        for (const it of valid) {
+          ctx.waitUntil(logAudit(env, {
+            action: knownIds.has(it.id) ? "update" : "create",
+            kind: "incident",
+            target: it.id,
+            label: it.title || it.id,
+            actor
+          }));
+        }
         return json({ ok: true, added: valid.length, total: feed.incidents.length });
       }
 
@@ -158,11 +207,20 @@ export default {
         const id = decodeURIComponent(path.slice("/api/incidents/".length));
         const today = pakistanDateFromSeconds();
         const feed = await loadFeed(env);
+        const existing = (feed.incidents || []).find((it) => it.id === id);
         const removed = deleteIncidentById(feed, id);
         if (removed) {
           stampFeed(feed, today);
           await saveFeed(env, feed);
           ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
+          const actor = await actorFingerprint(bearerToken(request));
+          ctx.waitUntil(logAudit(env, {
+            action: "delete",
+            kind: "incident",
+            target: id,
+            label: existing?.title || id,
+            actor
+          }));
         }
         return json({ ok: removed, removed, total: feed.incidents.length });
       }
@@ -171,15 +229,42 @@ export default {
       if (path === "/api/content/file" && method === "PUT") {
         const body = await readJson(request);
         if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
+        const before = await getFile(env, body.path).catch(() => null);
+        const beforeStatus = before ? parseStatus(before.content) : null;
         const result = await putFile(env, body.path, body.content);
-        ctx.waitUntil(triggerRebuild(env));
+        // Skip rebuild for autosave (still drafts) — no point burning a Pages
+        // build for an in-flight save.
+        const status = parseStatus(body.content);
+        const isAutosave = body.autosave === true;
+        if (!isAutosave && (status === "published" || beforeStatus === "published")) {
+          ctx.waitUntil(triggerRebuild(env));
+        }
+        const actor = await actorFingerprint(bearerToken(request));
+        ctx.waitUntil(logAudit(env, {
+          action: isAutosave ? "autosave" : (before ? (status === "published" && beforeStatus !== "published" ? "publish" : "update") : "create"),
+          kind: "content",
+          target: body.path,
+          label: parseTitle(body.content) || body.path,
+          sha: result.sha,
+          actor
+        }));
         return json(result);
       }
       if (path === "/api/content/file" && method === "DELETE") {
         const body = await readJson(request);
         if (!body?.path) return json({ error: "path is required" }, 400);
+        const before = await getFile(env, body.path).catch(() => null);
+        const beforeTitle = before ? parseTitle(before.content) : null;
         const result = await deleteFile(env, body.path);
         ctx.waitUntil(triggerRebuild(env));
+        const actor = await actorFingerprint(bearerToken(request));
+        ctx.waitUntil(logAudit(env, {
+          action: "delete",
+          kind: "content",
+          target: body.path,
+          label: beforeTitle || body.path,
+          actor
+        }));
         return json(result);
       }
 

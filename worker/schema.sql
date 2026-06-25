@@ -30,3 +30,19 @@ CREATE INDEX IF NOT EXISTS idx_content_type ON content(type);
 CREATE INDEX IF NOT EXISTS idx_content_date ON content(date DESC);
 CREATE INDEX IF NOT EXISTS idx_content_featured ON content(featured);
 CREATE INDEX IF NOT EXISTS idx_content_status ON content(status);
+
+-- Append-only audit log of admin actions. Helps reconstruct what was saved,
+-- published, or deleted, and when. "actor" records the last 4 chars of the
+-- token used, which is enough to flag a foreign key without storing the secret.
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+  action TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  label TEXT,
+  sha TEXT,
+  actor TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_kind ON audit_log(kind);
