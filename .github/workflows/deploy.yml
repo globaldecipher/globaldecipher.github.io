@@ -30,6 +30,7 @@ jobs:
         with:
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          content-dump-token: ${{ secrets.CONTENT_DUMP_TOKEN }}
 
       # Apply any new D1 migrations against the production database before the
       # worker that depends on them goes live.

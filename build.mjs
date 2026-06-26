@@ -305,6 +305,7 @@ function markdownToHtml(markdown) {
 // Content is fetched at build time from the Worker (D1-backed).
 // Override with CONTENT_API env var for local development.
 const CONTENT_API = process.env.CONTENT_API || "https://theglobaldecipher.com/api";
+const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
@@ -313,7 +314,8 @@ function refreshManagedAssetUrls(value = "") {
 }
 
 async function readCollection(collection) {
-  const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`);
+  const headers = CONTENT_DUMP_TOKEN ? { authorization: `Bearer ${CONTENT_DUMP_TOKEN}` } : {};
+  const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
   if (!res.ok) throw new Error(`Failed to fetch ${collection} from ${CONTENT_API}: HTTP ${res.status}`);
   const { items } = await res.json();
   return (items || [])
@@ -330,7 +332,7 @@ async function readCollection(collection) {
         region: row.region,
         summary: row.summary,
         tags: row.tags || [],
-        access: row.access,
+        access: collection === "monitoring" ? "paid" : row.access,
         sensitivity: row.sensitivity,
         status: row.status || (collection === "pages" ? "published" : "draft"),
         featured: row.featured,
@@ -526,6 +528,7 @@ function escapeXml(value = "") {
 }
 
 function accessLabel(item) {
+  if (item.access === "paid") return '<span class="badge badge-premium">Paid access</span>';
   if (item.access === "premium-preview") return '<span class="badge badge-premium">Premium preview</span>';
   if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Public source</span>';
   return '<span class="badge badge-free">Free</span>';
@@ -1142,9 +1145,88 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
   return shell({ title, description: summary, body, current, pagePath: current });
 }
 
+function wrapNetworkGraphPage(originalHtml) {
+  const globeShell = `<section class="world-globe-shell is-loading" data-world-globe>
+  <div class="globe-head">
+    <div>
+      <p class="globe-kicker">TGD WORLD NETWORK ATLAS</p>
+      <h2>Every militant network. One map.</h2>
+      <p class="globe-lede">A live atlas of where TTP, Al-Qaeda, Islamic State, JNIM, Al-Shabaab and the rest of the militant ecosystem operate. Animated arcs trace cross-border branches, affiliates, and rivalries. Click any country or organisation to drill in.</p>
+    </div>
+    <div class="globe-status" role="status" aria-live="polite">
+      <span class="globe-pulse" aria-hidden="true"></span>
+      <span data-globe-status>Initialising globe…</span>
+    </div>
+  </div>
+  <div class="globe-stats-strip" data-globe-stats></div>
+  <div class="globe-toolbar" role="toolbar" aria-label="Globe filters">
+    <label>Region<select data-globe-filter="region"><option value="">All</option></select></label>
+    <label>Status<select data-globe-filter="status"><option value="">All</option></select></label>
+    <label>Tier<select data-globe-filter="tier"><option value="">All</option></select></label>
+    <label>Search<input data-globe-search type="search" placeholder="TTP, IS, AQAP…"></label>
+    <div class="globe-toolbar-spacer"></div>
+    <button type="button" data-globe-tour>World tour</button>
+    <button type="button" class="is-active" data-globe-rotate aria-pressed="true">Pause spin</button>
+    <button type="button" data-globe-reset>Reset view</button>
+  </div>
+  <div class="globe-legend" data-globe-legend></div>
+  <div class="globe-stage">
+    <div class="globe-canvas-wrap">
+      <div class="globe-canvas" data-globe-canvas role="img" aria-label="Interactive 3D globe of militant organisations and cross-border connections"></div>
+      <div class="globe-tooltip" data-globe-tooltip hidden></div>
+    </div>
+    <aside class="globe-side">
+      <section class="globe-org-panel">
+        <h3>Organisations</h3>
+        <p>Click a chip to isolate that organisation's countries and arcs.</p>
+        <div class="globe-org-list" data-globe-org-list></div>
+      </section>
+      <section class="globe-detail-panel" data-globe-detail></section>
+    </aside>
+  </div>
+  <p class="globe-research-note"><strong>Research note:</strong> Country presence reflects known areas of operation — branches, fronts, cells, and active support networks — curated by the TGD Research Desk. Legal designation and operational status are tracked as separate fields on each profile.</p>
+</section>`;
+
+  return `<div class="world-globe-mode" data-globe-mode-host>
+  <div class="globe-mode-tabs" role="tablist" aria-label="Visualisation mode">
+    <button type="button" class="is-active" data-globe-mode="globe" role="tab" aria-selected="true">Globe view</button>
+    <button type="button" data-globe-mode="network" role="tab" aria-selected="false">Network view</button>
+  </div>
+  <div data-globe-pane="globe">
+    ${globeShell}
+  </div>
+  <div data-globe-pane="network" hidden>
+    ${originalHtml}
+  </div>
+</div>
+<script src="/assets/world-globe.js?v=20260626-cold1" defer></script>
+<script>
+(function(){
+  var host = document.querySelector("[data-globe-mode-host]");
+  if (!host) return;
+  var tabs = host.querySelectorAll("[data-globe-mode]");
+  var panes = host.querySelectorAll("[data-globe-pane]");
+  tabs.forEach(function(tab){
+    tab.addEventListener("click", function(){
+      var mode = tab.dataset.globeMode;
+      tabs.forEach(function(t){
+        var on = t.dataset.globeMode === mode;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      panes.forEach(function(p){
+        p.hidden = p.dataset.globePane !== mode;
+      });
+      window.dispatchEvent(new Event("resize"));
+    });
+  });
+})();
+</script>`;
+}
+
 function pageTemplate(page) {
   const isWide = page.wide === true
-    || /incident-tracker-shell|network-graph-shell/.test(page.html);
+    || /incident-tracker-shell|network-graph-shell|world-globe-shell/.test(page.html);
   const shellClass = isWide ? "" : " static-page-shell";
   const bodyClass = isWide ? "" : " static-page-body";
   const body = `${sectionHero(page.title, page.eyebrow || "Editorial", page.summary || "")}
@@ -1158,7 +1240,7 @@ function pageTemplate(page) {
   const managedPageHead = page.slug === "incident-map"
     ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260622-archive">'
     : page.slug === "network-graph"
-      ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing">'
+      ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing"><link rel="stylesheet" href="/assets/world-globe.css?v=20260626-cold2">'
       : page.extra_head || "";
   return shell({
     title: page.title,
@@ -1609,11 +1691,11 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260625-themes-features-2">
+<link rel="stylesheet" href="/assets/admin.css?v=20260626-table-heal">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260625-themes-features-2" defer></script>
+<script src="/assets/admin.js?v=20260626-table-heal" defer></script>
 </body>
 </html>
 `;
@@ -1750,12 +1832,193 @@ function maintenancePage() {
 `;
 }
 
+function monitoringAccessPage() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Monitoring Desk Access · ${escapeHtml(SITE.title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap">
+<style>
+  :root {
+    --paper: #fafaf7;
+    --paper-2: #f3efe6;
+    --ink: #0d1b2a;
+    --muted: #6b6b66;
+    --gold: #a17328;
+    --red: #b91c2c;
+    --line: #d8d3c5;
+    --white: #fffdf8;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.65 "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 36px 18px;
+    background-image:
+      radial-gradient(900px 520px at 50% -10%, rgba(185, 28, 44, 0.07), transparent 62%),
+      linear-gradient(180deg, rgba(255,255,255,0.55), rgba(243,239,230,0.25));
+    -webkit-font-smoothing: antialiased;
+  }
+  main { width: 100%; max-width: 840px; }
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--white);
+    box-shadow: 0 24px 70px rgba(13, 27, 42, 0.11);
+  }
+  .copy, .checkout { padding: clamp(26px, 5vw, 48px); }
+  .copy { border-right: 1px solid var(--line); }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-weight: 650;
+    font-size: clamp(34px, 6vw, 56px);
+    line-height: 1.04;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+  }
+  .lede { margin: 0 0 26px; color: var(--muted); font-size: 17px; max-width: 54ch; }
+  .rule { width: 56px; height: 2px; background: var(--red); margin: 30px 0; }
+  ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  li { display: flex; gap: 10px; color: #283747; }
+  li::before { content: ""; flex: 0 0 8px; width: 8px; height: 8px; margin-top: 9px; border-radius: 50%; background: var(--red); }
+  .checkout { background: #f8f5ee; }
+  .price { margin: 0 0 4px; font-family: "Source Serif 4", Georgia, serif; font-size: 38px; line-height: 1; }
+  .price span { font: 13px/1.3 "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  label { display: grid; gap: 8px; margin: 24px 0 14px; font-weight: 600; color: #27384a; }
+  input {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink);
+    padding: 13px 14px;
+    font: inherit;
+    border-radius: 0;
+  }
+  button, .secondary {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    border: 0;
+    background: var(--red);
+    color: #fff;
+    padding: 14px 16px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .secondary {
+    margin-top: 12px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .note { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+  .public-note { margin-top: 24px; color: var(--muted); font-size: 13px; }
+  .public-note a { color: var(--red); text-decoration-thickness: 1px; }
+  @media (max-width: 760px) {
+    body { padding: 18px; place-items: start center; }
+    .panel { grid-template-columns: 1fr; }
+    .copy { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel" aria-labelledby="monitoring-access-title">
+    <div class="copy">
+      <p class="eyebrow">TGD Monitoring Desk</p>
+      <h1 id="monitoring-access-title">Subscriber access for the Monitoring desk.</h1>
+      <p class="lede">This paywall applies only to Monitoring. News, Opinion, Incident Map, Network Graph, Reports, Profiles, and Contact remain public.</p>
+      <div class="rule" aria-hidden="true"></div>
+      <ul>
+        <li>Daily and weekly monitoring notes from the TGD desk.</li>
+        <li>Public-source leads organized into readable security context.</li>
+        <li>Access opens after Lemon Squeezy confirms the subscription.</li>
+      </ul>
+      <p class="public-note">Looking for the public site? <a href="/">Return home</a>.</p>
+    </div>
+    <form class="checkout" method="post" action="/api/monitoring/checkout">
+      <p class="eyebrow">Monthly access</p>
+      <p class="price">$20 <span>/ month</span></p>
+      <p class="note">Secure checkout is handled by Lemon Squeezy. Use the same email for your subscription and receipt.</p>
+      <label>Email for access
+        <input required type="email" name="email" autocomplete="email" placeholder="you@example.com">
+      </label>
+      <input type="hidden" name="return_to" value="/monitoring/">
+      <button type="submit">Subscribe and open Monitoring</button>
+      <a class="secondary" href="/contact/">Institutional access or help</a>
+      <p class="note">Already subscribed? Use the "Open Monitoring Desk" link in your Lemon Squeezy receipt.</p>
+    </form>
+  </section>
+</main>
+</body>
+</html>`;
+}
+
 // Cloudflare Pages advanced-mode worker. Runs on every request to the Pages
 // project. Reads the maintenance flag from KV and serves the maintenance page
-// for the public site; everything except /admin, /assets/admin.* and /api is
-// gated. Fails open if KV is unavailable so a glitch can't lock out the site.
+// for the public site. It also gates only /monitoring/ behind a paid subscriber
+// session; other editorial sections and public tools stay open.
 function pagesWorker() {
-  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/maintenance\\.html$/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
+const SESSION_COOKIE = "tgd_monitoring_session";
+
+function cookieValue(request, name) {
+  const header = request.headers.get("cookie") || "";
+  for (const part of header.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const index = trimmed.indexOf("=");
+    const key = index === -1 ? trimmed : trimmed.slice(0, index);
+    if (key === name) return decodeURIComponent(index === -1 ? "" : trimmed.slice(index + 1));
+  }
+  return "";
+}
+
+function isSubscriberActive(subscriber) {
+  if (!subscriber) return false;
+  if (subscriber.active === true) return true;
+  const status = String(subscriber.status || "").toLowerCase();
+  if (status === "active" || status === "on_trial") return true;
+  if (status === "cancelled" && Date.parse(subscriber.ends_at || "") > Date.now()) return true;
+  return false;
+}
+
+async function hasMonitoringAccess(request, env) {
+  const store = env.PAYWALL_KV || env.MAINTENANCE_KV;
+  const token = cookieValue(request, SESSION_COOKIE);
+  if (!store || !token) return false;
+  try {
+    const session = await store.get("monitoring:session:" + token, "json");
+    if (!session || !session.email_hash || Date.parse(session.expires_at || "") <= Date.now()) return false;
+    const subscriber = await store.get("monitoring:subscriber:" + session.email_hash, "json");
+    return isSubscriberActive(subscriber);
+  } catch (err) {
+    return false;
+  }
+}
 
 export default {
   async fetch(request, env) {
@@ -1774,6 +2037,13 @@ export default {
       } catch (err) {
         // fail open — serve the site
       }
+    }
+    if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasMonitoringAccess(request, env))) {
+      const page = await env.ASSETS.fetch(new URL("/monitoring-access/index.html", url.origin));
+      return new Response(page.body, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+      });
     }
     return env.ASSETS.fetch(request);
   }
@@ -1886,7 +2156,14 @@ async function main() {
   );
 
   for (const item of allContent) writePage(item.url, articleTemplate(item, allContent));
-  for (const page of pages) writePage(page.url, pageTemplate(page));
+  for (const page of pages) {
+    if (page.slug === "network-graph") {
+      // The Vite-built React Explorer at apps/explorer/ writes site/network-graph/
+      // directly. Skip the legacy static page so we don't clobber the SPA.
+      continue;
+    }
+    writePage(page.url, pageTemplate(page));
+  }
 
   for (const hub of hubs.organisations) writePage(`/organisations/${hub.slug}/`, organisationHubPage(hub, allContent));
   for (const hub of hubs.regions) writePage(`/regions/${hub.slug}/`, regionHubPage(hub, allContent));
@@ -1902,11 +2179,12 @@ async function main() {
 
   // Admin panel, maintenance page, and the Pages maintenance gate.
   writePage("/admin/", adminPage());
+  writePage("/monitoring-access/", monitoringAccessPage());
   writeRootFile("maintenance.html", maintenancePage());
   writeRootFile("_worker.js", pagesWorker());
 
   const hubCount = hubs.organisations.length + hubs.regions.length;
-  console.log(`Built ${allContent.length + pages.length + hubCount + 6} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);
+  console.log(`Built ${allContent.length + pages.length + hubCount + 7} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

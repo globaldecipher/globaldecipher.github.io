@@ -1,0 +1,3237 @@
+{
+  "meta": {
+    "title": "TGD Explorer entity dataset",
+    "last_updated": "2026-06-26",
+    "coverage": "Pakistan-theatre militant organisations, factions, fronts, and key actors. Deep-coverage seed: ISKP and TTP."
+  },
+  "entities": [
+    {
+      "id": "313-brigade",
+      "type": "organization",
+      "name": "313 Brigade",
+      "aliases": [],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Organisation listed by Pakistan in March 2013. Relationship claims beyond the designation record remain subject to source review.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "abdul-rehman-makki",
+      "type": "person",
+      "name": "Abdul Rehman Makki",
+      "aliases": [],
+      "status": "un-listed",
+      "ideology": "LeT deputy leader and political-affairs figure",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.433"
+        }
+      ],
+      "summary": "UN sanctions record identifies Makki as deputy amir of LeT and head of political affairs in the JuD/LeT network.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Deputy amir"
+        }
+      ]
+    },
+    {
+      "id": "abdullah-azzam-brigade-pakistan",
+      "type": "organization",
+      "name": "Abdullah Azzam Brigade",
+      "aliases": [],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Organisation listed by Pakistan in March 2013. The name can refer to different networks in different theatres, so this node is limited to the Pakistan designation record.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "al-rashid-trust",
+      "type": "organization",
+      "name": "Al Rashid Trust",
+      "aliases": [],
+      "status": "reportedly defunct",
+      "ideology": "Militant financing and support entity",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.005"
+        },
+        {
+          "body": "PAKISTAN",
+          "ref": "enlisted under UN Security Council Resolution 1267"
+        }
+      ],
+      "summary": "UN record describes the trust as reportedly defunct, formerly headquartered in Pakistan, involved in financing al-Qaeda and the Taliban, and associated with JeM.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "al-akhtar-trust",
+      "type": "organization",
+      "name": "Al-Akhtar Trust International",
+      "aliases": [],
+      "status": "un-listed",
+      "ideology": "Militant financing and support entity",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.121"
+        },
+        {
+          "body": "PAKISTAN",
+          "ref": "enlisted under UN Security Council Resolution 1267"
+        }
+      ],
+      "summary": "UN record says the trust was registered by JeM members and associated with HuM, LeJ, and LeT.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "harakat-ul-mujahidin",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "lashkar-e-jhangvi",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        }
+      ]
+    },
+    {
+      "id": "baitullah-mehsud",
+      "type": "organization",
+      "name": "Baitullah Mehsud",
+      "aliases": [],
+      "status": "active",
+      "ideology": "",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [],
+      "summary": "",
+      "sources": [
+        {
+          "id": "nctc-ttp",
+          "title": "U.S. National Counterterrorism Center: TTP profile",
+          "url": "https://www.dni.gov/nctc/groups/ttp.html"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "bras",
+      "type": "organization",
+      "name": "Baloch Raaji Aajoi Sangar",
+      "aliases": [
+        "BRAS",
+        "Balochistan Raaji Ajoi-R-Sangar"
+      ],
+      "status": "listed",
+      "ideology": "Baloch militant umbrella alliance",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 26 July 2019"
+        }
+      ],
+      "summary": "Pakistan designation record for Baloch Raaji Aajoi Sangar, commonly abbreviated BRAS.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "nacta-watch-2020",
+          "title": "Pakistan NACTA Watch 2020-21: BRAS composition and Baloch militant networks",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2020/10/NACTA-WATCH-2020-21.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "balochistan-liberation-army",
+          "type": "ideological-link",
+          "note": "Documented BRAS coalition member"
+        },
+        {
+          "to": "balochistan-liberation-front",
+          "type": "ideological-link",
+          "note": "Documented BRAS coalition member"
+        },
+        {
+          "to": "baloch-republican-army",
+          "type": "ideological-link",
+          "note": "Documented BRAS coalition member"
+        }
+      ]
+    },
+    {
+      "id": "balochistan-liberation-army",
+      "type": "organization",
+      "name": "Balochistan Liberation Army",
+      "aliases": [
+        "BLA"
+      ],
+      "status": "active",
+      "ideology": "Baloch separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 7 April 2006"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization, designation updated 11 August 2025"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "state-bla-2025",
+          "title": "U.S. State Department: Terrorist designation of the BLA and Majeed Brigade, 11 August 2025",
+          "url": "https://www.state.gov/releases/office-of-the-spokesperson/2025/08/terrorist-designation-of-the-majeed-brigade"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "majeed-brigade",
+          "type": "ideological-link",
+          "note": "BLA unit / alias in U.S. designation"
+        },
+        {
+          "to": "united-baloch-army",
+          "type": "ideological-link",
+          "note": "Distinct organisation in the Baloch militant ecosystem"
+        }
+      ]
+    },
+    {
+      "id": "balochistan-liberation-front",
+      "type": "organization",
+      "name": "Balochistan Liberation Front",
+      "aliases": [
+        "BLF"
+      ],
+      "status": "listed",
+      "ideology": "Baloch separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 8 September 2010"
+        }
+      ],
+      "summary": "Pakistan designation record for the Balochistan Liberation Front, a major organisation in the Baloch separatist militant ecosystem.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "bluf",
+          "type": "ideological-link",
+          "note": "Distinct organisation in the Baloch militant ecosystem"
+        }
+      ]
+    },
+    {
+      "id": "bluf",
+      "type": "organization",
+      "name": "Balochistan Liberation United Front",
+      "aliases": [
+        "BLUF"
+      ],
+      "status": "listed",
+      "ideology": "Baloch separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 8 September 2010"
+        }
+      ],
+      "summary": "Pakistan designation record for the Balochistan Liberation United Front.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "balochistan-national-liberation-army",
+      "type": "organization",
+      "name": "Balochistan National Liberation Army",
+      "aliases": [],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 4 August 2012"
+        }
+      ],
+      "summary": "Organisation listed by Pakistan in August 2012. This node is kept separate from the BLA because the official list names it separately.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "baloch-republican-army",
+      "type": "organization",
+      "name": "Balochistan Republican Army",
+      "aliases": [
+        "BRA"
+      ],
+      "status": "listed",
+      "ideology": "Baloch separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 8 September 2010"
+        }
+      ],
+      "summary": "Pakistan designation record for the Balochistan Republican Army.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "etim-tip",
+      "type": "organization",
+      "name": "Eastern Turkistan Islamic Movement",
+      "aliases": [
+        "ETIM",
+        "Turkistan Islamic Party",
+        "TIP"
+      ],
+      "status": "un-listed",
+      "ideology": "Transnational militant organisation",
+      "region": "Central Asia",
+      "country": "China",
+      "countries": [
+        "China",
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.088"
+        }
+      ],
+      "summary": "UN-listed organisation with historic Afghanistan-Pakistan links; Pakistan lists ETIM as proscribed.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "falah-e-insaniat-foundation",
+      "type": "organization",
+      "name": "Falah-e-Insaniat Foundation",
+      "aliases": [
+        "FIF"
+      ],
+      "status": "listed",
+      "ideology": "LeT-linked charitable front",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 5 March 2019"
+        }
+      ],
+      "summary": "Pakistan proscription record for a charity documented by U.S. government sources as affiliated with the LeT/JuD network.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "nctc-let",
+          "title": "U.S. National Counterterrorism Center: Lashkar-e-Tayyiba profile",
+          "url": "https://www.dni.gov/nctc/groups/lt.html"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "ghazi-force",
+      "type": "organization",
+      "name": "Ghazi Force",
+      "aliases": [],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 25 August 2020"
+        }
+      ],
+      "summary": "Organisation listed by Pakistan under the Anti-Terrorism Act. Current operational status requires continuing review.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "hafiz-gul-bahadur-group",
+      "type": "organization",
+      "name": "Hafiz Gul Bahadur Group",
+      "aliases": [
+        "HGBG",
+        "Hafiz Gul Bahadur faction"
+      ],
+      "status": "listed",
+      "ideology": "Pakistan-Afghanistan border militant network",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 25 July 2024"
+        }
+      ],
+      "summary": "Pakistan proscribed the Hafiz Gul Bahadur Group in July 2024. TGD tracks it separately from TTP while preserving documented ecosystem links.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "hafiz-saeed",
+      "type": "organization",
+      "name": "Hafiz Saeed",
+      "aliases": [
+        "Hafiz Muhammad Saeed"
+      ],
+      "status": "active",
+      "ideology": "",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.263"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Rewards for Justice"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        },
+        {
+          "id": "rfj-hafiz-saeed",
+          "title": "Rewards for Justice: Hafiz Saeed",
+          "url": "https://rewardsforjustice.net/rewards/hafiz-saeed/"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Founder and leader"
+        }
+      ]
+    },
+    {
+      "id": "haji-muhammad-ashraf",
+      "type": "person",
+      "name": "Haji Muhammad Ashraf",
+      "aliases": [],
+      "status": "un-listed",
+      "ideology": "LeT finance chief",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.265"
+        }
+      ],
+      "summary": "UN sanctions record identifies Ashraf as chief of finance of Lashkar-e-Tayyiba.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Chief of finance"
+        }
+      ]
+    },
+    {
+      "id": "harakat-ul-mujahidin",
+      "type": "organization",
+      "name": "Harakat ul-Mujahidin",
+      "aliases": [
+        "HuM",
+        "HUM",
+        "Harakat ul-Ansar"
+      ],
+      "status": "un-listed",
+      "ideology": "Pakistan-Afghanistan militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan",
+        "India"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.008"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "UN-listed organisation documented as associated with JeM, LeJ, and LeT and active in Pakistan and Afghanistan.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-jhangvi",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        }
+      ]
+    },
+    {
+      "id": "harakat-ul-jihad-islami",
+      "type": "organization",
+      "name": "Harakat-ul Jihad Islami",
+      "aliases": [
+        "HuJI",
+        "HUJI"
+      ],
+      "status": "un-listed",
+      "ideology": "Transnational South Asian militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan",
+        "Bangladesh"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.130"
+        }
+      ],
+      "summary": "UN-listed organisation associated with JeM and HuM in the sanctions record.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "hizb-ul-ahrar",
+      "type": "organization",
+      "name": "Hizb-ul-Ahrar",
+      "aliases": [
+        "HuA"
+      ],
+      "status": "listed",
+      "ideology": "JuA splinter faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 26 July 2019"
+        }
+      ],
+      "summary": "Pakistan designation record for a faction that emerged from the Jamaat-ul-Ahrar milieu.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "islamic-jihad-union",
+      "type": "organization",
+      "name": "Islamic Jihad Union",
+      "aliases": [
+        "IJU",
+        "Islamic Jihad Group"
+      ],
+      "status": "un-listed",
+      "ideology": "Transnational militant organisation",
+      "region": "Central Asia",
+      "country": "Uzbekistan",
+      "countries": [
+        "Uzbekistan",
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.119"
+        }
+      ],
+      "summary": "Pakistan designation record for IJU; the UN lists the Islamic Jihad Group and documents its relationship with IMU.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "islamic-movement-of-uzbekistan",
+      "type": "organization",
+      "name": "Islamic Movement of Uzbekistan",
+      "aliases": [
+        "IMU"
+      ],
+      "status": "un-listed",
+      "ideology": "Transnational militant organisation",
+      "region": "Central Asia",
+      "country": "Uzbekistan",
+      "countries": [
+        "Uzbekistan",
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.010"
+        }
+      ],
+      "summary": "UN-listed organisation documented in the Afghanistan-Pakistan border region and associated with ETIM and the Islamic Jihad Group.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "islamic-jihad-union",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "etim-tip",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        }
+      ]
+    },
+    {
+      "id": "iskp",
+      "type": "organization",
+      "name": "Islamic State Khorasan Province",
+      "short": "ISKP",
+      "aliases": [
+        "ISIS-K",
+        "IS-K",
+        "Daesh-K",
+        "Wilayat Khorasan",
+        "ISKP-P"
+      ],
+      "founded": "2015-01-26",
+      "dissolved": null,
+      "status": "active",
+      "ideology": "Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghanistan",
+        "Pakistan",
+        "Tajikistan",
+        "Iran"
+      ],
+      "headquarters": {
+        "lat": 34.5553,
+        "lng": 69.2075,
+        "label": "Nangarhar / Kabul corridor"
+      },
+      "aor": [
+        {
+          "lat": 34.42,
+          "lng": 70.45,
+          "label": "Nangarhar",
+          "intensity": 0.85
+        },
+        {
+          "lat": 36.73,
+          "lng": 68.86,
+          "label": "Kunduz",
+          "intensity": 0.55
+        },
+        {
+          "lat": 31.32,
+          "lng": 65.13,
+          "label": "Kandahar",
+          "intensity": 0.4
+        },
+        {
+          "lat": 34.01,
+          "lng": 71.58,
+          "label": "Peshawar",
+          "intensity": 0.5
+        },
+        {
+          "lat": 33.99,
+          "lng": 66.99,
+          "label": "Mastung / Quetta corridor",
+          "intensity": 0.65
+        },
+        {
+          "lat": 35.18,
+          "lng": 71.65,
+          "label": "Bajaur",
+          "intensity": 0.7
+        }
+      ],
+      "designations": [
+        {
+          "body": "UN_1267",
+          "date": "2019-05-14",
+          "ref": "QDe.161",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267"
+        },
+        {
+          "body": "US_OFAC",
+          "date": "2016-01-14",
+          "ref": "SDN — Islamic State of Iraq and the Levant – Khorasan",
+          "url": "https://ofac.treasury.gov/recent-actions/20160114"
+        },
+        {
+          "body": "PAK_NACTA",
+          "date": "2018-03-06",
+          "ref": "ISIS / Daesh Khorasan",
+          "url": "https://nacta.gov.pk"
+        },
+        {
+          "body": "US_STATE_FTO",
+          "date": "2016-01-14",
+          "ref": "ISIL-K FTO designation"
+        }
+      ],
+      "leaders": [
+        {
+          "name": "Hafiz Saeed Khan",
+          "role": "Founding Emir",
+          "from": "2015-01",
+          "to": "2016-07",
+          "fate": "Killed in US strike, Nangarhar",
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "name": "Abdul Hasib Logari",
+          "role": "Emir",
+          "from": "2016-07",
+          "to": "2017-04",
+          "fate": "Killed in US-Afghan raid, Achin",
+          "sources": [
+            "src-iskp-2"
+          ]
+        },
+        {
+          "name": "Abu Sayed Bajauri",
+          "role": "Emir",
+          "from": "2017-04",
+          "to": "2017-07",
+          "fate": "Killed in US strike, Kunar",
+          "sources": [
+            "src-iskp-2"
+          ]
+        },
+        {
+          "name": "Abu Saad Erhabi",
+          "role": "Emir",
+          "from": "2017-07",
+          "to": "2018-08",
+          "fate": "Killed in joint operation, Nangarhar",
+          "sources": [
+            "src-iskp-2"
+          ]
+        },
+        {
+          "name": "Aslam Farooqi",
+          "role": "Emir",
+          "from": "2019-06",
+          "to": "2020-04",
+          "fate": "Captured by NDS, Kandahar",
+          "sources": [
+            "src-iskp-3"
+          ]
+        },
+        {
+          "name": "Shahab al-Muhajir",
+          "entityRef": "sanaullah-ghafari",
+          "role": "Emir",
+          "from": "2020-06",
+          "to": null,
+          "fate": "At large; $10M Rewards for Justice bounty",
+          "sources": [
+            "src-iskp-1",
+            "src-iskp-4"
+          ]
+        }
+      ],
+      "financing": [
+        {
+          "method": "cryptocurrency",
+          "detail": "Pseudonymous BTC/USDT donations routed through Telegram fundraising channels",
+          "sources": [
+            "src-iskp-5"
+          ]
+        },
+        {
+          "method": "hawala",
+          "detail": "Cross-border hawala flows between Gulf donors and Nangarhar / Peshawar nodes",
+          "sources": [
+            "src-iskp-5"
+          ]
+        },
+        {
+          "method": "extortion",
+          "detail": "Local taxation and extortion in eastern Afghan districts under control 2017–2019",
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "method": "kidnap-for-ransom",
+          "detail": "Targeted abductions of Hindu and Sikh community members and aid workers",
+          "sources": [
+            "src-iskp-3"
+          ]
+        }
+      ],
+      "attacks": [
+        {
+          "date": "2021-08-26",
+          "location": "Kabul Hamid Karzai International Airport — Abbey Gate",
+          "lat": 34.5651,
+          "lng": 69.2126,
+          "casualties": 183,
+          "type": "SVBIED",
+          "summary": "Suicide bombing during the US evacuation killed at least 13 US service members and 170 Afghan civilians.",
+          "sources": [
+            "src-iskp-6"
+          ]
+        },
+        {
+          "date": "2022-08-11",
+          "location": "Sherpur, Kabul",
+          "lat": 34.5471,
+          "lng": 69.1907,
+          "casualties": 6,
+          "type": "IED",
+          "summary": "Targeted bombing killed senior Taliban-aligned cleric Sheikh Rahimullah Haqqani.",
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "date": "2022-09-30",
+          "location": "Kaaj Education Center, Dasht-e-Barchi, Kabul",
+          "lat": 34.5021,
+          "lng": 69.1234,
+          "casualties": 53,
+          "type": "SVBIED",
+          "summary": "Suicide bombing of a Hazara prep-class for university entrance exam killed 53, mostly young women.",
+          "sources": [
+            "src-iskp-6"
+          ]
+        },
+        {
+          "date": "2023-01-11",
+          "location": "Foreign Ministry, Kabul",
+          "lat": 34.5266,
+          "lng": 69.1791,
+          "casualties": 20,
+          "type": "SVBIED",
+          "summary": "Attack on Afghan Foreign Ministry during a Chinese delegation visit.",
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "date": "2024-01-03",
+          "location": "Kerman, Iran (Soleimani memorial)",
+          "lat": 30.2839,
+          "lng": 57.0834,
+          "casualties": 95,
+          "type": "Twin IED",
+          "summary": "Twin bombings at Qassem Soleimani memorial in Kerman killed at least 95 and wounded 211; ISKP claimed responsibility.",
+          "sources": [
+            "src-iskp-7"
+          ]
+        },
+        {
+          "date": "2024-03-22",
+          "location": "Crocus City Hall, Moscow oblast, Russia",
+          "lat": 55.8265,
+          "lng": 37.3933,
+          "casualties": 145,
+          "type": "Complex assault",
+          "summary": "Armed assault and arson at concert venue killed 145; ISKP claimed; four Tajik suspects detained by Russian authorities.",
+          "sources": [
+            "src-iskp-7"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "date": "2015-01-26",
+          "type": "founded",
+          "label": "ISKP established by Hafiz Saeed Khan and former TTP commanders",
+          "significance": 0.9,
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "date": "2016-01-14",
+          "type": "designation",
+          "label": "US State Dept FTO + OFAC SDGT designations",
+          "significance": 0.6,
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "date": "2019-05-14",
+          "type": "designation",
+          "label": "UN 1267 listing QDe.161",
+          "significance": 0.55
+        },
+        {
+          "date": "2020-06-01",
+          "type": "leadership-change",
+          "label": "Sanaullah Ghafari (Shahab al-Muhajir) takes emir role",
+          "significance": 0.75,
+          "sources": [
+            "src-iskp-1"
+          ]
+        },
+        {
+          "date": "2021-08-26",
+          "type": "attack",
+          "label": "Kabul Airport Abbey Gate SVBIED — 183 killed",
+          "significance": 1,
+          "sources": [
+            "src-iskp-6"
+          ]
+        },
+        {
+          "date": "2022-09-30",
+          "type": "attack",
+          "label": "Kaaj Education Center bombing — 53 killed",
+          "significance": 0.7,
+          "sources": [
+            "src-iskp-6"
+          ]
+        },
+        {
+          "date": "2024-01-03",
+          "type": "attack",
+          "label": "Kerman dual-bombing — 95 killed",
+          "significance": 0.85,
+          "sources": [
+            "src-iskp-7"
+          ]
+        },
+        {
+          "date": "2024-03-22",
+          "type": "attack",
+          "label": "Crocus City Hall, Moscow — 145 killed",
+          "significance": 0.95,
+          "sources": [
+            "src-iskp-7"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "to": "islamic-state",
+          "type": "parent",
+          "from": "2015-01",
+          "note": "Pledged bay'ah; recognised as Wilayat Khorasan by IS Central."
+        },
+        {
+          "to": "tehreek-e-taliban-pakistan",
+          "type": "split-from",
+          "from": "2014",
+          "note": "Founders included disaffected TTP commanders (Hafiz Saeed Khan, Shahidullah Shahid)."
+        },
+        {
+          "to": "taliban-emirate",
+          "type": "rival",
+          "from": "2015-06",
+          "note": "Active conflict with Taliban; ISKP rejects Doha agreement and Taliban's nationalist project."
+        },
+        {
+          "to": "al-qaeda",
+          "type": "rival",
+          "from": "2015-03",
+          "note": "Doctrinal rejection of AQ–Taliban accommodation."
+        }
+      ],
+      "summary": "Islamic State Khorasan Province (ISKP) is the Khorasan-region affiliate of the Islamic State, formally constituted on 26 January 2015 by Hafiz Saeed Khan and a circle of disaffected TTP commanders who pledged bay'ah to Abu Bakr al-Baghdadi [src-iskp-1]. The organisation peaked territorially in Nangarhar between 2016 and 2018, was rolled back by joint US-Afghan-Taliban operations, and reconstituted as a cellular insurgency under Sanaullah Ghafari (kunya: Shahab al-Muhajir) from mid-2020 onward [src-iskp-1]. Its operational profile combines high-casualty SVBIED attacks against minority and diplomatic targets in Afghanistan with periodic out-of-area operations — the Abbey Gate bombing during the 2021 US withdrawal [src-iskp-6], the 2024 Kerman bombings in Iran, and the Crocus City Hall assault in Moscow [src-iskp-7]. The Pakistan dimension is dominated by ISKP cells in Mastung (Balochistan), Bajaur, and Peshawar that have repeatedly targeted political rallies and sectarian gatherings. Financing is hybrid: cryptocurrency donations solicited through Telegram, hawala flows from Gulf-based facilitators, and local extortion in areas of historical presence [src-iskp-5]. The group is designated under UN 1267 (QDe.161), US FTO/OFAC, and Pakistan NACTA's proscribed list.",
+      "sources": [
+        {
+          "id": "src-iskp-1",
+          "title": "U.S. National Counterterrorism Center: Islamic State Khorasan Province profile",
+          "url": "https://www.dni.gov/nctc/groups/isis_k.html",
+          "outlet": "NCTC",
+          "date": "2024-01-01"
+        },
+        {
+          "id": "src-iskp-2",
+          "title": "Office of the Director of National Intelligence — ISIS-K leadership succession",
+          "url": "https://www.dni.gov",
+          "outlet": "ODNI"
+        },
+        {
+          "id": "src-iskp-3",
+          "title": "Combating Terrorism Center at West Point: 'The Resurgence of ISKP'",
+          "url": "https://ctc.westpoint.edu/the-resurgence-of-iskp/",
+          "outlet": "CTC Sentinel",
+          "date": "2023-04-01",
+          "author": "Amira Jadoon"
+        },
+        {
+          "id": "src-iskp-4",
+          "title": "Rewards for Justice: Sanaullah Ghafari",
+          "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/",
+          "outlet": "U.S. Department of State",
+          "date": "2023-02-07"
+        },
+        {
+          "id": "src-iskp-5",
+          "title": "TRM Labs: Cryptocurrency fundraising by ISKP-aligned channels",
+          "url": "https://www.trmlabs.com",
+          "outlet": "TRM Labs",
+          "date": "2023-11-01"
+        },
+        {
+          "id": "src-iskp-6",
+          "title": "U.S. Central Command — After Action Review of the Kabul Non-Combatant Evacuation Operation",
+          "url": "https://www.centcom.mil",
+          "outlet": "U.S. CENTCOM",
+          "date": "2022-02-04"
+        },
+        {
+          "id": "src-iskp-7",
+          "title": "Reuters: Islamic State claims Crocus City Hall attack",
+          "url": "https://www.reuters.com",
+          "outlet": "Reuters",
+          "date": "2024-03-23"
+        }
+      ],
+      "stub": false
+    },
+    {
+      "id": "jaish-e-mohammed",
+      "type": "organization",
+      "name": "Jaish-e-Mohammed",
+      "aliases": [
+        "JeM",
+        "Jaish-i-Mohammed",
+        "Army of Mohammed"
+      ],
+      "status": "listed",
+      "ideology": "Pakistan-based militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 14 January 2002"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.019"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "Pakistan- and UN-listed organisation founded by Masood Azhar. The UN record documents relationships with HuM, LeT, Al-Akhtar Trust, and HuJI.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        },
+        {
+          "id": "nctc-jem",
+          "title": "U.S. National Counterterrorism Center: Jaish-e-Mohammed profile",
+          "url": "https://www.dni.gov/nctc/groups/jem.html"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "khuddam-ul-islam",
+          "type": "split-from",
+          "note": "Successor / split name after 2003"
+        },
+        {
+          "to": "jamat-ul-furqan",
+          "type": "split-from",
+          "note": "Faction emerging from 2003 split"
+        },
+        {
+          "to": "harakat-ul-mujahidin",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "harakat-ul-jihad-islami",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        },
+        {
+          "to": "al-akhtar-trust",
+          "type": "parent",
+          "note": "Trust registered by JeM members"
+        },
+        {
+          "to": "al-rashid-trust",
+          "type": "ideological-link",
+          "note": "Association documented by UN"
+        }
+      ]
+    },
+    {
+      "id": "jamaat-ud-dawa",
+      "type": "organization",
+      "name": "Jamaat-ud-Dawa",
+      "aliases": [
+        "JuD",
+        "Jamaat ul-Dawah"
+      ],
+      "status": "listed",
+      "ideology": "LeT alias / front organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 5 March 2019"
+        },
+        {
+          "body": "UN",
+          "ref": "listed as an alias of Lashkar-e-Tayyiba"
+        }
+      ],
+      "summary": "Pakistan lists Jamaat-ud-Dawa separately; the UN sanctions record identifies it as an alias of Lashkar-e-Tayyiba.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "jamaat-ul-ahrar",
+      "type": "organization",
+      "name": "Jamaat-ul-Ahrar",
+      "aliases": [
+        "JuA",
+        "Jamaat-e-Ahrar",
+        "Ahrar-ul-Hind"
+      ],
+      "status": "listed",
+      "ideology": "TTP splinter faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 11 November 2016"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.152"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Specially Designated Global Terrorist organisation"
+        }
+      ],
+      "summary": "UN-listed TTP splinter formed in Mohmand in 2014 and documented in the Pakistan-Afghanistan border region.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "hizb-ul-ahrar",
+          "type": "split-from",
+          "note": "HuA emerged from the JuA milieu"
+        }
+      ]
+    },
+    {
+      "id": "jamat-ul-furqan",
+      "type": "organization",
+      "name": "Jamat-ul-Furqan",
+      "aliases": [
+        "JUF",
+        "Jamaat ul-Furqan"
+      ],
+      "status": "listed",
+      "ideology": "JeM splinter name",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 20 November 2003"
+        }
+      ],
+      "summary": "Pakistan designation record for Jamat-ul-Furqan. NCTC reporting described it as one of the factions emerging from JeM's 2003 split.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "nctc-jem",
+          "title": "U.S. National Counterterrorism Center: Jaish-e-Mohammed profile",
+          "url": "https://www.dni.gov/nctc/groups/jem.html"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "jsmm",
+      "type": "organization",
+      "name": "Jeay Sindh Muttahida Mahaz",
+      "aliases": [
+        "JSMM"
+      ],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Pakistan designation record for Jeay Sindh Muttahida Mahaz. The node records legal status without treating proscription alone as proof of current armed activity.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "sindhudesh-revolutionary-army",
+          "type": "ideological-link",
+          "note": "Separate designation records in the Sindh separatist ecosystem"
+        }
+      ]
+    },
+    {
+      "id": "jundullah-pakistan",
+      "type": "organization",
+      "name": "Jundullah",
+      "aliases": [],
+      "status": "listed",
+      "ideology": "Pakistan designation record",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 31 January 2018"
+        }
+      ],
+      "summary": "Pakistan proscription record for Jundullah. Because several unrelated organisations have used this name, TGD does not merge this node with namesakes in Iran or other theatres without additional evidence.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "khuddam-ul-islam",
+      "type": "organization",
+      "name": "Khuddam-ul-Islam",
+      "aliases": [
+        "KUI"
+      ],
+      "status": "listed",
+      "ideology": "JeM successor / splinter name",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 November 2003"
+        }
+      ],
+      "summary": "Pakistan designation record for Khuddam-ul-Islam. NCTC reporting described it as one of the names emerging from JeM's 2003 split.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "nctc-jem",
+          "title": "U.S. National Counterterrorism Center: Jaish-e-Mohammed profile",
+          "url": "https://www.dni.gov/nctc/groups/jem.html"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "lashkar-e-islam",
+      "type": "organization",
+      "name": "Lashkar-e-Islam",
+      "aliases": [
+        "LI"
+      ],
+      "status": "listed",
+      "ideology": "Khyber-origin militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 30 June 2008"
+        }
+      ],
+      "summary": "Pakistan designation record for Lashkar-e-Islam, a network historically associated with the Khyber theatre.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "lashkar-e-jhangvi",
+      "type": "organization",
+      "name": "Lashkar-e-Jhangvi",
+      "aliases": [
+        "LeJ",
+        "Lashkar i Jhangvi"
+      ],
+      "status": "un-listed",
+      "ideology": "Sectarian militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 14 August 2001"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.096"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "Pakistan- and UN-listed organisation. The UN record places its historic base primarily in Punjab and Karachi and documents links to other Pakistan-based networks.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-jhangvi-al-alami",
+          "type": "split-from",
+          "note": "Al-Alami faction"
+        },
+        {
+          "to": "jundullah-pakistan",
+          "type": "ideological-link",
+          "note": "Pakistan sectarian militant ecosystem; identity claims require case-level review"
+        }
+      ]
+    },
+    {
+      "id": "lashkar-e-jhangvi-al-alami",
+      "type": "organization",
+      "name": "Lashkar-e-Jhangvi Al-Alami",
+      "aliases": [
+        "LeJ-A",
+        "LeJA"
+      ],
+      "status": "listed",
+      "ideology": "LeJ faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 11 November 2016"
+        }
+      ],
+      "summary": "Pakistan designation record for the Al-Alami faction of Lashkar-e-Jhangvi.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "lashkar-e-tayyiba",
+      "type": "organization",
+      "name": "Lashkar-e-Tayyiba",
+      "aliases": [
+        "LeT",
+        "Lashkar-e-Taiba",
+        "Army of the Pure"
+      ],
+      "status": "listed",
+      "ideology": "Kashmir-focused militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 14 January 2002"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.118"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "Pakistan-based organisation listed by Pakistan and the UN. The UN treats Jamaat-ud-Dawa as an alias and the U.S. designates LeT as an FTO.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        },
+        {
+          "id": "nctc-let",
+          "title": "U.S. National Counterterrorism Center: Lashkar-e-Tayyiba profile",
+          "url": "https://www.dni.gov/nctc/groups/lt.html"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "jamaat-ud-dawa",
+          "type": "ideological-link",
+          "note": "UN-listed alias / front"
+        },
+        {
+          "to": "falah-e-insaniat-foundation",
+          "type": "parent",
+          "note": "Affiliated charitable front"
+        }
+      ]
+    },
+    {
+      "id": "majeed-brigade",
+      "type": "organization",
+      "name": "Majeed Brigade",
+      "aliases": [
+        "MB",
+        "Majeed Fidayeen Brigade"
+      ],
+      "status": "active",
+      "ideology": "BLA unit / alias in U.S. designation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 18 July 2024"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "BLA alias in FTO designation, 11 August 2025"
+        }
+      ],
+      "summary": "Pakistan lists the Majeed Brigade separately. In August 2025, the U.S. State Department added it as an alias of the BLA in the BLA's FTO designation.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "state-bla-2025",
+          "title": "U.S. State Department: Terrorist designation of the BLA and Majeed Brigade, 11 August 2025",
+          "url": "https://www.state.gov/releases/office-of-the-spokesperson/2025/08/terrorist-designation-of-the-majeed-brigade"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "masood-azhar",
+      "type": "organization",
+      "name": "Masood Azhar",
+      "aliases": [
+        "Mohammed Masood Azhar Alvi"
+      ],
+      "status": "active",
+      "ideology": "",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.422"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        },
+        {
+          "id": "nctc-jem",
+          "title": "U.S. National Counterterrorism Center: Jaish-e-Mohammed profile",
+          "url": "https://www.dni.gov/nctc/groups/jem.html"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "jaish-e-mohammed",
+          "type": "ideological-link",
+          "note": "Founded JeM"
+        }
+      ]
+    },
+    {
+      "id": "maulana-fazlullah",
+      "type": "person",
+      "name": "Maulana Fazlullah",
+      "aliases": [
+        "Mullah Fazlullah"
+      ],
+      "status": "deceased",
+      "ideology": "Former TTP leader",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.352"
+        }
+      ],
+      "summary": "Former TTP leader and earlier commander of the movement in Swat. The UN record confirms his death on 13 June 2018.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "tehreek-e-taliban-pakistan",
+          "type": "ideological-link",
+          "note": "Former TTP leader"
+        },
+        {
+          "to": "ttp-swat",
+          "type": "ideological-link",
+          "note": "Led TTP's Swat network"
+        }
+      ]
+    },
+    {
+      "id": "maulawi-rajab",
+      "type": "person",
+      "name": "Maulawi Rajab",
+      "aliases": [
+        "Maulawi Rajab Salahudin"
+      ],
+      "status": "un-listed",
+      "ideology": "Senior ISKP leader",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.434"
+        }
+      ],
+      "summary": "UN-listed senior leader of Islamic State Khorasan Province.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "org-iskp",
+          "type": "ideological-link",
+          "note": "Senior ISKP leader"
+        }
+      ]
+    },
+    {
+      "id": "noor-wali-mehsud",
+      "type": "person",
+      "name": "Noor Wali Mehsud",
+      "aliases": [
+        "Mufti Noor Wali Mehsud",
+        "Abu Mansoor Asim"
+      ],
+      "status": "listed",
+      "ideology": "TTP leader",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.427"
+        }
+      ],
+      "summary": "UN-listed leader of Tehrik-e Taliban Pakistan following the death of Maulana Fazlullah.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "tehreek-e-taliban-pakistan",
+          "type": "ideological-link",
+          "note": "Leads TTP"
+        }
+      ]
+    },
+    {
+      "id": "org-al-qaeda",
+      "type": "organization",
+      "name": "Org Al Qaeda",
+      "aliases": [],
+      "status": "active",
+      "ideology": "",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan",
+        "Global"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 17 March 2003"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.004"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "tehreek-e-taliban-pakistan",
+          "type": "ideological-link",
+          "note": "Historic close ties documented by NCTC"
+        },
+        {
+          "to": "etim-tip",
+          "type": "ideological-link",
+          "note": "UN-listed al-Qaeda-associated organisation"
+        },
+        {
+          "to": "islamic-movement-of-uzbekistan",
+          "type": "ideological-link",
+          "note": "UN-listed al-Qaeda-associated organisation"
+        },
+        {
+          "to": "313-brigade",
+          "type": "ideological-link",
+          "note": "Pakistan designation record placed in al-Qaeda-linked research cluster; relationship pending deeper source review"
+        }
+      ]
+    },
+    {
+      "id": "org-iskp",
+      "type": "organization",
+      "name": "Org Iskp",
+      "aliases": [
+        "ISKP",
+        "ISIS-K",
+        "ISIL-K",
+        "Islamic State Khorasan Province"
+      ],
+      "status": "active",
+      "ideology": "Islamic State regional branch",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.161"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization branch"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "org-islamic-state",
+      "type": "organization",
+      "name": "Org Islamic State",
+      "aliases": [],
+      "status": "active",
+      "ideology": "",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Iraq",
+        "Syria",
+        "Afghanistan",
+        "Pakistan",
+        "Global"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 July 2015"
+        },
+        {
+          "body": "UN ISIL and Al-Qaida sanctions regime"
+        },
+        {
+          "body": "UNITED STATES",
+          "ref": "Foreign Terrorist Organization"
+        }
+      ],
+      "summary": "",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "org-iskp",
+          "type": "ideological-link",
+          "note": "Islamic State Khorasan branch"
+        }
+      ]
+    },
+    {
+      "id": "sajid-mir",
+      "type": "person",
+      "name": "Sajid Mir",
+      "aliases": [
+        "Sajid Majid",
+        "Sajid Majid Chuhdri"
+      ],
+      "status": "wanted",
+      "ideology": "Senior LeT member",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India"
+      ],
+      "designations": [
+        {
+          "body": "UNITED STATES",
+          "ref": "Rewards for Justice"
+        }
+      ],
+      "summary": "Rewards for Justice identifies Mir as a senior LeT member wanted for involvement in the November 2008 Mumbai attacks.",
+      "sources": [
+        {
+          "id": "rfj-sajid-mir",
+          "title": "Rewards for Justice: Sajid Mir",
+          "url": "https://rewardsforjustice.net/rewards/sajid-mir/"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "member-of",
+          "note": "Senior member"
+        }
+      ]
+    },
+    {
+      "id": "sanaullah-ghafari",
+      "type": "person",
+      "name": "Sanaullah Ghafari",
+      "aliases": [
+        "Shahab al-Muhajir",
+        "Sanaullah"
+      ],
+      "status": "active",
+      "ideology": "Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "US_REWARDS_FOR_JUSTICE",
+          "date": "2023-02-07",
+          "ref": "Up to $10 million",
+          "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/"
+        }
+      ],
+      "summary": "Sanaullah Ghafari (kunya: Shahab al-Muhajir) became emir of Islamic State Khorasan Province in mid-2020 and is credited with re-engineering the group as a cellular insurgency capable of high-casualty urban attacks. He is the subject of a $10 million U.S. Rewards for Justice bounty [src-iskp-4].",
+      "sources": [
+        {
+          "id": "src-iskp-4",
+          "title": "Rewards for Justice: Sanaullah Ghafari",
+          "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/",
+          "outlet": "U.S. Department of State",
+          "date": "2023-02-07"
+        }
+      ],
+      "stub": false,
+      "relationships": [
+        {
+          "to": "iskp",
+          "type": "leads",
+          "from": "2020-06",
+          "note": "Emir of ISKP under the kunya Shahab al-Muhajir."
+        }
+      ],
+      "short": "Ghafari"
+    },
+    {
+      "id": "sindhudesh-liberation-army",
+      "type": "organization",
+      "name": "Sindhudesh Liberation Army",
+      "aliases": [
+        "SLA"
+      ],
+      "status": "listed",
+      "ideology": "Sindh separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 7 May 2020"
+        }
+      ],
+      "summary": "Pakistan designation record for the Sindhudesh Liberation Army.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "sindhudesh-revolutionary-army",
+      "type": "organization",
+      "name": "Sindhudesh Revolutionary Army",
+      "aliases": [
+        "SRA"
+      ],
+      "status": "listed",
+      "ideology": "Sindh separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 7 May 2020"
+        }
+      ],
+      "summary": "Pakistan designation record for the Sindhudesh Revolutionary Army.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "sindhudesh-liberation-army",
+          "type": "ideological-link",
+          "note": "Sindh separatist militant ecosystem"
+        }
+      ]
+    },
+    {
+      "id": "sipah-e-sahaba-pakistan",
+      "type": "organization",
+      "name": "Sipah-e-Sahaba Pakistan",
+      "aliases": [
+        "SSP",
+        "Millat-e-Islamia Pakistan",
+        "Ahle Sunnat Wal Jamaat",
+        "ASWJ"
+      ],
+      "status": "listed",
+      "ideology": "Sectarian organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "SSP proscribed 14 January 2002"
+        },
+        {
+          "body": "PAKISTAN",
+          "ref": "ASWJ proscribed 15 February 2012"
+        }
+      ],
+      "summary": "Pakistan designation record for Sipah-e-Sahaba Pakistan and its later listed names Millat-e-Islamia Pakistan and Ahle Sunnat Wal Jamaat.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-jhangvi",
+          "type": "split-from",
+          "note": "LeJ emerged from the SSP sectarian milieu"
+        }
+      ]
+    },
+    {
+      "id": "sipah-i-muhammad-pakistan",
+      "type": "organization",
+      "name": "Sipah-i-Muhammad Pakistan",
+      "aliases": [
+        "SMP"
+      ],
+      "status": "listed",
+      "ideology": "Sectarian militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 14 August 2001"
+        }
+      ],
+      "summary": "Pakistan designation record for Sipah-i-Muhammad Pakistan.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "sultan-aziz-azam",
+      "type": "person",
+      "name": "Sultan Aziz Azam",
+      "aliases": [],
+      "status": "un-listed",
+      "ideology": "ISKP spokesperson",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": [
+        "Afghanistan",
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.435"
+        }
+      ],
+      "summary": "UN-listed spokesperson of Islamic State Khorasan Province.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "org-iskp",
+          "type": "member-of",
+          "note": "ISKP spokesperson"
+        }
+      ]
+    },
+    {
+      "id": "tariq-gidar-group",
+      "type": "organization",
+      "name": "Tariq Gidar Group",
+      "aliases": [
+        "TGG",
+        "TTP-Tariq Gidar Group",
+        "Tariq Afridi Group"
+      ],
+      "status": "listed",
+      "ideology": "TTP splinter faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        },
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDe.160"
+        }
+      ],
+      "summary": "UN-listed TTP splinter formed in Darra Adam Khel in 2007.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "tehreek-e-taliban-pakistan",
+      "type": "organization",
+      "name": "Tehrik-e-Taliban Pakistan",
+      "aliases": [
+        "TTP",
+        "Pakistani Taliban",
+        "Tehrik-i-Taliban Pakistan"
+      ],
+      "status": "active",
+      "ideology": "Deobandi Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "designations": [
+        {
+          "body": "PAK_NACTA",
+          "date": "2008-08-25",
+          "ref": "Tehrik-i-Taliban Pakistan — proscribed",
+          "url": "https://nacta.gov.pk"
+        },
+        {
+          "body": "UN_1267",
+          "date": "2011-07-29",
+          "ref": "QDe.132",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267"
+        },
+        {
+          "body": "US_STATE_FTO",
+          "date": "2010-09-01",
+          "ref": "TTP FTO designation",
+          "url": "https://www.state.gov/foreign-terrorist-organizations/"
+        },
+        {
+          "body": "UK_HOME_OFFICE",
+          "date": "2011-01-07",
+          "ref": "Schedule 2 Terrorism Act",
+          "url": "https://www.gov.uk"
+        }
+      ],
+      "summary": "Tehrik-e-Taliban Pakistan (TTP) was formally constituted on 14 December 2007 as an umbrella for roughly 13 Deobandi militant factions operating in Pakistan's then-FATA and the wider Pak-Afghan tribal belt, with Baitullah Mehsud as its founding emir [src-ttp-1]. The organisation's strategic objective is the establishment of a Sharia state inside Pakistan and the withdrawal of Pakistani security forces from former tribal districts; its operational doctrine combines sustained suicide bombing, complex assaults on military and police targets, and the targeted killing of journalists, political workers, and minority figures [src-ttp-2]. Successive Pakistani military operations — Rah-e-Rast (2009), Rah-e-Nijat (2009–2010), and Zarb-e-Azb (2014–2016) — displaced large numbers of TTP fighters into eastern Afghanistan, where the post-2021 Taliban takeover provided substantially expanded sanctuary. Under Noor Wali Mehsud, who took the emirate after Mullah Fazlullah's 2018 killing, TTP has consolidated several earlier splinters (Jamaat-ul-Ahrar, Hizb-ul-Ahrar) and re-mounted a sustained tempo of attacks across Khyber Pakhtunkhwa from 2022 onward [src-ttp-3]. The 2023 Peshawar Police Lines mosque bombing (100 dead) [src-ttp-6] and the 2024 Bisham attack on Chinese engineers [src-ttp-7] illustrate the group's continued capacity. TTP is designated under UN 1267 (QDe.132), the US FTO list, UK Schedule 2, and the Pakistan NACTA proscribed list.",
+      "sources": [
+        {
+          "id": "src-ttp-1",
+          "title": "U.S. National Counterterrorism Center: Tehrik-i-Taliban Pakistan profile",
+          "url": "https://www.dni.gov/nctc/groups/ttp.html",
+          "outlet": "NCTC"
+        },
+        {
+          "id": "src-ttp-2",
+          "title": "UN Security Council 1267 Sanctions: QDe.132 / QDi.427 Narrative Summaries",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267",
+          "outlet": "UN Security Council"
+        },
+        {
+          "id": "src-ttp-3",
+          "title": "Centre for Research and Security Studies, Islamabad: Pakistan Conflict Tracker 2023",
+          "url": "https://crss.pk",
+          "outlet": "CRSS",
+          "date": "2024-01-15"
+        },
+        {
+          "id": "src-ttp-4",
+          "title": "FATF Mutual Evaluation of Pakistan — Terrorism Financing chapter",
+          "url": "https://www.fatf-gafi.org",
+          "outlet": "Financial Action Task Force",
+          "date": "2022-06-01"
+        },
+        {
+          "id": "src-ttp-5",
+          "title": "Government of Pakistan Inquiry Commission Report: Army Public School Peshawar Attack",
+          "outlet": "Government of Pakistan",
+          "date": "2020-07-17"
+        },
+        {
+          "id": "src-ttp-6",
+          "title": "Reuters: Peshawar Police Lines mosque bombing — claim and forensic findings",
+          "url": "https://www.reuters.com",
+          "outlet": "Reuters",
+          "date": "2023-02-02"
+        },
+        {
+          "id": "src-ttp-7",
+          "title": "Dawn: Bisham attack on Chinese engineers",
+          "url": "https://www.dawn.com",
+          "outlet": "Dawn",
+          "date": "2024-03-27"
+        }
+      ],
+      "stub": false,
+      "relationships": [
+        {
+          "to": "afghan-taliban",
+          "type": "ideological-link",
+          "from": "2007",
+          "note": "Doctrinal alignment with the Afghan Taliban; Noor Wali Mehsud has publicly pledged bay'ah to successive Afghan emirs."
+        },
+        {
+          "to": "haqqani-network",
+          "type": "allied",
+          "from": "2007",
+          "note": "Operational coordination on the Pak–Afghan border, especially in the Kurram–Khost corridor."
+        },
+        {
+          "to": "al-qaeda",
+          "type": "allied",
+          "from": "2007",
+          "note": "Long-standing safe-haven and ideological cooperation. Several TTP commanders graduated from AQ training cycles in North Waziristan."
+        },
+        {
+          "to": "jamaat-ul-ahrar",
+          "type": "split-from",
+          "from": "2014-09",
+          "note": "Splinter under Omar Khalid Khorasani; rejoined TTP umbrella in 2020."
+        },
+        {
+          "to": "iskp",
+          "type": "rival",
+          "from": "2015-06",
+          "note": "Some commanders defected to ISKP at founding; ongoing rivalry over jihadi monopoly in KP / Mohmand / Bajaur."
+        },
+        {
+          "to": "lashkar-e-jhangvi",
+          "type": "ideological-link",
+          "from": "2008",
+          "note": "Periodic operational collaboration on anti-Shia targeting in KP and Balochistan."
+        }
+      ],
+      "short": "TTP",
+      "founded": "2007-12-14",
+      "dissolved": null,
+      "headquarters": {
+        "lat": 33,
+        "lng": 70.05,
+        "label": "Pakistan–Afghanistan tribal belt (Kurram / Paktika corridor)"
+      },
+      "aor": [
+        {
+          "lat": 34.0151,
+          "lng": 71.5249,
+          "label": "Khyber Pakhtunkhwa — Peshawar valley",
+          "intensity": 0.85
+        },
+        {
+          "lat": 32.3,
+          "lng": 69.3,
+          "label": "South Waziristan",
+          "intensity": 0.85
+        },
+        {
+          "lat": 33,
+          "lng": 69.7,
+          "label": "North Waziristan",
+          "intensity": 0.85
+        },
+        {
+          "lat": 33.55,
+          "lng": 70.05,
+          "label": "Kurram",
+          "intensity": 0.7
+        },
+        {
+          "lat": 32.65,
+          "lng": 68.42,
+          "label": "Paktika (AFG, rear base)",
+          "intensity": 0.75
+        },
+        {
+          "lat": 35.18,
+          "lng": 71.65,
+          "label": "Bajaur",
+          "intensity": 0.65
+        },
+        {
+          "lat": 33.62,
+          "lng": 73.07,
+          "label": "Islamabad / Rawalpindi outer ring",
+          "intensity": 0.4
+        }
+      ],
+      "leaders": [
+        {
+          "name": "Baitullah Mehsud",
+          "role": "Founding Emir",
+          "from": "2007-12",
+          "to": "2009-08",
+          "fate": "Killed in US drone strike, South Waziristan",
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "name": "Hakimullah Mehsud",
+          "role": "Emir",
+          "from": "2009-08",
+          "to": "2013-11",
+          "fate": "Killed in US drone strike, North Waziristan",
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "name": "Maulana Fazlullah",
+          "entityRef": "maulana-fazlullah",
+          "role": "Emir",
+          "from": "2013-11",
+          "to": "2018-06",
+          "fate": "Killed in US drone strike, Kunar (AFG)",
+          "sources": [
+            "src-ttp-1",
+            "src-ttp-2"
+          ]
+        },
+        {
+          "name": "Noor Wali Mehsud",
+          "entityRef": "noor-wali-mehsud",
+          "role": "Emir",
+          "from": "2018-06",
+          "to": null,
+          "fate": "At large; UN 1267 listed (QDi.427); $3M Rewards for Justice bounty",
+          "sources": [
+            "src-ttp-2",
+            "src-ttp-3"
+          ]
+        }
+      ],
+      "financing": [
+        {
+          "method": "extortion",
+          "detail": "Local revenue extraction from transport, telecoms, and agricultural produce across KP and ex-FATA",
+          "sources": [
+            "src-ttp-4"
+          ]
+        },
+        {
+          "method": "kidnap-for-ransom",
+          "detail": "Sustained KFR operations against businessmen, government officials, and political workers in KP",
+          "sources": [
+            "src-ttp-4"
+          ]
+        },
+        {
+          "method": "donations",
+          "detail": "Solicited via Telegram and social media from a transnational Pashtun diaspora",
+          "sources": [
+            "src-ttp-4"
+          ]
+        },
+        {
+          "method": "hawala",
+          "detail": "Cross-border value transfer through Pak–Afghan hawala corridors, particularly Khost–North Waziristan",
+          "sources": [
+            "src-ttp-4"
+          ]
+        }
+      ],
+      "attacks": [
+        {
+          "date": "2014-12-16",
+          "location": "Army Public School, Peshawar",
+          "lat": 33.9985,
+          "lng": 71.5277,
+          "casualties": 149,
+          "type": "Complex assault",
+          "summary": "Six gunmen stormed the Army Public School, killing 149 — including 132 children. Claimed by TTP under Mullah Fazlullah.",
+          "sources": [
+            "src-ttp-5"
+          ]
+        },
+        {
+          "date": "2008-09-20",
+          "location": "Marriott Hotel, Islamabad",
+          "lat": 33.7282,
+          "lng": 73.0938,
+          "casualties": 60,
+          "type": "SVBIED",
+          "summary": "Truck bombing killed 60 and wounded 250+. Claimed by TTP-aligned faction.",
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "date": "2022-03-04",
+          "location": "Kucha Risaldar Shia mosque, Peshawar",
+          "lat": 34.0048,
+          "lng": 71.5707,
+          "casualties": 63,
+          "type": "Suicide bombing",
+          "summary": "Friday prayers attack on Shia mosque; ISKP initially claimed but Pakistani investigators attributed to TTP-aligned facilitators.",
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "date": "2023-01-30",
+          "location": "Police Lines Mosque, Peshawar",
+          "lat": 34.0102,
+          "lng": 71.5689,
+          "casualties": 100,
+          "type": "Suicide bombing",
+          "summary": "Inside-job suicide attack on mosque in Peshawar police lines killed 100, mostly police personnel. Claimed by Jamaat-ul-Ahrar splinter aligned with TTP.",
+          "sources": [
+            "src-ttp-6"
+          ]
+        },
+        {
+          "date": "2024-03-26",
+          "location": "Bisham, Shangla — Chinese engineers",
+          "lat": 34.9168,
+          "lng": 72.5536,
+          "casualties": 6,
+          "type": "SVBIED",
+          "summary": "Suicide attack on a convoy carrying Chinese engineers working on Dasu hydropower project; 5 Chinese nationals and 1 Pakistani driver killed.",
+          "sources": [
+            "src-ttp-7"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "date": "2007-12-14",
+          "type": "founded",
+          "label": "TTP umbrella formally announced; Baitullah Mehsud declared emir",
+          "significance": 0.95,
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "date": "2008-08-25",
+          "type": "designation",
+          "label": "Pakistan NACTA proscribes TTP",
+          "significance": 0.55
+        },
+        {
+          "date": "2009-08-05",
+          "type": "leadership-change",
+          "label": "Baitullah Mehsud killed; Hakimullah Mehsud takes over",
+          "significance": 0.7,
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "date": "2014-09-04",
+          "type": "split",
+          "label": "Jamaat-ul-Ahrar formally splits from TTP under Omar Khalid Khorasani",
+          "significance": 0.7,
+          "sources": [
+            "src-ttp-1"
+          ]
+        },
+        {
+          "date": "2014-12-16",
+          "type": "attack",
+          "label": "Army Public School Peshawar massacre — 149 killed",
+          "significance": 1,
+          "sources": [
+            "src-ttp-5"
+          ]
+        },
+        {
+          "date": "2018-06-15",
+          "type": "leadership-change",
+          "label": "Fazlullah killed; Noor Wali Mehsud takes emirate",
+          "significance": 0.75,
+          "sources": [
+            "src-ttp-2"
+          ]
+        },
+        {
+          "date": "2020-07-17",
+          "type": "merger",
+          "label": "Jamaat-ul-Ahrar and Hizb-ul-Ahrar formally rejoin TTP under Noor Wali",
+          "significance": 0.7,
+          "sources": [
+            "src-ttp-3"
+          ]
+        },
+        {
+          "date": "2022-11-28",
+          "type": "split",
+          "label": "TTP unilaterally withdraws from ceasefire with Pakistan",
+          "significance": 0.7,
+          "sources": [
+            "src-ttp-3"
+          ]
+        },
+        {
+          "date": "2023-01-30",
+          "type": "attack",
+          "label": "Peshawar Police Lines mosque bombing — 100 killed",
+          "significance": 0.85,
+          "sources": [
+            "src-ttp-6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tnsm",
+      "type": "organization",
+      "name": "TNSM",
+      "aliases": [
+        "Tehrik-e-Nifaz-e-Shariat-e-Mohammadi"
+      ],
+      "status": "listed",
+      "ideology": "Militant movement",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 14 January 2002"
+        }
+      ],
+      "summary": "Pakistan designation record for Tehrik-e-Nifaz-e-Shariat-e-Mohammadi, historically associated with Malakand and Swat.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "ttp-swat",
+          "type": "ideological-link",
+          "note": "Historic Swat-Malakand militant ecosystem"
+        }
+      ]
+    },
+    {
+      "id": "ttp-bajaur",
+      "type": "organization",
+      "name": "TTP Bajaur",
+      "aliases": [
+        "Tehrik-e-Taliban Bajaur",
+        "TTB"
+      ],
+      "status": "listed",
+      "ideology": "Regional TTP faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Pakistan designation record for Tehrik-e-Taliban Bajaur.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "ttp-mohmand",
+      "type": "organization",
+      "name": "TTP Mohmand",
+      "aliases": [
+        "Tehrik-e-Taliban Mohmand",
+        "TTM"
+      ],
+      "status": "listed",
+      "ideology": "Regional TTP faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Pakistan designation record for Tehrik-e-Taliban Mohmand.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "ttp-swat",
+      "type": "organization",
+      "name": "TTP Swat",
+      "aliases": [
+        "Tehrik-e-Taliban Swat",
+        "TTS"
+      ],
+      "status": "listed",
+      "ideology": "Regional TTP faction",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Pakistan designation record for Tehrik-e-Taliban Swat.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "united-baloch-army",
+      "type": "organization",
+      "name": "United Baloch Army",
+      "aliases": [
+        "UBA"
+      ],
+      "status": "listed",
+      "ideology": "Baloch separatist militant organisation",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 15 March 2013"
+        }
+      ],
+      "summary": "Pakistan designation record for the United Baloch Army.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "zafar-iqbal-let",
+      "type": "person",
+      "name": "Zafar Iqbal",
+      "aliases": [],
+      "status": "un-listed",
+      "ideology": "LeT co-founder and senior leader",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.308"
+        }
+      ],
+      "summary": "UN sanctions record describes Iqbal as a co-founder and senior leader who held finance, education, and medical-wing roles in LeT/JuD.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Co-founder and senior leader"
+        }
+      ]
+    },
+    {
+      "id": "zainabiyoun-brigade",
+      "type": "organization",
+      "name": "Zainabiyoun Brigade",
+      "aliases": [
+        "ZB",
+        "Liwa Zainabiyoun"
+      ],
+      "status": "listed",
+      "ideology": "Pakistan-linked foreign-fighter formation",
+      "region": "Middle East",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "Syria"
+      ],
+      "designations": [
+        {
+          "body": "PAKISTAN",
+          "ref": "proscribed 29 March 2024"
+        }
+      ],
+      "summary": "Pakistan proscribed the Zainabiyoun Brigade in March 2024. It is tracked separately from Pakistan-domestic militant networks because its principal theatre has been Syria.",
+      "sources": [
+        {
+          "id": "nacta-2024",
+          "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
+          "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        }
+      ],
+      "stub": true
+    },
+    {
+      "id": "zaki-ur-rehman-lakhvi",
+      "type": "person",
+      "name": "Zaki-ur-Rehman Lakhvi",
+      "aliases": [
+        "Zaki Ur Rehman Lakhvi",
+        "Abu Waheed Irshad Ahmad Arshad"
+      ],
+      "status": "un-listed",
+      "ideology": "LeT operations chief",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": [
+        "Pakistan",
+        "India"
+      ],
+      "designations": [
+        {
+          "body": "UN ISIL AND AL-QAIDA LIST",
+          "ref": "QDi.264"
+        }
+      ],
+      "summary": "UN sanctions record identifies Lakhvi as chief of operations of Lashkar-e-Tayyiba.",
+      "sources": [
+        {
+          "id": "un-1267",
+          "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
+          "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        }
+      ],
+      "stub": true,
+      "relationships": [
+        {
+          "to": "lashkar-e-tayyiba",
+          "type": "ideological-link",
+          "note": "Chief of operations"
+        }
+      ]
+    }
+  ]
+}

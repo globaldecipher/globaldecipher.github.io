@@ -11,6 +11,10 @@
 //     GET    /api/content?folder=    public — list articles in a collection (D1)
 //     GET    /api/content/file?path= public — read one article { content, sha }
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
+//     POST   /api/monitoring/checkout public — create Lemon Squeezy checkout
+//     GET    /api/monitoring/return   public — activate paid Monitoring access
+//     GET    /api/monitoring/me       public — read Monitoring session state
+//     POST   /api/lemonsqueezy/webhook public — Lemon Squeezy subscription events
 //     PUT    /api/content/file       authed — create/update an article (D1) + trigger Pages rebuild
 //     DELETE /api/content/file       authed — delete an article (D1) + trigger Pages rebuild
 //     POST   /api/media              authed — upload an image, PDF, or DOCX to R2
@@ -36,11 +40,19 @@ import { pollX } from "./x.js";
 import { listContent, getFile, putFile, deleteFile, dumpCollection, triggerRebuild } from "./content.js";
 import { uploadMedia, readMedia } from "./media.js";
 import { logAudit, listAudit, actorFingerprint } from "./audit.js";
+import { askDatabase } from "./ask.js";
+import {
+  handleLemonWebhook,
+  handleMonitoringCheckout,
+  handleMonitoringLogout,
+  handleMonitoringMe,
+  handleMonitoringReturn
+} from "./paywall.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "access-control-allow-headers": "authorization, content-type"
+  "access-control-allow-headers": "authorization, content-type, x-signature"
 };
 const INCIDENT_CACHE_VERSION = "archive-v4";
 
@@ -132,7 +144,33 @@ export default {
       // ---- Published content dump (public, used by the static-site build) ----
       if (path === "/api/content/dump" && method === "GET") {
         const folder = url.searchParams.get("folder") || "";
+        if (folder === "monitoring" && env.CONTENT_DUMP_TOKEN) {
+          const token = bearerToken(request) || url.searchParams.get("token") || "";
+          if (token !== env.CONTENT_DUMP_TOKEN) return json({ error: "Unauthorized" }, 401);
+        }
         return json({ items: await dumpCollection(env, folder) });
+      }
+
+      // ---- Monitoring Desk paywall (public payment/session endpoints) ----
+      if (path === "/api/monitoring/checkout" && method === "POST") {
+        return handleMonitoringCheckout(request, env);
+      }
+      if (path === "/api/monitoring/return" && method === "GET") {
+        return handleMonitoringReturn(request, env);
+      }
+      if (path === "/api/monitoring/me" && method === "GET") {
+        return handleMonitoringMe(request, env);
+      }
+      if (path === "/api/monitoring/logout" && method === "GET") {
+        return handleMonitoringLogout();
+      }
+      if (path === "/api/lemonsqueezy/webhook" && method === "POST") {
+        return handleLemonWebhook(request, env, ctx);
+      }
+
+      // ---- Explorer "Ask the database" (public, rate-limited) ----
+      if (path === "/api/ask" && method === "POST") {
+        return askDatabase(request, env, ctx);
       }
 
       // ---- Everything below requires the access key ----

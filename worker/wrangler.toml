@@ -11,10 +11,18 @@ crons = ["*/5 * * * *"]
 #   ADMIN_TOKEN    shared admin-panel password (also the issue-form ingest key)
 #   GITHUB_TOKEN   fine-grained PAT, Contents: Read and write on this repo
 #   X_BEARER_TOKEN optional, only if X auto-import is wanted
+#   LEMONSQUEEZY_API_KEY           creates Monitoring Desk checkouts
+#   LEMONSQUEEZY_WEBHOOK_SECRET    verifies Lemon Squeezy webhooks
+#   CONTENT_DUMP_TOKEN             protects Monitoring content during builds
 [vars]
 X_USERNAME = "Global_Decipher"
 GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
 GITHUB_BRANCH = "main"
+SITE_URL = "https://theglobaldecipher.com"
+# Non-secret IDs copied from the Lemon Squeezy product/variant dashboard.
+# Set these before enabling the live Monitoring checkout.
+LEMONSQUEEZY_STORE_ID = ""
+LEMONSQUEEZY_VARIANT_ID = ""
 
 # KV namespace that stores the incident feed + Telegram poll state.
 # Replace the placeholder id after running:

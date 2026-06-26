@@ -66,6 +66,26 @@ npx wrangler deploy
 ```
 `X_USERNAME`, `GITHUB_REPO`, `GITHUB_BRANCH` are already set in `wrangler.toml`.
 
+**Monitoring Desk paywall (Lemon Squeezy):**
+1. In Lemon Squeezy, create a subscription product named **TGD Monitoring Desk** at **$20/month**.
+2. Copy the store ID and subscription variant ID into `worker/wrangler.toml`:
+   - `LEMONSQUEEZY_STORE_ID`
+   - `LEMONSQUEEZY_VARIANT_ID`
+3. Set Worker secrets:
+```bash
+npx wrangler secret put LEMONSQUEEZY_API_KEY
+npx wrangler secret put LEMONSQUEEZY_WEBHOOK_SECRET
+npx wrangler secret put CONTENT_DUMP_TOKEN
+```
+4. Add the same `CONTENT_DUMP_TOKEN` value to GitHub Actions secrets as `CONTENT_DUMP_TOKEN`.
+5. In Lemon Squeezy webhooks, add:
+   - URL: `https://theglobaldecipher.com/api/lemonsqueezy/webhook`
+   - Signing secret: same value used for `LEMONSQUEEZY_WEBHOOK_SECRET`
+   - Events: subscription created, updated, cancelled, resumed, expired, and payment success events.
+
+The paywall applies only to `/monitoring/` and `/monitoring/*`. The incident map,
+network graph, reports, profiles, news, opinion, contact, and homepage remain public.
+
 **Route the API under the domain** — uncomment `[[routes]]` in `worker/wrangler.toml`:
 ```toml
 [[routes]]
@@ -85,6 +105,10 @@ KV namespace bindings** → Add:
 - Variable name: `MAINTENANCE_KV`
 - KV namespace: `INCIDENTS` (the one created in step 2)
 
+The Monitoring paywall also reads paid sessions from this KV namespace. You can
+optionally add a second binding named `PAYWALL_KV` to the same namespace, but
+`MAINTENANCE_KV` is enough.
+
 Redeploy Pages once so the binding takes effect:
 ```bash
 # repo root
@@ -101,6 +125,7 @@ npx wrangler pages deploy site --project-name=theglobaldecipher --branch=main
 - **Incidents** tab: add/edit/delete — updates the live map within ~1 min, no rebuild.
 - **Articles & Profiles** tab: pick a folder (News/Opinion/Monitoring/Reports/Profiles/Pages), add/edit/delete — each save commits to GitHub and the site rebuilds in ~1 min.
 - **Maintenance mode** toggle (top right): ON locks the public site behind the maintenance screen; `/admin` stays reachable so you can turn it back off.
+- **Monitoring Desk** is paid at `/monitoring/`; subscribers enter through the Lemon Squeezy checkout and the receipt button returns them to the desk.
 
 ---
 
@@ -114,6 +139,7 @@ Workers & Pages so it isn't running for nothing.
 ```bash
 curl https://theglobaldecipher.com/api/incidents | head -c 200       # feed
 curl https://theglobaldecipher.com/api/maintenance                   # {"on":false}
+curl -I https://theglobaldecipher.com/monitoring/                    # should show the Monitoring access page until subscribed
 # open /admin, log in, add a test incident, toggle maintenance on/off
 cd worker && npx wrangler tail                                        # live worker logs
 ```
@@ -123,6 +149,7 @@ cd worker && npx wrangler tail                                        # live wor
 |---|---|
 | Add/edit/delete an incident | Admin panel → Incidents (instant) |
 | Add/edit/delete an article or profile | Admin panel → Articles & Profiles (rebuild ~1 min) |
+| Change Monitoring subscription price | Lemon Squeezy product variant, then update `LEMONSQUEEZY_VARIANT_ID` if you create a new variant |
 | Take the site offline | Admin panel → Maintenance mode toggle |
 | Change Worker code | edit `worker/src/*` → `npx wrangler deploy` |
 | Rotate the admin password | `wrangler secret put ADMIN_TOKEN` (also update `TGD_ADMIN_TOKEN` if you still use the issue form) |

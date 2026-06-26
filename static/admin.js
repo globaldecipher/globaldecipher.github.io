@@ -661,15 +661,31 @@
     turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js",
     jszipJs: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
   };
+  const _scriptPromises = new Map();
   function loadScript(url) {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[data-tgd-src="${url}"]`)) return resolve();
-      const s = document.createElement("script");
-      s.src = url; s.async = true; s.dataset.tgdSrc = url;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error("Failed to load " + url));
-      document.head.appendChild(s);
+    // Cache the *promise* so parallel callers wait for the same load, instead
+    // of resolving early on a tag that exists but hasn't executed yet.
+    if (_scriptPromises.has(url)) return _scriptPromises.get(url);
+    const existing = document.querySelector(`script[data-tgd-src="${url}"]`);
+    if (existing && existing.dataset.tgdLoaded === "1") {
+      const ready = Promise.resolve();
+      _scriptPromises.set(url, ready);
+      return ready;
+    }
+    const p = new Promise((resolve, reject) => {
+      const s = existing || document.createElement("script");
+      if (!existing) {
+        s.src = url; s.async = true; s.dataset.tgdSrc = url;
+        document.head.appendChild(s);
+      }
+      s.addEventListener("load", () => { s.dataset.tgdLoaded = "1"; resolve(); }, { once: true });
+      s.addEventListener("error", () => {
+        _scriptPromises.delete(url);
+        reject(new Error("Failed to load " + url));
+      }, { once: true });
     });
+    _scriptPromises.set(url, p);
+    return p;
   }
   function loadCss(url) {
     if (document.querySelector(`link[data-tgd-href="${url}"]`)) return;
@@ -738,6 +754,7 @@
     decorateEditorToolbar(container);
     addEditorHistoryControls(container, editor);
     setupEditorWorkspace(container, editor);
+    setupEditorPasteHandler(container, editor);
     return editor;
   }
 
@@ -851,19 +868,136 @@
   }
 
   function sendHistoryShortcut(container, editor, redo) {
-    const isMac = /mac|iphone|ipad/i.test(navigator.platform || "");
+    // Toast UI Editor exposes history as exec commands. Dispatching a synthetic
+    // KeyboardEvent does NOT trigger ProseMirror's history plugin (it only
+    // listens to native input events), so call the command directly.
     editor.focus();
-    const target = container.querySelector(".ProseMirror, .toastui-editor-md-container textarea");
-    if (!target) return;
-    target.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "z",
-      code: "KeyZ",
-      metaKey: isMac,
-      ctrlKey: !isMac,
-      shiftKey: redo,
-      bubbles: true,
-      cancelable: true
-    }));
+    try { editor.exec(redo ? "redo" : "undo"); } catch {}
+  }
+
+  // ---------------------------- Word / HTML paste ----------------------------
+  // Toast UI's default paste handler chokes on Word's markup (MSO namespaces,
+  // nested tables, inline styles), which is why pasted tables vanish or become
+  // plain paragraphs. We intercept the paste, scrub the HTML, convert tables
+  // through the same pipeline as the .docx import, then drop clean markdown at
+  // the cursor.
+  function setupEditorPasteHandler(container, editor) {
+    const handler = (event) => {
+      const clipboardData = event.clipboardData || window.clipboardData;
+      if (!clipboardData) return;
+      const html = clipboardData.getData("text/html");
+      if (!html) return;
+      const looksLikeWord = /mso-|MsoNormal|urn:schemas-microsoft-com|<o:p|class="?Mso/i.test(html);
+      const hasTable = /<table[\s>]/i.test(html);
+      if (!looksLikeWord && !hasTable) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      convertAndInsertPastedHtml(editor, html).catch((err) => {
+        toast("Couldn't convert pasted content: " + (err?.message || err), "warn");
+      });
+    };
+    // Capture phase so we run before Toast UI / ProseMirror's own paste handlers.
+    container.addEventListener("paste", handler, true);
+    // Pre-load Turndown so the first paste isn't delayed by a CDN round-trip.
+    loadScript(CDN.turndownJs).then(() => loadScript(CDN.turndownGfmJs)).catch(() => {});
+  }
+
+  async function convertAndInsertPastedHtml(editor, rawHtml) {
+    await loadScript(CDN.turndownJs);
+    await loadScript(CDN.turndownGfmJs);
+    const markdown = pastedHtmlToMarkdown(rawHtml);
+    if (!markdown) return;
+
+    // WYSIWYG's replaceSelection inserts plain text, so the markdown source
+    // would appear verbatim. Switch to markdown mode, splice the text in, and
+    // switch back — Toast UI re-parses the document on mode change.
+    const wasWysiwyg = typeof editor.isWysiwygMode === "function"
+      ? editor.isWysiwygMode()
+      : editor.getCurrentModeEditor?.()?.constructor?.name !== "MdEditor";
+    if (wasWysiwyg && typeof editor.changeMode === "function") {
+      editor.changeMode("markdown", true);
+    }
+    try {
+      editor.replaceSelection(markdown);
+    } catch {
+      const current = editor.getMarkdown ? editor.getMarkdown() : "";
+      editor.setMarkdown((current ? current + "\n\n" : "") + markdown, false);
+    }
+    if (wasWysiwyg && typeof editor.changeMode === "function") {
+      editor.changeMode("wysiwyg", true);
+    }
+    editor.focus();
+  }
+
+  function pastedHtmlToMarkdown(rawHtml) {
+    // 1. Drop Office conditional comments and namespace tags before parsing —
+    //    they survive DOMParser intact and confuse the converter downstream.
+    let cleaned = String(rawHtml || "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<\/?(?:o|w|m|v):[^>]*>/gi, "")
+      .replace(/<\?xml[^>]*\?>/gi, "");
+
+    const doc = new DOMParser().parseFromString(cleaned, "text/html");
+
+    // 2. Strip Office styling and useless attributes that distort Turndown's
+    //    output (mso-*, MsoNormal classes, layout widths, language tags).
+    doc.querySelectorAll("*").forEach((node) => {
+      node.removeAttribute("style");
+      node.removeAttribute("class");
+      node.removeAttribute("lang");
+      node.removeAttribute("valign");
+      node.removeAttribute("align");
+      node.removeAttribute("width");
+      node.removeAttribute("height");
+    });
+    // Drop link/meta/style nodes that Word pastes leak into the body.
+    doc.querySelectorAll("link, meta, style, script").forEach((n) => n.remove());
+    // Collapse empty paragraphs (Word inserts many).
+    doc.querySelectorAll("p").forEach((p) => {
+      if (!p.textContent.trim() && !p.querySelector("img,br")) p.remove();
+    });
+
+    // 3. Tables: route through the docx-import placeholder/restore pipeline so
+    //    a clean GFM table replaces Turndown's lossy approximation.
+    const pastedTables = [];
+    doc.querySelectorAll("table").forEach((table) => {
+      const rows = Array.from(table.querySelectorAll("tr"))
+        .map((tr) => Array.from(tr.querySelectorAll("td,th"))
+          .map((cell) => (cell.textContent || "").replace(/\s*\n+\s*/g, " ").replace(/\s{2,}/g, " ").trim()))
+        .filter((row) => row.some(Boolean));
+      if (rows.length > 1 && rows[0].length > 1) {
+        const placeholder = doc.createElement("p");
+        placeholder.textContent = `${TABLE_MARKER_PREFIX}${pastedTables.length}${TABLE_MARKER_SUFFIX}`;
+        pastedTables.push(rows);
+        table.replaceWith(placeholder);
+      } else {
+        // Single-row or single-column "tables" Word generates for layout —
+        // flatten into paragraphs so they don't drop out entirely.
+        const wrap = doc.createElement("div");
+        rows.forEach((row) => {
+          row.filter(Boolean).forEach((text) => {
+            const p = doc.createElement("p");
+            p.textContent = text;
+            wrap.appendChild(p);
+          });
+        });
+        table.replaceWith(wrap);
+      }
+    });
+
+    const td = new window.TurndownService({
+      headingStyle: "atx",
+      codeBlockStyle: "fenced",
+      emDelimiter: "*",
+      bulletListMarker: "-"
+    });
+    if (window.turndownPluginGfm?.gfm) td.use(window.turndownPluginGfm.gfm);
+
+    const intermediateMarkdown = td.turndown(doc.body.innerHTML);
+    return restoreDocxTables(intermediateMarkdown, pastedTables)
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
 
   function setupEditorWorkspace(container, editor) {
@@ -949,6 +1083,11 @@
     return { markdown, title, tables: importedTables.length, images: imageIndex, warnings: result.messages || [] };
   }
 
+  // Marker uses letters+digits only — Turndown escapes `[`, `]`, `_` etc., so
+  // the old `[[TGD_TABLE_${i}]]` form survived the round-trip as `\[\[…\]\]`
+  // and the restore regex never matched, leaving the placeholder visible.
+  const TABLE_MARKER_PREFIX = "TGDXTBLX";
+  const TABLE_MARKER_SUFFIX = "XPLHDR";
   function normalizeImportedTables(html) {
     const doc = new DOMParser().parseFromString(html, "text/html");
     // Turndown's table output and Word's table markup disagree often enough to
@@ -956,7 +1095,7 @@
     // `restoreDocxTables` replaces it with clean Markdown after conversion.
     doc.querySelectorAll("table").forEach((table, index) => {
       const placeholder = doc.createElement("p");
-      placeholder.textContent = `[[TGD_TABLE_${index}]]`;
+      placeholder.textContent = `${TABLE_MARKER_PREFIX}${index}${TABLE_MARKER_SUFFIX}`;
       table.replaceWith(placeholder);
     });
     return doc.body.innerHTML;
@@ -994,7 +1133,12 @@
         ...normalizedRows.slice(1).map((row) => `| ${row.join(" | ")} |`)
       ].join("\n");
     };
-    return String(markdown || "").replace(/\[\[TGD_TABLE_(\d+)\]\]/g, (_match, index) => tableMarkdown(tables[Number(index)] || []));
+    const newMarker = new RegExp(`${TABLE_MARKER_PREFIX}(\\d+)${TABLE_MARKER_SUFFIX}`, "g");
+    // Also handle the legacy escaped bracket form in case older drafts contain it
+    const legacyMarker = /\\?\[\\?\[TGD_TABLE_(\d+)\\?\]\\?\]/g;
+    return String(markdown || "")
+      .replace(newMarker, (_m, index) => tableMarkdown(tables[Number(index)] || []))
+      .replace(legacyMarker, (_m, index) => tableMarkdown(tables[Number(index)] || []));
   }
 
   // ============================ TAG CHIPS ============================
@@ -1145,6 +1289,17 @@
       fm = seed.fm || {};
       body = seed.body || "";
     }
+    // Heal stale table placeholders that escaped the old import bug. The raw
+    // table data is gone after a save, so we show a clear instruction instead
+    // of a cryptic `[[TGD_TABLE_0]]` token sitting in the rendered body.
+    let staleTables = 0;
+    body = body.replace(/\\?\[\\?\[TGD_TABLE_(\d+)\\?\]\\?\]/g, (_m, idx) => {
+      staleTables++;
+      return `> **⚠ Table ${Number(idx) + 1} missing.** Re-drop the original Word file onto the import card above to restore it.`;
+    });
+    if (staleTables > 0) {
+      setTimeout(() => toast(`${staleTables} table${staleTables === 1 ? "" : "s"} need re-importing. Drop the original .docx onto the import card.`, "warn"), 800);
+    }
     const f = {};
     const add = (key, label, opts) => {
       let current = fm[key];
@@ -1162,13 +1317,22 @@
     ));
 
     // ---- Word import drop zone (skip for Pages) ----
+    // The editor mounts asynchronously after this point. If the user drops a
+    // file during those few seconds, the callback must wait for the editor
+    // (or the markdown fallback) to be ready, otherwise `setMarkdown` is a
+    // silent no-op and the imported body never reaches the form.
+    let editorReadyResolve;
+    const editorReady = new Promise((resolve) => { editorReadyResolve = resolve; });
     let importCard = null;
     if (activeFolder !== "pages") {
       importCard = makeImportCard(async ({ markdown, title }) => {
         if (!f.title.value && title) f.title.value = title;
         const stripFirstHeading = markdown.replace(/^#+\s+.+\n+/, "");
+        await editorReady;
         if (window.__tgdEditor) {
           window.__tgdEditor.setMarkdown(stripFirstHeading);
+        } else if (f.__fallbackBody) {
+          f.__fallbackBody.value = stripFirstHeading;
         }
         toast("Word document imported. Review and publish when ready.");
       });
@@ -1253,6 +1417,10 @@
         f.__fallbackBody = input;
         toast("Rich editor failed to load — using markdown fallback.", "warn");
       }
+      // Always release the import gate, whether the editor or its fallback won.
+      editorReadyResolve?.();
+    } else {
+      editorReadyResolve?.();
     }
 
     // Autosave drafts every ~15s. Pages are always published — skip them.

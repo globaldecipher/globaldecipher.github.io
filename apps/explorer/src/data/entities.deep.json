@@ -1,0 +1,184 @@
+{
+  "entities": [
+    {
+      "id": "iskp",
+      "type": "organization",
+      "name": "Islamic State Khorasan Province",
+      "short": "ISKP",
+      "aliases": ["ISIS-K", "IS-K", "Daesh-K", "Wilayat Khorasan", "ISKP-P"],
+      "founded": "2015-01-26",
+      "dissolved": null,
+      "status": "active",
+      "ideology": "Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": ["Afghanistan", "Pakistan", "Tajikistan", "Iran"],
+      "headquarters": { "lat": 34.5553, "lng": 69.2075, "label": "Nangarhar / Kabul corridor" },
+      "aor": [
+        { "lat": 34.42, "lng": 70.45, "label": "Nangarhar", "intensity": 0.85 },
+        { "lat": 36.73, "lng": 68.86, "label": "Kunduz", "intensity": 0.55 },
+        { "lat": 31.32, "lng": 65.13, "label": "Kandahar", "intensity": 0.4 },
+        { "lat": 34.01, "lng": 71.58, "label": "Peshawar", "intensity": 0.5 },
+        { "lat": 33.99, "lng": 66.99, "label": "Mastung / Quetta corridor", "intensity": 0.65 },
+        { "lat": 35.18, "lng": 71.65, "label": "Bajaur", "intensity": 0.7 }
+      ],
+      "designations": [
+        { "body": "UN_1267", "date": "2019-05-14", "ref": "QDe.161", "url": "https://main.un.org/securitycouncil/en/sanctions/1267" },
+        { "body": "US_OFAC", "date": "2016-01-14", "ref": "SDN — Islamic State of Iraq and the Levant – Khorasan", "url": "https://ofac.treasury.gov/recent-actions/20160114" },
+        { "body": "PAK_NACTA", "date": "2018-03-06", "ref": "ISIS / Daesh Khorasan", "url": "https://nacta.gov.pk" },
+        { "body": "US_STATE_FTO", "date": "2016-01-14", "ref": "ISIL-K FTO designation" }
+      ],
+      "leaders": [
+        { "name": "Hafiz Saeed Khan", "role": "Founding Emir", "from": "2015-01", "to": "2016-07", "fate": "Killed in US strike, Nangarhar", "sources": ["src-iskp-1"] },
+        { "name": "Abdul Hasib Logari", "role": "Emir", "from": "2016-07", "to": "2017-04", "fate": "Killed in US-Afghan raid, Achin", "sources": ["src-iskp-2"] },
+        { "name": "Abu Sayed Bajauri", "role": "Emir", "from": "2017-04", "to": "2017-07", "fate": "Killed in US strike, Kunar", "sources": ["src-iskp-2"] },
+        { "name": "Abu Saad Erhabi", "role": "Emir", "from": "2017-07", "to": "2018-08", "fate": "Killed in joint operation, Nangarhar", "sources": ["src-iskp-2"] },
+        { "name": "Aslam Farooqi", "role": "Emir", "from": "2019-06", "to": "2020-04", "fate": "Captured by NDS, Kandahar", "sources": ["src-iskp-3"] },
+        { "name": "Shahab al-Muhajir", "entityRef": "sanaullah-ghafari", "role": "Emir", "from": "2020-06", "to": null, "fate": "At large; $10M Rewards for Justice bounty", "sources": ["src-iskp-1", "src-iskp-4"] }
+      ],
+      "financing": [
+        { "method": "cryptocurrency", "detail": "Pseudonymous BTC/USDT donations routed through Telegram fundraising channels", "sources": ["src-iskp-5"] },
+        { "method": "hawala", "detail": "Cross-border hawala flows between Gulf donors and Nangarhar / Peshawar nodes", "sources": ["src-iskp-5"] },
+        { "method": "extortion", "detail": "Local taxation and extortion in eastern Afghan districts under control 2017–2019", "sources": ["src-iskp-1"] },
+        { "method": "kidnap-for-ransom", "detail": "Targeted abductions of Hindu and Sikh community members and aid workers", "sources": ["src-iskp-3"] }
+      ],
+      "attacks": [
+        { "date": "2021-08-26", "location": "Kabul Hamid Karzai International Airport — Abbey Gate", "lat": 34.5651, "lng": 69.2126, "casualties": 183, "type": "SVBIED", "summary": "Suicide bombing during the US evacuation killed at least 13 US service members and 170 Afghan civilians.", "sources": ["src-iskp-6"] },
+        { "date": "2022-08-11", "location": "Sherpur, Kabul", "lat": 34.5471, "lng": 69.1907, "casualties": 6, "type": "IED", "summary": "Targeted bombing killed senior Taliban-aligned cleric Sheikh Rahimullah Haqqani.", "sources": ["src-iskp-1"] },
+        { "date": "2022-09-30", "location": "Kaaj Education Center, Dasht-e-Barchi, Kabul", "lat": 34.5021, "lng": 69.1234, "casualties": 53, "type": "SVBIED", "summary": "Suicide bombing of a Hazara prep-class for university entrance exam killed 53, mostly young women.", "sources": ["src-iskp-6"] },
+        { "date": "2023-01-11", "location": "Foreign Ministry, Kabul", "lat": 34.5266, "lng": 69.1791, "casualties": 20, "type": "SVBIED", "summary": "Attack on Afghan Foreign Ministry during a Chinese delegation visit.", "sources": ["src-iskp-1"] },
+        { "date": "2024-01-03", "location": "Kerman, Iran (Soleimani memorial)", "lat": 30.2839, "lng": 57.0834, "casualties": 95, "type": "Twin IED", "summary": "Twin bombings at Qassem Soleimani memorial in Kerman killed at least 95 and wounded 211; ISKP claimed responsibility.", "sources": ["src-iskp-7"] },
+        { "date": "2024-03-22", "location": "Crocus City Hall, Moscow oblast, Russia", "lat": 55.8265, "lng": 37.3933, "casualties": 145, "type": "Complex assault", "summary": "Armed assault and arson at concert venue killed 145; ISKP claimed; four Tajik suspects detained by Russian authorities.", "sources": ["src-iskp-7"] }
+      ],
+      "events": [
+        { "date": "2015-01-26", "type": "founded", "label": "ISKP established by Hafiz Saeed Khan and former TTP commanders", "significance": 0.9, "sources": ["src-iskp-1"] },
+        { "date": "2016-01-14", "type": "designation", "label": "US State Dept FTO + OFAC SDGT designations", "significance": 0.6, "sources": ["src-iskp-1"] },
+        { "date": "2019-05-14", "type": "designation", "label": "UN 1267 listing QDe.161", "significance": 0.55 },
+        { "date": "2020-06-01", "type": "leadership-change", "label": "Sanaullah Ghafari (Shahab al-Muhajir) takes emir role", "significance": 0.75, "sources": ["src-iskp-1"] },
+        { "date": "2021-08-26", "type": "attack", "label": "Kabul Airport Abbey Gate SVBIED — 183 killed", "significance": 1.0, "sources": ["src-iskp-6"] },
+        { "date": "2022-09-30", "type": "attack", "label": "Kaaj Education Center bombing — 53 killed", "significance": 0.7, "sources": ["src-iskp-6"] },
+        { "date": "2024-01-03", "type": "attack", "label": "Kerman dual-bombing — 95 killed", "significance": 0.85, "sources": ["src-iskp-7"] },
+        { "date": "2024-03-22", "type": "attack", "label": "Crocus City Hall, Moscow — 145 killed", "significance": 0.95, "sources": ["src-iskp-7"] }
+      ],
+      "relationships": [
+        { "to": "islamic-state", "type": "parent", "from": "2015-01", "note": "Pledged bay'ah; recognised as Wilayat Khorasan by IS Central." },
+        { "to": "tehreek-e-taliban-pakistan", "type": "split-from", "from": "2014", "note": "Founders included disaffected TTP commanders (Hafiz Saeed Khan, Shahidullah Shahid)." },
+        { "to": "taliban-emirate", "type": "rival", "from": "2015-06", "note": "Active conflict with Taliban; ISKP rejects Doha agreement and Taliban's nationalist project." },
+        { "to": "al-qaeda", "type": "rival", "from": "2015-03", "note": "Doctrinal rejection of AQ–Taliban accommodation." }
+      ],
+      "summary": "Islamic State Khorasan Province (ISKP) is the Khorasan-region affiliate of the Islamic State, formally constituted on 26 January 2015 by Hafiz Saeed Khan and a circle of disaffected TTP commanders who pledged bay'ah to Abu Bakr al-Baghdadi [src-iskp-1]. The organisation peaked territorially in Nangarhar between 2016 and 2018, was rolled back by joint US-Afghan-Taliban operations, and reconstituted as a cellular insurgency under Sanaullah Ghafari (kunya: Shahab al-Muhajir) from mid-2020 onward [src-iskp-1]. Its operational profile combines high-casualty SVBIED attacks against minority and diplomatic targets in Afghanistan with periodic out-of-area operations — the Abbey Gate bombing during the 2021 US withdrawal [src-iskp-6], the 2024 Kerman bombings in Iran, and the Crocus City Hall assault in Moscow [src-iskp-7]. The Pakistan dimension is dominated by ISKP cells in Mastung (Balochistan), Bajaur, and Peshawar that have repeatedly targeted political rallies and sectarian gatherings. Financing is hybrid: cryptocurrency donations solicited through Telegram, hawala flows from Gulf-based facilitators, and local extortion in areas of historical presence [src-iskp-5]. The group is designated under UN 1267 (QDe.161), US FTO/OFAC, and Pakistan NACTA's proscribed list.",
+      "sources": [
+        { "id": "src-iskp-1", "title": "U.S. National Counterterrorism Center: Islamic State Khorasan Province profile", "url": "https://www.dni.gov/nctc/groups/isis_k.html", "outlet": "NCTC", "date": "2024-01-01" },
+        { "id": "src-iskp-2", "title": "Office of the Director of National Intelligence — ISIS-K leadership succession", "url": "https://www.dni.gov", "outlet": "ODNI" },
+        { "id": "src-iskp-3", "title": "Combating Terrorism Center at West Point: 'The Resurgence of ISKP'", "url": "https://ctc.westpoint.edu/the-resurgence-of-iskp/", "outlet": "CTC Sentinel", "date": "2023-04-01", "author": "Amira Jadoon" },
+        { "id": "src-iskp-4", "title": "Rewards for Justice: Sanaullah Ghafari", "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/", "outlet": "U.S. Department of State", "date": "2023-02-07" },
+        { "id": "src-iskp-5", "title": "TRM Labs: Cryptocurrency fundraising by ISKP-aligned channels", "url": "https://www.trmlabs.com", "outlet": "TRM Labs", "date": "2023-11-01" },
+        { "id": "src-iskp-6", "title": "U.S. Central Command — After Action Review of the Kabul Non-Combatant Evacuation Operation", "url": "https://www.centcom.mil", "outlet": "U.S. CENTCOM", "date": "2022-02-04" },
+        { "id": "src-iskp-7", "title": "Reuters: Islamic State claims Crocus City Hall attack", "url": "https://www.reuters.com", "outlet": "Reuters", "date": "2024-03-23" }
+      ],
+      "stub": false
+    },
+    {
+      "id": "tehreek-e-taliban-pakistan",
+      "type": "organization",
+      "name": "Tehrik-e-Taliban Pakistan",
+      "short": "TTP",
+      "aliases": ["TTP", "Pakistani Taliban", "Tehrik-i-Taliban Pakistan"],
+      "founded": "2007-12-14",
+      "dissolved": null,
+      "status": "active",
+      "ideology": "Deobandi Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Pakistan",
+      "countries": ["Pakistan", "Afghanistan"],
+      "headquarters": { "lat": 33.0, "lng": 70.05, "label": "Pakistan–Afghanistan tribal belt (Kurram / Paktika corridor)" },
+      "aor": [
+        { "lat": 34.0151, "lng": 71.5249, "label": "Khyber Pakhtunkhwa — Peshawar valley", "intensity": 0.85 },
+        { "lat": 32.3, "lng": 69.3, "label": "South Waziristan", "intensity": 0.85 },
+        { "lat": 33.0, "lng": 69.7, "label": "North Waziristan", "intensity": 0.85 },
+        { "lat": 33.55, "lng": 70.05, "label": "Kurram", "intensity": 0.7 },
+        { "lat": 32.65, "lng": 68.42, "label": "Paktika (AFG, rear base)", "intensity": 0.75 },
+        { "lat": 35.18, "lng": 71.65, "label": "Bajaur", "intensity": 0.65 },
+        { "lat": 33.62, "lng": 73.07, "label": "Islamabad / Rawalpindi outer ring", "intensity": 0.4 }
+      ],
+      "designations": [
+        { "body": "PAK_NACTA", "date": "2008-08-25", "ref": "Tehrik-i-Taliban Pakistan — proscribed", "url": "https://nacta.gov.pk" },
+        { "body": "UN_1267", "date": "2011-07-29", "ref": "QDe.132", "url": "https://main.un.org/securitycouncil/en/sanctions/1267" },
+        { "body": "US_STATE_FTO", "date": "2010-09-01", "ref": "TTP FTO designation", "url": "https://www.state.gov/foreign-terrorist-organizations/" },
+        { "body": "UK_HOME_OFFICE", "date": "2011-01-07", "ref": "Schedule 2 Terrorism Act", "url": "https://www.gov.uk" }
+      ],
+      "leaders": [
+        { "name": "Baitullah Mehsud", "role": "Founding Emir", "from": "2007-12", "to": "2009-08", "fate": "Killed in US drone strike, South Waziristan", "sources": ["src-ttp-1"] },
+        { "name": "Hakimullah Mehsud", "role": "Emir", "from": "2009-08", "to": "2013-11", "fate": "Killed in US drone strike, North Waziristan", "sources": ["src-ttp-1"] },
+        { "name": "Maulana Fazlullah", "entityRef": "maulana-fazlullah", "role": "Emir", "from": "2013-11", "to": "2018-06", "fate": "Killed in US drone strike, Kunar (AFG)", "sources": ["src-ttp-1", "src-ttp-2"] },
+        { "name": "Noor Wali Mehsud", "entityRef": "noor-wali-mehsud", "role": "Emir", "from": "2018-06", "to": null, "fate": "At large; UN 1267 listed (QDi.427); $3M Rewards for Justice bounty", "sources": ["src-ttp-2", "src-ttp-3"] }
+      ],
+      "financing": [
+        { "method": "extortion", "detail": "Local revenue extraction from transport, telecoms, and agricultural produce across KP and ex-FATA", "sources": ["src-ttp-4"] },
+        { "method": "kidnap-for-ransom", "detail": "Sustained KFR operations against businessmen, government officials, and political workers in KP", "sources": ["src-ttp-4"] },
+        { "method": "donations", "detail": "Solicited via Telegram and social media from a transnational Pashtun diaspora", "sources": ["src-ttp-4"] },
+        { "method": "hawala", "detail": "Cross-border value transfer through Pak–Afghan hawala corridors, particularly Khost–North Waziristan", "sources": ["src-ttp-4"] }
+      ],
+      "attacks": [
+        { "date": "2014-12-16", "location": "Army Public School, Peshawar", "lat": 33.9985, "lng": 71.5277, "casualties": 149, "type": "Complex assault", "summary": "Six gunmen stormed the Army Public School, killing 149 — including 132 children. Claimed by TTP under Mullah Fazlullah.", "sources": ["src-ttp-5"] },
+        { "date": "2008-09-20", "location": "Marriott Hotel, Islamabad", "lat": 33.7282, "lng": 73.0938, "casualties": 60, "type": "SVBIED", "summary": "Truck bombing killed 60 and wounded 250+. Claimed by TTP-aligned faction.", "sources": ["src-ttp-1"] },
+        { "date": "2022-03-04", "location": "Kucha Risaldar Shia mosque, Peshawar", "lat": 34.0048, "lng": 71.5707, "casualties": 63, "type": "Suicide bombing", "summary": "Friday prayers attack on Shia mosque; ISKP initially claimed but Pakistani investigators attributed to TTP-aligned facilitators.", "sources": ["src-ttp-1"] },
+        { "date": "2023-01-30", "location": "Police Lines Mosque, Peshawar", "lat": 34.0102, "lng": 71.5689, "casualties": 100, "type": "Suicide bombing", "summary": "Inside-job suicide attack on mosque in Peshawar police lines killed 100, mostly police personnel. Claimed by Jamaat-ul-Ahrar splinter aligned with TTP.", "sources": ["src-ttp-6"] },
+        { "date": "2024-03-26", "location": "Bisham, Shangla — Chinese engineers", "lat": 34.9168, "lng": 72.5536, "casualties": 6, "type": "SVBIED", "summary": "Suicide attack on a convoy carrying Chinese engineers working on Dasu hydropower project; 5 Chinese nationals and 1 Pakistani driver killed.", "sources": ["src-ttp-7"] }
+      ],
+      "events": [
+        { "date": "2007-12-14", "type": "founded", "label": "TTP umbrella formally announced; Baitullah Mehsud declared emir", "significance": 0.95, "sources": ["src-ttp-1"] },
+        { "date": "2008-08-25", "type": "designation", "label": "Pakistan NACTA proscribes TTP", "significance": 0.55 },
+        { "date": "2009-08-05", "type": "leadership-change", "label": "Baitullah Mehsud killed; Hakimullah Mehsud takes over", "significance": 0.7, "sources": ["src-ttp-1"] },
+        { "date": "2014-09-04", "type": "split", "label": "Jamaat-ul-Ahrar formally splits from TTP under Omar Khalid Khorasani", "significance": 0.7, "sources": ["src-ttp-1"] },
+        { "date": "2014-12-16", "type": "attack", "label": "Army Public School Peshawar massacre — 149 killed", "significance": 1.0, "sources": ["src-ttp-5"] },
+        { "date": "2018-06-15", "type": "leadership-change", "label": "Fazlullah killed; Noor Wali Mehsud takes emirate", "significance": 0.75, "sources": ["src-ttp-2"] },
+        { "date": "2020-07-17", "type": "merger", "label": "Jamaat-ul-Ahrar and Hizb-ul-Ahrar formally rejoin TTP under Noor Wali", "significance": 0.7, "sources": ["src-ttp-3"] },
+        { "date": "2022-11-28", "type": "split", "label": "TTP unilaterally withdraws from ceasefire with Pakistan", "significance": 0.7, "sources": ["src-ttp-3"] },
+        { "date": "2023-01-30", "type": "attack", "label": "Peshawar Police Lines mosque bombing — 100 killed", "significance": 0.85, "sources": ["src-ttp-6"] }
+      ],
+      "relationships": [
+        { "to": "afghan-taliban", "type": "ideological-link", "from": "2007", "note": "Doctrinal alignment with the Afghan Taliban; Noor Wali Mehsud has publicly pledged bay'ah to successive Afghan emirs." },
+        { "to": "haqqani-network", "type": "allied", "from": "2007", "note": "Operational coordination on the Pak–Afghan border, especially in the Kurram–Khost corridor." },
+        { "to": "al-qaeda", "type": "allied", "from": "2007", "note": "Long-standing safe-haven and ideological cooperation. Several TTP commanders graduated from AQ training cycles in North Waziristan." },
+        { "to": "jamaat-ul-ahrar", "type": "split-from", "from": "2014-09", "note": "Splinter under Omar Khalid Khorasani; rejoined TTP umbrella in 2020." },
+        { "to": "iskp", "type": "rival", "from": "2015-06", "note": "Some commanders defected to ISKP at founding; ongoing rivalry over jihadi monopoly in KP / Mohmand / Bajaur." },
+        { "to": "lashkar-e-jhangvi", "type": "ideological-link", "from": "2008", "note": "Periodic operational collaboration on anti-Shia targeting in KP and Balochistan." }
+      ],
+      "summary": "Tehrik-e-Taliban Pakistan (TTP) was formally constituted on 14 December 2007 as an umbrella for roughly 13 Deobandi militant factions operating in Pakistan's then-FATA and the wider Pak-Afghan tribal belt, with Baitullah Mehsud as its founding emir [src-ttp-1]. The organisation's strategic objective is the establishment of a Sharia state inside Pakistan and the withdrawal of Pakistani security forces from former tribal districts; its operational doctrine combines sustained suicide bombing, complex assaults on military and police targets, and the targeted killing of journalists, political workers, and minority figures [src-ttp-2]. Successive Pakistani military operations — Rah-e-Rast (2009), Rah-e-Nijat (2009–2010), and Zarb-e-Azb (2014–2016) — displaced large numbers of TTP fighters into eastern Afghanistan, where the post-2021 Taliban takeover provided substantially expanded sanctuary. Under Noor Wali Mehsud, who took the emirate after Mullah Fazlullah's 2018 killing, TTP has consolidated several earlier splinters (Jamaat-ul-Ahrar, Hizb-ul-Ahrar) and re-mounted a sustained tempo of attacks across Khyber Pakhtunkhwa from 2022 onward [src-ttp-3]. The 2023 Peshawar Police Lines mosque bombing (100 dead) [src-ttp-6] and the 2024 Bisham attack on Chinese engineers [src-ttp-7] illustrate the group's continued capacity. TTP is designated under UN 1267 (QDe.132), the US FTO list, UK Schedule 2, and the Pakistan NACTA proscribed list.",
+      "sources": [
+        { "id": "src-ttp-1", "title": "U.S. National Counterterrorism Center: Tehrik-i-Taliban Pakistan profile", "url": "https://www.dni.gov/nctc/groups/ttp.html", "outlet": "NCTC" },
+        { "id": "src-ttp-2", "title": "UN Security Council 1267 Sanctions: QDe.132 / QDi.427 Narrative Summaries", "url": "https://main.un.org/securitycouncil/en/sanctions/1267", "outlet": "UN Security Council" },
+        { "id": "src-ttp-3", "title": "Centre for Research and Security Studies, Islamabad: Pakistan Conflict Tracker 2023", "url": "https://crss.pk", "outlet": "CRSS", "date": "2024-01-15" },
+        { "id": "src-ttp-4", "title": "FATF Mutual Evaluation of Pakistan — Terrorism Financing chapter", "url": "https://www.fatf-gafi.org", "outlet": "Financial Action Task Force", "date": "2022-06-01" },
+        { "id": "src-ttp-5", "title": "Government of Pakistan Inquiry Commission Report: Army Public School Peshawar Attack", "outlet": "Government of Pakistan", "date": "2020-07-17" },
+        { "id": "src-ttp-6", "title": "Reuters: Peshawar Police Lines mosque bombing — claim and forensic findings", "url": "https://www.reuters.com", "outlet": "Reuters", "date": "2023-02-02" },
+        { "id": "src-ttp-7", "title": "Dawn: Bisham attack on Chinese engineers", "url": "https://www.dawn.com", "outlet": "Dawn", "date": "2024-03-27" }
+      ],
+      "stub": false
+    },
+    {
+      "id": "sanaullah-ghafari",
+      "type": "person",
+      "name": "Sanaullah Ghafari",
+      "short": "Ghafari",
+      "aliases": ["Shahab al-Muhajir", "Sanaullah"],
+      "status": "active",
+      "ideology": "Salafi-Jihadi",
+      "region": "South Asia",
+      "country": "Afghanistan",
+      "countries": ["Afghanistan", "Pakistan"],
+      "designations": [
+        { "body": "US_REWARDS_FOR_JUSTICE", "date": "2023-02-07", "ref": "Up to $10 million", "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/" }
+      ],
+      "relationships": [
+        { "to": "iskp", "type": "leads", "from": "2020-06", "note": "Emir of ISKP under the kunya Shahab al-Muhajir." }
+      ],
+      "summary": "Sanaullah Ghafari (kunya: Shahab al-Muhajir) became emir of Islamic State Khorasan Province in mid-2020 and is credited with re-engineering the group as a cellular insurgency capable of high-casualty urban attacks. He is the subject of a $10 million U.S. Rewards for Justice bounty [src-iskp-4].",
+      "sources": [
+        { "id": "src-iskp-4", "title": "Rewards for Justice: Sanaullah Ghafari", "url": "https://rewardsforjustice.net/rewards/sanaullah-ghafari/", "outlet": "U.S. Department of State", "date": "2023-02-07" }
+      ],
+      "stub": false
+    }
+  ]
+}

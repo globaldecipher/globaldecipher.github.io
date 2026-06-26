@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html, body { height: 100%; min-height: 100dvh; margin: 0; }
+#root {
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+body {
+  font-family: theme(fontFamily.sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hairline 0.5px border utility — Tailwind's `border` is 1px */
+.border-hair    { border-width: 0.5px; }
+.border-t-hair  { border-top-width: 0.5px; }
+.border-r-hair  { border-right-width: 0.5px; }
+.border-b-hair  { border-bottom-width: 0.5px; }
+.border-l-hair  { border-left-width: 0.5px; }
+
+.entity-name { font-family: theme(fontFamily.serif); font-weight: 500; }
+
+.pane-label {
+  font-family: theme(fontFamily.sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: theme(colors.muted.light);
+}
+:root.dark .pane-label { color: theme(colors.muted.dark); }
+
+button:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid theme(colors.accent);
+  outline-offset: 2px;
+}
+
+/* MapLibre default styles need to ship if we keep the canvas usable */
+.maplibregl-canvas { outline: none; }

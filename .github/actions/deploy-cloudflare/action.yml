@@ -12,13 +12,29 @@ inputs:
     description: Cloudflare Pages project name.
     required: false
     default: theglobaldecipher
+  content-dump-token:
+    description: Optional private token used by build.mjs to fetch protected Monitoring content.
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
     - name: Build static site
       shell: bash
+      env:
+        CONTENT_DUMP_TOKEN: ${{ inputs.content-dump-token }}
       run: node build.mjs
+
+    - name: Install Explorer (React) deps
+      shell: bash
+      working-directory: apps/explorer
+      run: npm install --no-audit --no-fund
+
+    - name: Build Explorer into site/network-graph
+      shell: bash
+      working-directory: apps/explorer
+      run: npm run build
 
     - name: Deploy to Cloudflare Pages
       shell: bash

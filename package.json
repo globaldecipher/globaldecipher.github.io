@@ -5,7 +5,12 @@
   "description": "Free static publication site for The Global Decipher.",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "npm run build:site && npm run build:explorer",
+    "build:site": "node build.mjs",
+    "build:explorer": "npm --prefix apps/explorer run build",
+    "dev:explorer": "npm --prefix apps/explorer run dev",
+    "install:explorer": "npm --prefix apps/explorer install",
+    "setup:paywall": "node scripts/setup-monitoring-paywall.mjs",
     "serve": "python3 -m http.server 4173 --directory site"
   }
 }
