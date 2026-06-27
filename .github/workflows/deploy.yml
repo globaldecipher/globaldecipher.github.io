@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -32,9 +34,22 @@ jobs:
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           content-dump-token: ${{ secrets.CONTENT_DUMP_TOKEN }}
 
-      # Apply any new D1 migrations against the production database before the
-      # worker that depends on them goes live.
+      - name: Check for D1 migration changes
+        id: d1_migrations
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- worker/migrations; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Apply migrations only when migration files changed. This keeps routine
+      # editorial and Worker deploys independent from D1-specific permissions.
       - name: Apply D1 migrations
+        if: steps.d1_migrations.outputs.changed == 'true'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
