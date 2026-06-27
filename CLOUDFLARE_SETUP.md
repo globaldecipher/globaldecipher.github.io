@@ -66,22 +66,20 @@ npx wrangler deploy
 ```
 `X_USERNAME`, `GITHUB_REPO`, `GITHUB_BRANCH` are already set in `wrangler.toml`.
 
-**Monitoring Desk paywall (Lemon Squeezy):**
-1. In Lemon Squeezy, create a subscription product named **TGD Monitoring Desk** at **$20/month**.
-2. Copy the store ID and subscription variant ID into `worker/wrangler.toml`:
-   - `LEMONSQUEEZY_STORE_ID`
-   - `LEMONSQUEEZY_VARIANT_ID`
+**Monitoring Desk paywall (Safepay):**
+1. In Safepay, create a monthly subscription plan named **TGD Monitoring Desk** at **$20/month**.
+2. Copy the Plan ID into `worker/wrangler.toml` as `SAFEPAY_PLAN_ID`.
 3. Set Worker secrets:
 ```bash
-npx wrangler secret put LEMONSQUEEZY_API_KEY
-npx wrangler secret put LEMONSQUEEZY_WEBHOOK_SECRET
+npx wrangler secret put SAFEPAY_SECRET_KEY
+npx wrangler secret put SAFEPAY_WEBHOOK_SECRET
 npx wrangler secret put CONTENT_DUMP_TOKEN
 ```
 4. Add the same `CONTENT_DUMP_TOKEN` value to GitHub Actions secrets as `CONTENT_DUMP_TOKEN`.
-5. In Lemon Squeezy webhooks, add:
-   - URL: `https://theglobaldecipher.com/api/lemonsqueezy/webhook`
-   - Signing secret: same value used for `LEMONSQUEEZY_WEBHOOK_SECRET`
-   - Events: subscription created, updated, cancelled, resumed, expired, and payment success events.
+5. In Safepay Developer > Endpoints, add:
+   - URL: `https://theglobaldecipher.com/api/safepay/webhook`
+   - Shared secret: same value used for `SAFEPAY_WEBHOOK_SECRET`
+   - Events: all subscription events.
 
 The paywall applies only to `/monitoring/` and `/monitoring/*`. The incident map,
 network graph, reports, profiles, news, opinion, contact, and homepage remain public.
@@ -125,7 +123,7 @@ npx wrangler pages deploy site --project-name=theglobaldecipher --branch=main
 - **Incidents** tab: add/edit/delete — updates the live map within ~1 min, no rebuild.
 - **Articles & Profiles** tab: pick a folder (News/Opinion/Monitoring/Reports/Profiles/Pages), add/edit/delete — each save commits to GitHub and the site rebuilds in ~1 min.
 - **Maintenance mode** toggle (top right): ON locks the public site behind the maintenance screen; `/admin` stays reachable so you can turn it back off.
-- **Monitoring Desk** is paid at `/monitoring/`; subscribers enter through the Lemon Squeezy checkout and the receipt button returns them to the desk.
+- **Monitoring Desk** is paid at `/monitoring/`; subscribers enter through Safepay checkout and return to the desk after confirmation.
 
 ---
 
@@ -149,7 +147,7 @@ cd worker && npx wrangler tail                                        # live wor
 |---|---|
 | Add/edit/delete an incident | Admin panel → Incidents (instant) |
 | Add/edit/delete an article or profile | Admin panel → Articles & Profiles (rebuild ~1 min) |
-| Change Monitoring subscription price | Lemon Squeezy product variant, then update `LEMONSQUEEZY_VARIANT_ID` if you create a new variant |
+| Change Monitoring subscription price | Safepay subscription plan, then update `SAFEPAY_PLAN_ID` if you create a new plan |
 | Take the site offline | Admin panel → Maintenance mode toggle |
 | Change Worker code | edit `worker/src/*` → `npx wrangler deploy` |
 | Rotate the admin password | `wrangler secret put ADMIN_TOKEN` (also update `TGD_ADMIN_TOKEN` if you still use the issue form) |

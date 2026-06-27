@@ -26,10 +26,10 @@ async function ask(label, { required = true, defaultValue = "" } = {}) {
   }
 }
 
-async function askSecret(label) {
+async function askSecret(label, options = {}) {
   // Keep this simple and avoid echo suppression quirks across terminals. The
   // value is sent directly to wrangler/gh and is not written to project files.
-  return ask(label);
+  return ask(label, options);
 }
 
 function run(command, args, { cwd = ROOT, input = "" } = {}) {
@@ -76,20 +76,31 @@ try {
   console.log("TGD Monitoring Desk paywall setup");
   console.log("Only /monitoring/ is paid. Do not paste bank details here.");
 
-  section("Lemon Squeezy product");
-  const storeId = await ask("Lemon Squeezy store ID");
-  const variantId = await ask("Lemon Squeezy subscription variant ID");
-  setWranglerVar("LEMONSQUEEZY_STORE_ID", storeId);
-  setWranglerVar("LEMONSQUEEZY_VARIANT_ID", variantId);
+  section("Safepay plan");
+  const planId = await ask("Safepay plan ID", {
+    defaultValue: "plan_06e4e6c9-c108-456e-a746-777036fc7553"
+  });
+  const environment = await ask("Safepay environment: sandbox or production", {
+    defaultValue: "sandbox"
+  });
+  const normalizedEnvironment = environment.toLowerCase() === "production" ? "production" : "sandbox";
+  setWranglerVar("SAFEPAY_PLAN_ID", planId);
+  setWranglerVar("SAFEPAY_ENVIRONMENT", normalizedEnvironment);
+  setWranglerVar(
+    "SAFEPAY_API_BASE",
+    normalizedEnvironment === "production"
+      ? "https://api.getsafepay.com"
+      : "https://sandbox.api.getsafepay.com"
+  );
 
   section("Private keys");
-  const apiKey = await askSecret("Lemon Squeezy API key");
-  const webhookSecret = await askSecret("Lemon Squeezy webhook signing secret");
+  const apiKey = await askSecret("Safepay secret key");
+  const webhookSecret = await askSecret("Safepay endpoint shared secret");
   const generatedToken = randomBytes(32).toString("hex");
   const contentDumpToken = await askSecret("Private CONTENT_DUMP_TOKEN", { defaultValue: generatedToken });
 
-  putWorkerSecret("LEMONSQUEEZY_API_KEY", apiKey);
-  putWorkerSecret("LEMONSQUEEZY_WEBHOOK_SECRET", webhookSecret);
+  putWorkerSecret("SAFEPAY_SECRET_KEY", apiKey);
+  putWorkerSecret("SAFEPAY_WEBHOOK_SECRET", webhookSecret);
   putWorkerSecret("CONTENT_DUMP_TOKEN", contentDumpToken);
 
   section("GitHub Actions");
@@ -104,9 +115,9 @@ try {
     run("npx", ["--yes", "wrangler@4", "deploy"], { cwd: WORKER_DIR });
   }
 
-  console.log("\nDone. In Lemon Squeezy, set this webhook URL:");
-  console.log("https://theglobaldecipher.com/api/lemonsqueezy/webhook");
-  console.log("Use the same webhook signing secret you entered above.");
+  console.log("\nDone. In Safepay Developer > Endpoints, use this webhook URL:");
+  console.log("https://theglobaldecipher.com/api/safepay/webhook");
+  console.log("Enable all subscription events and use the endpoint shared secret entered above.");
   console.log("\nNext: commit/push the code changes so Cloudflare Pages rebuilds the site.");
 } catch (error) {
   console.error(`\nSetup stopped: ${error.message}`);

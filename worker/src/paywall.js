@@ -8,7 +8,7 @@ const keys = {
   session: (token) => `monitoring:session:${token}`,
   subscriber: (emailHash) => `monitoring:subscriber:${emailHash}`,
   subscription: (subscriptionId) => `monitoring:subscription:${subscriptionId}`,
-  accessToken: (token) => `monitoring:access-token:${token}`
+  webhook: (eventId) => `monitoring:webhook:${eventId}`
 };
 
 export function monitoringCookieName() {
@@ -51,11 +51,11 @@ async function sha256(value) {
   return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value))));
 }
 
-async function hmacHex(secret, body) {
+async function hmacHex(secret, body, hash = "SHA-256") {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: "HMAC", hash },
     false,
     ["sign"]
   );
@@ -117,7 +117,7 @@ function originFrom(request, env) {
 }
 
 function providerReady(env) {
-  return Boolean(env.LEMONSQUEEZY_API_KEY && env.LEMONSQUEEZY_STORE_ID && env.LEMONSQUEEZY_VARIANT_ID);
+  return Boolean(env.SAFEPAY_SECRET_KEY && env.SAFEPAY_PLAN_ID);
 }
 
 export async function getMonitoringSession(request, env) {
@@ -158,69 +158,48 @@ export async function handleMonitoringCheckout(request, env) {
     product: PRODUCT_KEY,
     email,
     email_hash: emailHash,
-    access_token: accessToken,
     return_to: returnTo.startsWith("/") ? returnTo : "/monitoring/",
-    paid: false,
     created_at: new Date().toISOString()
   };
   await env.INCIDENTS.put(keys.pending(accessToken), JSON.stringify(pending), { expirationTtl: PENDING_TTL_SECONDS });
 
   const returnUrl = `${origin}/api/monitoring/return?token=${encodeURIComponent(accessToken)}`;
-  const checkout = await createLemonCheckout(env, {
-    email,
-    accessToken,
-    emailHash,
-    returnUrl
-  });
+  const cancelUrl = `${origin}/monitoring-access/?cancelled=1`;
+  const checkout = await createSafepayCheckout(env, { returnUrl, cancelUrl });
   return redirect(checkout.url);
 }
 
-async function createLemonCheckout(env, { email, accessToken, emailHash, returnUrl }) {
-  const payload = {
-    data: {
-      type: "checkouts",
-      attributes: {
-        checkout_data: {
-          email,
-          custom: {
-            product: PRODUCT_KEY,
-            access_token: accessToken,
-            email_hash: emailHash
-          }
-        },
-        checkout_options: {
-          embed: false
-        },
-        product_options: {
-          name: "TGD Monitoring Desk",
-          description: "Monthly subscriber access to The Global Decipher Monitoring Desk.",
-          redirect_url: returnUrl,
-          receipt_button_text: "Open Monitoring Desk",
-          receipt_link_url: returnUrl
-        }
-      },
-      relationships: {
-        store: { data: { type: "stores", id: String(env.LEMONSQUEEZY_STORE_ID) } },
-        variant: { data: { type: "variants", id: String(env.LEMONSQUEEZY_VARIANT_ID) } }
-      }
-    }
-  };
-
-  const res = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+async function createSafepayCheckout(env, { returnUrl, cancelUrl }) {
+  const environment = String(env.SAFEPAY_ENVIRONMENT || "sandbox").toLowerCase() === "production"
+    ? "production"
+    : "sandbox";
+  const apiBase = String(
+    env.SAFEPAY_API_BASE ||
+      (environment === "production" ? "https://api.getsafepay.com" : "https://sandbox.api.getsafepay.com")
+  ).replace(/\/+$/, "");
+  const res = await fetch(`${apiBase}/client/passport/v1/token`, {
     method: "POST",
     headers: {
-      accept: "application/vnd.api+json",
-      "content-type": "application/vnd.api+json",
-      authorization: `Bearer ${env.LEMONSQUEEZY_API_KEY}`
+      accept: "application/json",
+      "content-type": "application/json",
+      "x-sfpy-merchant-secret": env.SAFEPAY_SECRET_KEY
     },
-    body: JSON.stringify(payload)
+    body: "{}"
   });
   const data = await res.json().catch(() => ({}));
-  const url = data?.data?.attributes?.url;
-  if (!res.ok || !url) {
-    throw new Error(data?.errors?.[0]?.detail || `Lemon Squeezy checkout failed: HTTP ${res.status}`);
+  const authToken = typeof data?.data === "string" ? data.data : "";
+  if (!res.ok || !authToken) {
+    const detail = data?.message || data?.status?.errors?.[0] || `HTTP ${res.status}`;
+    throw new Error(`Safepay checkout token failed: ${detail}`);
   }
-  return { url };
+
+  const checkout = new URL(`${apiBase}/checkout/auth/login`);
+  checkout.searchParams.set("plan_id", String(env.SAFEPAY_PLAN_ID));
+  checkout.searchParams.set("auth_token", authToken);
+  checkout.searchParams.set("env", environment);
+  checkout.searchParams.set("redirect_url", returnUrl);
+  checkout.searchParams.set("cancel_url", cancelUrl);
+  return { url: checkout.toString() };
 }
 
 export async function handleMonitoringReturn(request, env) {
@@ -228,20 +207,21 @@ export async function handleMonitoringReturn(request, env) {
   const accessToken = url.searchParams.get("token") || "";
   if (!accessToken) return redirect("/monitoring-access/?checkout=missing");
 
-  const emailHash = await env.INCIDENTS.get(keys.accessToken(accessToken));
-  if (emailHash) {
-    const subscriber = await env.INCIDENTS.get(keys.subscriber(emailHash), "json");
-    if (isSubscriberActive(subscriber)) {
-      const sessionToken = await createSession(env, emailHash);
-      return redirect("/monitoring/", { "set-cookie": sessionCookie(sessionToken) });
-    }
-  }
-
   const pending = await env.INCIDENTS.get(keys.pending(accessToken), "json");
-  if (pending?.paid && pending.email_hash) {
+  if (pending?.email_hash) {
     const subscriber = await env.INCIDENTS.get(keys.subscriber(pending.email_hash), "json");
-    if (isSubscriberActive(subscriber)) {
+    const pendingAt = Date.parse(pending.created_at || "");
+    const eventAt = Date.parse(subscriber?.event_created_at || "");
+    const receivedAt = Date.parse(subscriber?.event_received_at || "");
+    const freshPayment =
+      Number.isFinite(pendingAt) &&
+      Number.isFinite(eventAt) &&
+      Number.isFinite(receivedAt) &&
+      eventAt >= pendingAt - 120000 &&
+      receivedAt >= pendingAt;
+    if (freshPayment && isSubscriberActive(subscriber)) {
       const sessionToken = await createSession(env, pending.email_hash);
+      await env.INCIDENTS.delete(keys.pending(accessToken));
       return redirect(pending.return_to || "/monitoring/", { "set-cookie": sessionCookie(sessionToken) });
     }
   }
@@ -262,7 +242,7 @@ a{color:#b91c2c}
 <body>
 <main>
 <h1>Activating your Monitoring Desk access</h1>
-<p>Payment is being confirmed. This page will refresh automatically. If it does not open after a minute, use the receipt link from Lemon Squeezy or contact the desk.</p>
+<p>Safepay is confirming your subscription. This page will refresh automatically. If it does not open after a minute, return to the access page and contact the desk.</p>
 <p><a href="/monitoring-access/">Return to Monitoring access</a></p>
 </main>
 </body>
@@ -284,74 +264,87 @@ async function createSession(env, emailHash) {
   return token;
 }
 
-export async function handleLemonWebhook(request, env, ctx) {
-  if (!env.LEMONSQUEEZY_WEBHOOK_SECRET) return json({ error: "Webhook secret is not configured." }, 500);
+export async function handleSafepayWebhook(request, env) {
+  if (!env.SAFEPAY_WEBHOOK_SECRET) return json({ error: "Webhook secret is not configured." }, 500);
   const raw = await request.text();
-  const sent = request.headers.get("x-signature") || request.headers.get("X-Signature") || "";
-  const expected = await hmacHex(env.LEMONSQUEEZY_WEBHOOK_SECRET, raw);
+  const sent = request.headers.get("x-sfpy-signature") || "";
+  const expected = await hmacHex(env.SAFEPAY_WEBHOOK_SECRET, raw, "SHA-512");
   if (!timingSafeEqual(sent, expected)) return json({ error: "Invalid signature" }, 401);
 
-  const payload = JSON.parse(raw);
-  const event = payload?.meta?.event_name || "";
-  const custom = payload?.meta?.custom_data || payload?.data?.attributes?.custom_data || {};
-  if (custom.product && custom.product !== PRODUCT_KEY) return json({ ok: true, ignored: true });
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+  const event = String(payload?.type || "").replaceAll("_", ".");
+  if (!event.startsWith("subscription.")) return json({ ok: true, ignored: true });
+  const attrs = payload?.data || {};
+  const planId = String(attrs.plan_id || "");
+  if (!planId || planId !== String(env.SAFEPAY_PLAN_ID)) return json({ ok: true, ignored: true });
 
-  const attrs = payload?.data?.attributes || {};
-  const subscriptionId = String(payload?.data?.id || attrs.subscription_id || attrs.first_subscription_item?.subscription_id || "");
-  let email = cleanEmail(attrs.user_email || attrs.customer_email || attrs.email || custom.email || "");
-  let emailHash = custom.email_hash || (email ? await sha256(email) : "");
-  if (!emailHash && subscriptionId) emailHash = (await env.INCIDENTS.get(keys.subscription(subscriptionId))) || "";
-  const existing = emailHash ? await env.INCIDENTS.get(keys.subscriber(emailHash), "json") : null;
-  if (!email && existing?.email) email = existing.email;
-  const accessToken = custom.access_token || existing?.access_token || "";
-  if (!emailHash) return json({ ok: true, ignored: true });
+  const eventId = String(payload?.token || "");
+  if (eventId && await env.INCIDENTS.get(keys.webhook(eventId))) {
+    return json({ ok: true, duplicate: true });
+  }
+
+  const subscriptionId = String(attrs.id || attrs.subscription_id || "");
+  const email = cleanEmail(attrs.customer_email || attrs.email || "");
+  const emailHash = email ? await sha256(email) : "";
+  if (!emailHash || !subscriptionId) return json({ ok: true, ignored: true });
+  const eventReceivedAt = new Date().toISOString();
+  const eventCreatedAt = safepayTimestamp(payload.created_at) || eventReceivedAt;
 
   const subscriber = {
     product: PRODUCT_KEY,
     email,
     email_hash: emailHash,
     subscription_id: subscriptionId,
-    customer_id: attrs.customer_id ? String(attrs.customer_id) : "",
-    order_id: attrs.order_id ? String(attrs.order_id) : "",
+    plan_id: planId,
+    transaction_id: attrs.transaction_id ? String(attrs.transaction_id) : "",
     status: attrs.status || event,
-    active: isActiveStatus(attrs),
-    renews_at: attrs.renews_at || "",
-    ends_at: attrs.ends_at || "",
-    trial_ends_at: attrs.trial_ends_at || "",
-    access_token: accessToken,
-    updated_at: new Date().toISOString(),
+    active: isSafepaySubscriptionActive(event, attrs.status),
+    renews_at: safepayTimestamp(attrs.current_period_end_date),
+    ends_at: safepayTimestamp(attrs.ended_at || attrs.canceled_at || attrs.cancelled_at),
+    event_created_at: eventCreatedAt,
+    event_received_at: eventReceivedAt,
+    updated_at: safepayTimestamp(attrs.updated_at) || eventReceivedAt,
     last_event: event
   };
 
   await env.INCIDENTS.put(keys.subscriber(emailHash), JSON.stringify(subscriber));
   if (subscriptionId) await env.INCIDENTS.put(keys.subscription(subscriptionId), emailHash);
-  if (accessToken) {
-    await env.INCIDENTS.put(keys.accessToken(accessToken), emailHash);
-    const pending = await env.INCIDENTS.get(keys.pending(accessToken), "json");
-    if (pending) {
-      pending.paid = subscriber.active;
-      pending.subscription_id = subscriptionId;
-      pending.status = subscriber.status;
-      pending.updated_at = subscriber.updated_at;
-      await env.INCIDENTS.put(keys.pending(accessToken), JSON.stringify(pending), { expirationTtl: PENDING_TTL_SECONDS });
-    }
+  if (eventId) {
+    await env.INCIDENTS.put(keys.webhook(eventId), eventReceivedAt, { expirationTtl: 60 * 60 * 24 * 7 });
   }
 
-  ctx.waitUntil?.(expireSessionsForInactiveSubscriber(env, subscriber));
   return json({ ok: true });
 }
 
-function isActiveStatus(attrs = {}) {
-  const status = String(attrs.status || "").toLowerCase();
-  if (status === "active" || status === "on_trial") return true;
-  if (status === "cancelled" && Date.parse(attrs.ends_at || "") > Date.now()) return true;
-  return false;
+function safepayTimestamp(value) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? new Date(time).toISOString() : "";
+  }
+  const seconds = Number(value.seconds);
+  if (!Number.isFinite(seconds)) return "";
+  const nanos = Number(value.nanos || 0);
+  return new Date(seconds * 1000 + Math.floor(nanos / 1000000)).toISOString();
+}
+
+function isSafepaySubscriptionActive(event, status) {
+  const normalizedEvent = String(event || "").replaceAll("_", ".").toLowerCase();
+  const normalizedStatus = String(status || "").toLowerCase();
+  if (["subscription.payment.failed", "subscription.canceled", "subscription.cancelled", "subscription.ended", "subscription.paused"].includes(normalizedEvent)) {
+    return false;
+  }
+  return normalizedStatus === "active" || normalizedStatus === "trialing";
 }
 
 function isSubscriberActive(subscriber) {
   if (!subscriber) return false;
-  if (subscriber.active === true) return true;
-  return isActiveStatus(subscriber);
+  return subscriber.active === true;
 }
 
 function publicSubscriber(subscriber) {
@@ -361,11 +354,4 @@ function publicSubscriber(subscriber) {
     renews_at: subscriber.renews_at || "",
     ends_at: subscriber.ends_at || ""
   };
-}
-
-async function expireSessionsForInactiveSubscriber(env, subscriber) {
-  if (isSubscriberActive(subscriber)) return;
-  // KV cannot list by value efficiently; short-lived sessions will expire on
-  // their own. We still remove the reusable receipt/access token immediately.
-  if (subscriber.access_token) await env.INCIDENTS.delete(keys.accessToken(subscriber.access_token));
 }

@@ -11,10 +11,10 @@
 //     GET    /api/content?folder=    public — list articles in a collection (D1)
 //     GET    /api/content/file?path= public — read one article { content, sha }
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
-//     POST   /api/monitoring/checkout public — create Lemon Squeezy checkout
+//     POST   /api/monitoring/checkout public — create Safepay checkout
 //     GET    /api/monitoring/return   public — activate paid Monitoring access
 //     GET    /api/monitoring/me       public — read Monitoring session state
-//     POST   /api/lemonsqueezy/webhook public — Lemon Squeezy subscription events
+//     POST   /api/safepay/webhook     public — Safepay subscription events
 //     PUT    /api/content/file       authed — create/update an article (D1) + trigger Pages rebuild
 //     DELETE /api/content/file       authed — delete an article (D1) + trigger Pages rebuild
 //     POST   /api/media              authed — upload an image, PDF, or DOCX to R2
@@ -42,7 +42,7 @@ import { uploadMedia, readMedia } from "./media.js";
 import { logAudit, listAudit, actorFingerprint } from "./audit.js";
 import { askDatabase } from "./ask.js";
 import {
-  handleLemonWebhook,
+  handleSafepayWebhook,
   handleMonitoringCheckout,
   handleMonitoringLogout,
   handleMonitoringMe,
@@ -52,7 +52,7 @@ import {
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "access-control-allow-headers": "authorization, content-type, x-signature"
+  "access-control-allow-headers": "authorization, content-type, x-sfpy-signature"
 };
 const INCIDENT_CACHE_VERSION = "archive-v4";
 
@@ -164,8 +164,8 @@ export default {
       if (path === "/api/monitoring/logout" && method === "GET") {
         return handleMonitoringLogout();
       }
-      if (path === "/api/lemonsqueezy/webhook" && method === "POST") {
-        return handleLemonWebhook(request, env, ctx);
+      if (path === "/api/safepay/webhook" && method === "POST") {
+        return handleSafepayWebhook(request, env);
       }
 
       // ---- Explorer "Ask the database" (public, rate-limited) ----

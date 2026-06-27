@@ -1954,21 +1954,21 @@ function monitoringAccessPage() {
       <ul>
         <li>Daily and weekly monitoring notes from the TGD desk.</li>
         <li>Public-source leads organized into readable security context.</li>
-        <li>Access opens after Lemon Squeezy confirms the subscription.</li>
+        <li>Access opens after Safepay confirms the subscription.</li>
       </ul>
       <p class="public-note">Looking for the public site? <a href="/">Return home</a>.</p>
     </div>
     <form class="checkout" method="post" action="/api/monitoring/checkout">
       <p class="eyebrow">Monthly access</p>
       <p class="price">$20 <span>/ month</span></p>
-      <p class="note">Secure checkout is handled by Lemon Squeezy. Use the same email for your subscription and receipt.</p>
+      <p class="note">Secure checkout is handled by Safepay. Enter the same email you will use for your Safepay account.</p>
       <label>Email for access
         <input required type="email" name="email" autocomplete="email" placeholder="you@example.com">
       </label>
       <input type="hidden" name="return_to" value="/monitoring/">
       <button type="submit">Subscribe and open Monitoring</button>
       <a class="secondary" href="/contact/">Institutional access or help</a>
-      <p class="note">Already subscribed? Use the "Open Monitoring Desk" link in your Lemon Squeezy receipt.</p>
+      <p class="note">Need access on a new device? Contact the desk using the subscriber email.</p>
     </form>
   </section>
 </main>
@@ -1998,12 +1998,7 @@ function cookieValue(request, name) {
 }
 
 function isSubscriberActive(subscriber) {
-  if (!subscriber) return false;
-  if (subscriber.active === true) return true;
-  const status = String(subscriber.status || "").toLowerCase();
-  if (status === "active" || status === "on_trial") return true;
-  if (status === "cancelled" && Date.parse(subscriber.ends_at || "") > Date.now()) return true;
-  return false;
+  return subscriber?.active === true;
 }
 
 async function hasMonitoringAccess(request, env) {
