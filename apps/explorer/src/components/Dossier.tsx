@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Pane from "./Pane";
 import { useExplorer, selectedEntity } from "../lib/store";
 import CitationText from "./Citation";
@@ -17,6 +17,20 @@ const TABS: { id: Tab; label: string }[] = [
 export default function Dossier() {
   const ent = useExplorer(selectedEntity);
   const [tab, setTab] = useState<Tab>("overview");
+  const availableTabs = ent
+    ? TABS.filter((item) => {
+        if (item.id === "overview") return true;
+        if (item.id === "leadership") return (ent.leaders ?? []).length > 0;
+        if (item.id === "financing") return (ent.financing ?? []).length > 0;
+        if (item.id === "attacks") return (ent.attacks ?? []).length > 0;
+        return (ent.sources ?? []).length > 0;
+      })
+    : TABS.slice(0, 1);
+
+  useEffect(() => {
+    if (!availableTabs.some((item) => item.id === tab)) setTab("overview");
+  }, [availableTabs, tab]);
+
   if (!ent) {
     return (
       <Pane label="Dossier">
@@ -26,9 +40,9 @@ export default function Dossier() {
   }
 
   return (
-    <Pane label="Dossier">
-      <div className="flex border-b-hair border-line-light dark:border-line-dark px-2 sticky top-0 bg-surface-light dark:bg-surface-dark z-10">
-        {TABS.map((t) => (
+    <Pane label="Profile" className="explorer-dossier">
+      <div className="dossier-tabs">
+        {availableTabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -52,15 +66,6 @@ export default function Dossier() {
         {tab === "attacks" && <Attacks ent={ent} />}
         {tab === "sources" && <Sources ent={ent} />}
       </div>
-
-      <div className="sticky bottom-0 p-2 flex gap-2 border-t-hair border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark">
-        <button type="button" className="text-meta border-hair border-line-light dark:border-line-dark px-2 h-8 hover:border-accent hover:text-accent">
-          Export profile (PDF)
-        </button>
-        <button type="button" className="text-meta border-hair border-line-light dark:border-line-dark px-2 h-8 hover:border-accent hover:text-accent">
-          Cite this entry
-        </button>
-      </div>
     </Pane>
   );
 }
@@ -83,8 +88,8 @@ function Overview({ ent }: { ent: Entity }) {
   return (
     <div className="space-y-4">
       {ent.stub && (
-        <p className="text-[12px] text-warning border-l-2 border-warning pl-3">
-          This record is a stub awaiting depth. Schema is complete; some fields are unverified.
+        <p className="text-[13px] text-warning border-l-2 border-warning pl-3">
+          Basic record: verified index facts are available, while deeper narrative and relationship research is still being prepared.
         </p>
       )}
       <p className="leading-[1.6]">

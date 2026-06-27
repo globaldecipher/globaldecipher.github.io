@@ -26,13 +26,10 @@ function writeHash(id: string | null) {
 export function initRouter() {
   if (typeof window === "undefined") return () => {};
   const { byId, select } = useExplorer.getState();
-  // Initial selection from URL — if absent, fall back to ISKP (the demo seed).
+  // A valid hash opens a record directly. Without a hash, show the browse
+  // screen so first-time visitors can understand the database before choosing.
   const fromHash = readHash();
-  const initial = fromHash && byId.has(fromHash)
-    ? fromHash
-    : byId.has("iskp")
-      ? "iskp"
-      : byId.size > 0 ? [...byId.keys()][0] : null;
+  const initial = fromHash && byId.has(fromHash) ? fromHash : null;
   select(initial);
 
   // React to back/forward.

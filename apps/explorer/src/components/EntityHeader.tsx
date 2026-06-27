@@ -1,5 +1,6 @@
 import { useExplorer, selectedEntity } from "../lib/store";
 import type { Entity } from "../types";
+import ProfileActions from "./ProfileActions";
 
 function initials(name: string): string {
   return name
@@ -64,10 +65,10 @@ export default function EntityHeader() {
   const stats = buildStats(ent);
 
   return (
-    <div className="shrink-0 bg-surface-light dark:bg-surface-dark border-b-hair border-line-light dark:border-line-dark">
-      <div className="flex items-start gap-4 px-5 py-3.5">
+    <section className="explorer-profile-header shrink-0 bg-surface-light dark:bg-surface-dark border-b-hair border-line-light dark:border-line-dark" aria-labelledby="entity-title">
+      <div className="entity-header-main">
         <div
-          className={`grid place-items-center h-12 w-12 ${accent.bg} text-white font-semibold text-[13px] shrink-0 ring-2 ${accent.ring}`}
+          className={`grid place-items-center h-11 w-11 sm:h-12 sm:w-12 ${accent.bg} text-white font-semibold text-[13px] shrink-0 ring-2 ${accent.ring}`}
           aria-hidden="true"
         >
           {initials(ent.short ?? ent.name)}
@@ -76,13 +77,11 @@ export default function EntityHeader() {
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
             <span className="pane-label">{accent.label}</span>
-            {ent.stub && (
-              <span className="text-[10px] uppercase tracking-eyebrow text-warning bg-warning/10 border border-warning/30 px-1.5 py-0.5">
-                Stub
-              </span>
-            )}
+            <span className={`coverage-badge ${ent.stub ? "coverage-basic" : "coverage-deep"}`}>
+              {ent.stub ? "Basic record" : "Deep profile"}
+            </span>
           </div>
-          <h1 className="entity-name text-[20px] leading-tight mt-0.5 truncate" title={ent.name}>
+          <h1 id="entity-title" className="entity-name text-[20px] sm:text-[22px] leading-tight mt-0.5" title={ent.name}>
             {ent.name}
           </h1>
           <div className="text-meta text-muted-light dark:text-muted-dark mt-0.5">
@@ -95,8 +94,8 @@ export default function EntityHeader() {
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-1.5 shrink-0 max-w-[44%]">
-          <div className="flex flex-wrap items-center gap-1 justify-end">
+        <div className="entity-header-actions">
+          <div className="designation-list">
             {(ent.designations ?? []).slice(0, 8).map((d, i) => (
               <span
                 key={i}
@@ -108,34 +107,27 @@ export default function EntityHeader() {
               </span>
             ))}
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              className="h-7 px-2 text-[11px] border-hair border-line-light dark:border-line-dark hover:border-accent hover:text-accent"
-            >
-              Cite ↧
-            </button>
-            <button
-              type="button"
-              className="h-7 px-2 text-[11px] bg-accent text-white border border-accent hover:bg-accent/90"
-            >
-              Export PDF
-            </button>
-          </div>
+          <ProfileActions ent={ent} />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-6 border-t-hair border-line-light dark:border-line-dark">
+      {ent.stub && (
+        <p className="basic-record-note">
+          Basic records contain verified index facts and designation context. Empty research panels are hidden until deeper sourcing is complete.
+        </p>
+      )}
+
+      <div className="entity-stats">
         {stats.map((s, i) => (
           <div
             key={i}
-            className="px-5 py-2 border-r-hair border-line-light dark:border-line-dark last:border-r-0"
+            className="px-3 sm:px-5 py-2 border-r-hair border-line-light dark:border-line-dark last:border-r-0"
           >
             <div className="entity-name text-[18px] leading-none">{s.value}</div>
             <div className="pane-label mt-1">{s.label}</div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

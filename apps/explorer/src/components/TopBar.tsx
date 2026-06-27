@@ -13,12 +13,15 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function TopBar() {
   const entities = useExplorer((s) => s.entities);
+  const selectedId = useExplorer((s) => s.selectedId);
+  const selected = useExplorer((s) => (s.selectedId ? s.byId.get(s.selectedId) ?? null : null));
   const select = useExplorer((s) => s.select);
   const toggleAsk = useExplorer((s) => s.toggleAsk);
   const askOpen = useExplorer((s) => s.askOpen);
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -59,6 +62,7 @@ export default function TopBar() {
         setOpen(true);
       } else if (e.key === "Escape") {
         setOpen(false);
+        setMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -87,25 +91,43 @@ export default function TopBar() {
   }
 
   return (
-    <header className="relative flex items-center gap-3 px-4 h-16 border-b-hair border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark shrink-0">
-      <a href="/" className="flex items-center gap-2 shrink-0" aria-label="TGD home">
-        <span className="font-mono text-[10px] tracking-[0.18em] text-muted-light dark:text-muted-dark">THE GLOBAL DECIPHER</span>
-      </a>
-      <span className="text-line-light dark:text-line-dark">/</span>
-      <span className="entity-name text-[15px]">Explorer</span>
+    <header className="explorer-topbar">
+      <div className="flex min-w-0 items-center gap-2 shrink-0">
+        <a href="/" className="brand-link" aria-label="The Global Decipher home">
+          <span className="sm:hidden">TGD</span>
+          <span className="hidden sm:inline">THE GLOBAL DECIPHER</span>
+        </a>
+        <span className="text-line-light dark:text-line-dark" aria-hidden="true">/</span>
+        <button
+          type="button"
+          onClick={() => select(null)}
+          className="entity-name text-[16px] hover:text-accent"
+          aria-current={selectedId ? undefined : "page"}
+        >
+          Explorer
+        </button>
+      </div>
 
-      <div className="relative ml-6 flex-1 max-w-xl">
+      <nav className="site-links" aria-label="TGD sections">
+        <a href="/news/">News</a>
+        <a href="/monitoring/">Monitoring</a>
+        <a href="/incident-map/">Incident Map</a>
+        <a href="/reports/">Reports</a>
+        <a href="/profiles/">Profiles</a>
+      </nav>
+
+      <div className="explorer-search">
         <input
           ref={inputRef}
           type="search"
           spellCheck={false}
-          placeholder="Search organisations, people, attacks…    ⌘K"
+          placeholder="Search organisations and people…    ⌘K"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0); }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKey}
-          className="w-full bg-transparent border-hair border-line-light dark:border-line-dark px-3 h-9 text-meta placeholder:text-dim-light dark:placeholder:text-dim-dark focus:outline-none focus:border-accent"
+          className="w-full bg-transparent border-hair border-line-light dark:border-line-dark px-3 h-10 text-[13px] placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:border-accent"
         />
         {open && flat.length > 0 && (
           <div className="absolute left-0 right-0 top-full mt-1 bg-surface-light dark:bg-surface-dark border-hair border-line-light dark:border-line-dark z-30 shadow-sm max-h-[60vh] overflow-auto">
@@ -148,20 +170,44 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        {selected && !selected.stub && (
+          <button
+            type="button"
+            onClick={() => toggleAsk()}
+            className={
+              "topbar-action " +
+              (askOpen
+                ? "bg-accent text-white border-accent"
+                : "border-line-light dark:border-line-dark text-accent hover:bg-page-light dark:hover:bg-page-dark")
+            }
+            aria-pressed={askOpen}
+          >
+            <span className="hidden sm:inline">Ask the database</span>
+            <span className="sm:hidden">Ask AI</span>
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => toggleAsk()}
-          className={
-            "h-9 px-3 text-meta border-hair font-medium tracking-[0.02em] " +
-            (askOpen
-              ? "bg-accent text-white border-accent"
-              : "border-line-light dark:border-line-dark text-accent hover:bg-page-light dark:hover:bg-page-dark")
-          }
-          aria-pressed={askOpen}
+          onClick={() => setMenuOpen((value) => !value)}
+          className="topbar-action xl:hidden"
+          aria-expanded={menuOpen}
+          aria-controls="explorer-site-menu"
         >
-          Ask the database ↗
+          Menu
         </button>
       </div>
+
+      {menuOpen && (
+        <nav id="explorer-site-menu" className="mobile-site-menu" aria-label="TGD sections">
+          <a href="/news/">News</a>
+          <a href="/opinion/">Opinion</a>
+          <a href="/monitoring/">Monitoring</a>
+          <a href="/incident-map/">Incident Map</a>
+          <a href="/reports/">Reports</a>
+          <a href="/profiles/">Profiles</a>
+          <a href="/contact/">Contact</a>
+        </nav>
+      )}
     </header>
   );
 }

@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import Pane from "./Pane";
 import { useExplorer, selectedEntity } from "../lib/store";
 
-type Layer = "aor" | "attacks" | "leadership" | "financing";
+type Layer = "aor" | "attacks" | "leadership";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
@@ -231,7 +231,7 @@ export default function MapPane() {
       label="Area of Operations"
       toolbar={
         <div className="flex gap-1">
-          {(["aor", "attacks", "leadership", "financing"] as Layer[]).map((l) => (
+          {(["aor", "attacks", "leadership"] as Layer[]).map((l) => (
             <button
               key={l}
               type="button"
@@ -242,8 +242,6 @@ export default function MapPane() {
                   ? "bg-accent border-accent text-white"
                   : "border-line-light dark:border-line-dark text-muted-light dark:text-muted-dark hover:border-accent hover:text-accent")
               }
-              disabled={l === "financing"}
-              title={l === "financing" ? "Coming soon" : undefined}
             >
               {l === "aor" ? "AOR" : l[0].toUpperCase() + l.slice(1)}
             </button>

@@ -168,8 +168,17 @@ export default function Relationships() {
       .data(nodes)
       .join("g")
       .attr("class", "node")
+      .attr("role", "button")
+      .attr("tabindex", 0)
+      .attr("aria-label", (d: any) => `Open ${d.label}`)
       .style("cursor", "pointer")
-      .on("click", (_e, d: any) => select(d.id));
+      .on("click", (_e, d: any) => select(d.id))
+      .on("keydown", (event: KeyboardEvent, d: any) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select(d.id);
+        }
+      });
 
     // Halo (subtle): a soft second ring on the centre node so it reads as anchored
     group.filter((d: any) => d.id === ent.id)
@@ -216,12 +225,22 @@ export default function Relationships() {
       .filter((d: any) => d.id !== ent.id && !expanded.has(d.id))
       .append("g")
       .attr("transform", "translate(14, -14)")
+      .attr("role", "button")
+      .attr("tabindex", 0)
+      .attr("aria-label", (d: any) => `Expand relationships for ${d.label}`)
       .style("cursor", "cell")
       .on("click", (e: any, d: any) => {
         e.stopPropagation();
         setExpanded((set) => new Set(set).add(d.id));
+      })
+      .on("keydown", (event: KeyboardEvent, d: any) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          setExpanded((set) => new Set(set).add(d.id));
+        }
       });
-    handle.append("circle").attr("r", 7).attr("fill", "#185FA5");
+    handle.append("circle").attr("r", 10).attr("fill", "#185FA5");
     handle.append("text")
       .attr("text-anchor", "middle").attr("dy", 4)
       .attr("font-size", 11).attr("fill", "#FFFFFF").attr("font-weight", 700).text("+");

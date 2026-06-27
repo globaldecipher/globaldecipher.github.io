@@ -15,9 +15,9 @@ export default function Pane({ label, toolbar, children, className = "" }: PaneP
         className
       }
     >
-      <header className="flex items-center justify-between px-3 py-2 border-b-hair border-line-light dark:border-line-dark">
-        <span className="pane-label">{label}</span>
-        <div className="flex items-center gap-1.5">{toolbar}</div>
+      <header className="pane-header">
+        <span className="pane-label shrink-0">{label}</span>
+        <div className="pane-toolbar">{toolbar}</div>
       </header>
       <div className="flex-1 min-h-0 min-w-0 overflow-auto">{children}</div>
     </section>

@@ -148,8 +148,17 @@ export default function Timeline() {
       .append("g")
       .attr("class", "event")
       .attr("transform", (d) => `translate(${d.x}, ${baselineY - 12 - d.slot * layerHeight})`)
+      .attr("role", "button")
+      .attr("tabindex", 0)
+      .attr("aria-label", (d) => `${d.date}: ${d.label}`)
       .style("cursor", "pointer")
-      .on("click", (_e, d) => setTimeWindow(d.date, 90));
+      .on("click", (_e, d) => setTimeWindow(d.date, 90))
+      .on("keydown", (event: KeyboardEvent, d) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setTimeWindow(d.date, 90);
+        }
+      });
 
     // Drop line connecting dot to baseline
     dots.append("line")

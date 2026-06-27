@@ -31,7 +31,12 @@ export const useExplorer = create<ExplorerState>((set) => ({
     for (const e of entities) byId.set(e.id, e);
     set({ entities, byId });
   },
-  select: (id) => set({ selectedId: id, timeWindow: null }),
+  select: (id) =>
+    set((state) => ({
+      selectedId: id,
+      timeWindow: null,
+      askOpen: id && !state.byId.get(id)?.stub ? state.askOpen : false
+    })),
   setRelFilter: (f) => set({ relFilter: f }),
   setTimeWindow: (center, deltaDays = 90) =>
     set({ timeWindow: center ? { center, deltaDays } : null }),
