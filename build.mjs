@@ -1863,9 +1863,6 @@ function monitoringAccessPage() {
     display: grid;
     place-items: center;
     padding: 36px 18px;
-    background-image:
-      radial-gradient(900px 520px at 50% -10%, rgba(185, 28, 44, 0.07), transparent 62%),
-      linear-gradient(180deg, rgba(255,255,255,0.55), rgba(243,239,230,0.25));
     -webkit-font-smoothing: antialiased;
   }
   main { width: 100%; max-width: 840px; }
@@ -1934,8 +1931,15 @@ function monitoringAccessPage() {
     border: 1px solid var(--line);
   }
   .note { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
-  .public-note { margin-top: 24px; color: var(--muted); font-size: 13px; }
-  .public-note a { color: var(--red); text-decoration-thickness: 1px; }
+  .included {
+    margin: 0 0 12px;
+    color: var(--ink);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
   @media (max-width: 760px) {
     body { padding: 18px; place-items: start center; }
     .panel { grid-template-columns: 1fr; }
@@ -1947,28 +1951,29 @@ function monitoringAccessPage() {
 <main>
   <section class="panel" aria-labelledby="monitoring-access-title">
     <div class="copy">
-      <p class="eyebrow">TGD Monitoring Desk</p>
-      <h1 id="monitoring-access-title">Subscriber access for the Monitoring desk.</h1>
-      <p class="lede">This paywall applies only to Monitoring. News, Opinion, Incident Map, Network Graph, Reports, Profiles, and Contact remain public.</p>
+      <p class="eyebrow">TGD Intelligence</p>
+      <h1 id="monitoring-access-title">Monitoring Desk</h1>
+      <p class="lede">Continuous open-source security monitoring for Pakistan and the wider region, turned into clear, decision-ready briefings.</p>
       <div class="rule" aria-hidden="true"></div>
+      <p class="included">Membership includes</p>
       <ul>
-        <li>Daily and weekly monitoring notes from the TGD desk.</li>
-        <li>Public-source leads organized into readable security context.</li>
-        <li>Access opens after Safepay confirms the subscription.</li>
+        <li>Incident briefs with key facts, source status, and initial impact.</li>
+        <li>Desk assessments explaining what changed, why it matters, and what to watch next.</li>
+        <li>Coverage of militant activity, security operations, propaganda, and emerging regional risks.</li>
+        <li>Weekly patterns and trend lines drawn from the TGD monitoring archive.</li>
       </ul>
-      <p class="public-note">Looking for the public site? <a href="/">Return home</a>.</p>
     </div>
     <form class="checkout" method="post" action="/api/monitoring/checkout">
-      <p class="eyebrow">Monthly access</p>
+      <p class="eyebrow">Monitoring Desk membership</p>
       <p class="price">$20 <span>/ month</span></p>
-      <p class="note">Secure checkout is handled by Safepay. Enter the same email you will use for your Safepay account.</p>
-      <label>Email for access
+      <p class="note">Full access to the complete Monitoring Desk archive and every new briefing published during your membership.</p>
+      <label>Subscriber email
         <input required type="email" name="email" autocomplete="email" placeholder="you@example.com">
       </label>
       <input type="hidden" name="return_to" value="/monitoring/">
-      <button type="submit">Subscribe and open Monitoring</button>
-      <a class="secondary" href="/contact/">Institutional access or help</a>
-      <p class="note">Need access on a new device? Contact the desk using the subscriber email.</p>
+      <button type="submit">Get Monitoring Desk access</button>
+      <a class="secondary" href="/contact/">Subscriber support</a>
+      <p class="note">Safepay handles secure checkout. Access opens automatically after subscription confirmation.</p>
     </form>
   </section>
 </main>
