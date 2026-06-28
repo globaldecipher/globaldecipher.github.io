@@ -16,7 +16,7 @@ type MobilePane = "profile" | "network" | "timeline" | "map";
 
 function LoadingPane() {
   return (
-    <div className="grid h-full place-items-center border-hair border-line-light bg-surface-light text-meta text-muted-light dark:border-line-dark dark:bg-surface-dark dark:text-muted-dark">
+    <div className="grid h-full place-items-center border border-line-light bg-page-light text-meta text-muted-light dark:border-line-dark dark:bg-page-dark dark:text-muted-dark rounded-editorial">
       Loading map…
     </div>
   );
@@ -160,7 +160,7 @@ export default function App() {
             </>
           ) : (
             <main
-              className="explorer-desktop-grid grid gap-3 p-3 flex-1 min-h-0"
+              className="explorer-desktop-grid grid gap-3 p-3 flex-1 min-h-0 bg-paper2-light dark:bg-paper2-dark"
               style={{
                 gridTemplateColumns: paneCount > 1 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 gridTemplateRows: paneCount > 2 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",

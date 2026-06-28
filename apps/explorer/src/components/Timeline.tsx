@@ -5,7 +5,7 @@ import { useExplorer, selectedEntity } from "../lib/store";
 import type { Entity, TimelineEvent } from "../types";
 
 const EVENT_COLOR: Record<TimelineEvent["type"], string> = {
-  "founded":             "#185FA5",
+  "founded":             "#b91c2c",
   "dissolved":           "#888780",
   "leadership-change":   "#534AB7",
   "split":               "#BA7517",
@@ -82,7 +82,7 @@ export default function Timeline() {
       .attr("y", baselineY - 3)
       .attr("width", Math.max(2, x(maxDate) - x(minDate)))
       .attr("height", 4)
-      .attr("fill", ent.dissolved ? "#888780" : "#185FA5")
+      .attr("fill", ent.dissolved ? "#888780" : "#b91c2c")
       .attr("fill-opacity", ent.dissolved ? 0.25 : 0.18);
 
     // Time-window highlight (when a dot is selected, shade ±delta)
@@ -96,7 +96,7 @@ export default function Timeline() {
         .attr("y", 0)
         .attr("width", Math.max(2, Math.min(w, w1) - Math.max(0, w0)))
         .attr("height", h)
-        .attr("fill", "#185FA5")
+        .attr("fill", "#b91c2c")
         .attr("fill-opacity", 0.05);
     }
 

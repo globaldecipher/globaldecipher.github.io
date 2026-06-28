@@ -48,9 +48,9 @@ export default function Dossier() {
             type="button"
             onClick={() => setTab(t.id)}
             className={
-              "px-3 py-2 text-meta border-b-2 " +
+              "px-4 py-2.5 text-[0.88rem] border-b-2 " +
               (tab === t.id
-                ? "border-accent text-ink-light dark:text-ink-dark font-medium"
+                ? "border-accent text-ink-light dark:text-ink-dark font-semibold"
                 : "border-transparent text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark")
             }
           >
@@ -59,7 +59,7 @@ export default function Dossier() {
         ))}
       </div>
 
-      <div className="p-4 text-body">
+      <div className="p-5 text-body">
         {tab === "overview" && <Overview ent={ent} />}
         {tab === "leadership" && <Leadership ent={ent} />}
         {tab === "financing" && <Financing ent={ent} />}
@@ -72,7 +72,7 @@ export default function Dossier() {
 
 function dl(rows: [string, React.ReactNode][]) {
   return (
-    <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5 text-meta">
+    <dl className="grid grid-cols-[150px_1fr] gap-x-3 gap-y-1.5 text-meta">
       {rows.map(([k, v], i) => (
         <div key={i} className="contents">
           <dt className="pane-label pt-[2px]">{k}</dt>

@@ -55,48 +55,45 @@ export default function AskPanel() {
     setTurns(next);
     setStreaming(true);
     try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          entityId: ent.id,
-          question,
-          context: { entities: contextEntities.map(stripForPrompt) }
-        })
-      });
-      if (!res.ok || !res.body) {
-        const t = await res.text().catch(() => "");
-        throw new Error(`API ${res.status}${t ? `: ${t}` : ""}`);
-      }
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const events = buf.split("\n\n");
-        buf = events.pop() ?? "";
-        for (const ev of events) {
-          const line = ev.split("\n").find((l) => l.startsWith("data:"));
-          if (!line) continue;
-          const payload = line.slice(5).trim();
-          if (!payload || payload === "[DONE]") continue;
-          try {
-            const data = JSON.parse(payload);
-            if (data.type === "content_block_delta" && data.delta?.text) {
-              setTurns((prev) => {
-                const last = prev[prev.length - 1];
-                if (!last || last.role !== "assistant") return prev;
-                const updated = { ...last, content: last.content + data.delta.text };
-                return [...prev.slice(0, -1), updated];
-              });
+      const systemPrompt = `You are a terrorism research analyst for The Global Decipher (TGD). Answer questions based strictly on the structured profile data provided below. Cite source IDs like [src-xyz] when referencing information. Be concise, factual, and analytical. If the data doesn't contain enough information to answer, say so.\n\nEntity data:\n${JSON.stringify(contextEntities.map(stripForPrompt), null, 2)}`;
+
+      const geminiMessages = turns
+        .filter((t) => t.content)
+        .map((t) => ({
+          role: t.role === "user" ? "user" : "model",
+          parts: [{ text: t.content }]
+        }));
+      geminiMessages.push({ role: "user", parts: [{ text: question }] });
+
+      const apiKey = "AIzaSyC92iMaqSmSGBsfnJif01mkmRhMZwqvKfE";
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: geminiMessages,
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 2048
             }
-          } catch { /* ignore */ }
+          })
         }
+      );
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`Gemini API ${res.status}${t ? `: ${t}` : ""}`);
       }
+      const data = await res.json();
+      const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "No response generated.";
+      setTurns((prev) => {
+        const last = prev[prev.length - 1];
+        if (!last || last.role !== "assistant") return prev;
+        return [...prev.slice(0, -1), { ...last, content: answer }];
+      });
     } catch (e: any) {
-      setError(e?.message ?? "Failed to reach the database.");
+      setError(e?.message ?? "Failed to reach the Gemini API.");
     } finally {
       setStreaming(false);
     }
@@ -111,7 +108,7 @@ export default function AskPanel() {
     <aside
       role="dialog"
       aria-label="Ask the database"
-      className="fixed top-0 right-0 bottom-0 w-full sm:w-[440px] bg-surface-light dark:bg-surface-dark border-l-hair border-line-light dark:border-line-dark z-40 flex flex-col shadow-[-20px_0_40px_-20px_rgba(0,0,0,0.25)] dark:shadow-none"
+      className="fixed top-0 right-0 bottom-0 w-full sm:w-[440px] bg-page-light dark:bg-page-dark border-l border-line-light dark:border-line-dark z-40 flex flex-col shadow-[-20px_0_40px_-20px_rgba(0,0,0,0.25)] dark:shadow-none"
     >
       <header className="flex items-center justify-between px-4 h-14 border-b-hair border-line-light dark:border-line-dark">
         <div className="min-w-0">

@@ -56,7 +56,7 @@ export default function EntityHeader() {
 
   if (!ent) {
     return (
-      <div className="px-5 py-4 border-b-hair border-line-light dark:border-line-dark bg-surface-light dark:bg-surface-dark shrink-0">
+      <div className="px-5 py-4 border-b border-line-light dark:border-line-dark bg-page-light dark:bg-page-dark shrink-0">
         <p className="pane-label">No entity selected. Use the search bar above or press ⌘K.</p>
       </div>
     );
@@ -65,10 +65,10 @@ export default function EntityHeader() {
   const stats = buildStats(ent);
 
   return (
-    <section className="explorer-profile-header shrink-0 bg-surface-light dark:bg-surface-dark border-b-hair border-line-light dark:border-line-dark" aria-labelledby="entity-title">
+    <section className="explorer-profile-header shrink-0 bg-page-light dark:bg-page-dark border-b border-line-light dark:border-line-dark" aria-labelledby="entity-title">
       <div className="entity-header-main">
         <div
-          className={`grid place-items-center h-11 w-11 sm:h-12 sm:w-12 ${accent.bg} text-white font-semibold text-[13px] shrink-0 ring-2 ${accent.ring}`}
+          className={`grid place-items-center h-12 w-12 sm:h-14 sm:w-14 rounded-editorial ${accent.bg} text-white font-bold text-[14px] shrink-0 ring-2 ${accent.ring}`}
           aria-hidden="true"
         >
           {initials(ent.short ?? ent.name)}
@@ -81,7 +81,7 @@ export default function EntityHeader() {
               {ent.stub ? "Basic record" : "Deep profile"}
             </span>
           </div>
-          <h1 id="entity-title" className="entity-name text-[20px] sm:text-[22px] leading-tight mt-0.5" title={ent.name}>
+          <h1 id="entity-title" className="entity-name text-[22px] sm:text-[26px] leading-tight mt-0.5" title={ent.name}>
             {ent.name}
           </h1>
           <div className="text-meta text-muted-light dark:text-muted-dark mt-0.5">
@@ -123,7 +123,7 @@ export default function EntityHeader() {
             key={i}
             className="px-3 sm:px-5 py-2 border-r-hair border-line-light dark:border-line-dark last:border-r-0"
           >
-            <div className="entity-name text-[18px] leading-none">{s.value}</div>
+            <div className="entity-name text-[22px] leading-none">{s.value}</div>
             <div className="pane-label mt-1">{s.label}</div>
           </div>
         ))}

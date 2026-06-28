@@ -92,16 +92,16 @@ export default function TopBar() {
 
   return (
     <header className="explorer-topbar">
-      <div className="flex min-w-0 items-center gap-2 shrink-0">
+      <div className="flex min-w-0 items-center gap-3 shrink-0">
         <a href="/" className="brand-link" aria-label="The Global Decipher home">
           <span className="sm:hidden">TGD</span>
           <span className="hidden sm:inline">THE GLOBAL DECIPHER</span>
         </a>
-        <span className="text-line-light dark:text-line-dark" aria-hidden="true">/</span>
+        <span className="text-line-light dark:text-line-dark select-none" aria-hidden="true">/</span>
         <button
           type="button"
           onClick={() => select(null)}
-          className="entity-name text-[16px] hover:text-accent"
+          className="entity-name text-[17px] hover:text-accent"
           aria-current={selectedId ? undefined : "page"}
         >
           Explorer
@@ -110,6 +110,7 @@ export default function TopBar() {
 
       <nav className="site-links" aria-label="TGD sections">
         <a href="/news/">News</a>
+        <a href="/opinion/">Opinion</a>
         <a href="/monitoring/">Monitoring</a>
         <a href="/incident-map/">Incident Map</a>
         <a href="/reports/">Reports</a>
@@ -127,13 +128,13 @@ export default function TopBar() {
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKey}
-          className="w-full bg-transparent border-hair border-line-light dark:border-line-dark px-3 h-10 text-[13px] placeholder:text-muted-light dark:placeholder:text-muted-dark focus:outline-none focus:border-accent"
+          className="w-full bg-transparent border border-line-light dark:border-line-dark rounded-editorial px-4 h-10 text-[0.88rem] placeholder:text-dim-light dark:placeholder:text-dim-dark focus:outline-none focus:border-accent"
         />
         {open && flat.length > 0 && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-surface-light dark:bg-surface-dark border-hair border-line-light dark:border-line-dark z-30 shadow-sm max-h-[60vh] overflow-auto">
+          <div className="absolute left-0 right-0 top-full mt-1 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark rounded-editorial z-30 shadow-editorial-md max-h-[60vh] overflow-auto">
             {grouped.map(([type, list]) => (
               <div key={type}>
-                <div className="pane-label px-3 pt-2 pb-1">{TYPE_LABEL[type] ?? type}</div>
+                <div className="pane-label px-4 pt-3 pb-1">{TYPE_LABEL[type] ?? type}</div>
                 {list.map((e) => {
                   const idx = flat.indexOf(e);
                   return (
@@ -143,21 +144,21 @@ export default function TopBar() {
                       onMouseDown={() => pick(e)}
                       onMouseEnter={() => setHighlight(idx)}
                       className={
-                        "w-full text-left px-3 py-2 grid grid-cols-[1fr_auto] gap-3 items-center " +
+                        "w-full text-left px-4 py-2.5 grid grid-cols-[1fr_auto] gap-3 items-center " +
                         (idx === highlight
-                          ? "bg-page-light dark:bg-page-dark"
+                          ? "bg-paper2-light dark:bg-paper2-dark"
                           : "")
                       }
                     >
                       <div>
-                        <div className="entity-name text-meta">{e.name}</div>
+                        <div className="entity-name text-[0.92rem]">{e.name}</div>
                         {e.aliases && e.aliases.length > 0 && (
-                          <div className="text-[11px] text-muted-light dark:text-muted-dark truncate">
+                          <div className="text-[0.72rem] text-muted-light dark:text-muted-dark truncate">
                             {e.aliases.slice(0, 3).join(" · ")}
                           </div>
                         )}
                       </div>
-                      <span className="text-[10px] uppercase tracking-eyebrow text-dim-light dark:text-dim-dark">
+                      <span className="text-[0.68rem] uppercase tracking-eyebrow text-dim-light dark:text-dim-dark font-mono">
                         {e.country ?? e.region ?? ""}
                       </span>
                     </button>
@@ -193,7 +194,7 @@ export default function TopBar() {
           aria-expanded={menuOpen}
           aria-controls="explorer-site-menu"
         >
-          Menu
+          {menuOpen ? "✕" : "Menu"}
         </button>
       </div>
 

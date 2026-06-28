@@ -11,7 +11,7 @@ export default function Pane({ label, toolbar, children, className = "" }: PaneP
   return (
     <section
       className={
-        "flex flex-col min-h-0 min-w-0 bg-surface-light dark:bg-surface-dark border-hair border-line-light dark:border-line-dark " +
+        "flex flex-col min-h-0 min-w-0 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark rounded-editorial " +
         className
       }
     >

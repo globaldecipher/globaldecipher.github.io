@@ -7,13 +7,13 @@ import type { Entity, RelationshipType } from "../types";
 const EDGE_COLOR: Record<RelationshipType, string> = {
   "split-from":       "#BA7517",
   "successor":        "#BA7517",
-  "parent":           "#185FA5",
+  "parent":           "#b91c2c",
   "allied":           "#3B6D11",
   "rival":            "#A32D2D",
   "financed-by":      "#534AB7",
   "ideological-link": "#888780",
-  "member-of":        "#185FA5",
-  "leads":            "#185FA5"
+  "member-of":        "#b91c2c",
+  "leads":            "#b91c2c"
 };
 
 const FILTERS = [
@@ -185,14 +185,14 @@ export default function Relationships() {
       .append("circle")
       .attr("r", 22)
       .attr("fill", "none")
-      .attr("stroke", "#185FA5")
+      .attr("stroke", "#b91c2c")
       .attr("stroke-opacity", 0.18);
 
     const r = (d: any) => (d.id === ent.id ? 14 : 9);
     group.append("circle")
       .attr("r", r)
-      .attr("fill", (d: any) => (d.id === ent.id ? "#185FA5" : "#FFFFFF"))
-      .attr("stroke", (d: any) => (d.id === ent.id ? "#0E4581" : d.stub ? "#9A9893" : "#16181D"))
+      .attr("fill", (d: any) => (d.id === ent.id ? "#b91c2c" : "#FFFFFF"))
+      .attr("stroke", (d: any) => (d.id === ent.id ? "#8b1420" : d.stub ? "#9A9893" : "#16181D"))
       .attr("stroke-width", 1.1);
 
     // Type glyph in centre of node (initial letter)
@@ -240,7 +240,7 @@ export default function Relationships() {
           setExpanded((set) => new Set(set).add(d.id));
         }
       });
-    handle.append("circle").attr("r", 10).attr("fill", "#185FA5");
+    handle.append("circle").attr("r", 10).attr("fill", "#b91c2c");
     handle.append("text")
       .attr("text-anchor", "middle").attr("dy", 4)
       .attr("font-size", 11).attr("fill", "#FFFFFF").attr("font-weight", 700).text("+");
