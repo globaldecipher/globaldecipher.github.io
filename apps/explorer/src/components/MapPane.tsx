@@ -7,6 +7,16 @@ import { useExplorer, selectedEntity } from "../lib/store";
 type Layer = "aor" | "attacks" | "leadership";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const ENGLISH_LABEL = ["coalesce", ["get", "name_en"], ["get", "name:latin"], ["get", "name"]] as any;
+
+function preferEnglishLabels(map: maplibregl.Map) {
+  for (const layer of map.getStyle().layers ?? []) {
+    if (layer.type !== "symbol") continue;
+    const textField = layer.layout?.["text-field"];
+    if (!textField || !/name:(?:nonlatin|latin)|name_en/.test(JSON.stringify(textField))) continue;
+    map.setLayoutProperty(layer.id, "text-field", ENGLISH_LABEL);
+  }
+}
 
 export default function MapPane() {
   const ent = useExplorer(selectedEntity);
@@ -26,6 +36,7 @@ export default function MapPane() {
       antialias: true
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.once("load", () => preferEnglishLabels(map));
     mapRef.current = map;
     // Keep the canvas inside the pane — MapLibre captures its container size
     // once at init, so we have to feed it layout changes explicitly.

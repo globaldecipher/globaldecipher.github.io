@@ -14,11 +14,16 @@ crons = ["*/5 * * * *"]
 #   SAFEPAY_SECRET_KEY             creates Monitoring Desk checkouts
 #   SAFEPAY_WEBHOOK_SECRET         verifies Safepay webhooks
 #   CONTENT_DUMP_TOKEN             protects Monitoring content during builds
+#   GEMINI_API_KEY                 powers the Explorer research assistant
 [vars]
 X_USERNAME = "Global_Decipher"
 GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
 GITHUB_BRANCH = "main"
 SITE_URL = "https://theglobaldecipher.com"
+GEMINI_MODEL = "gemini-3.5-flash"
+# Conservative caps keep the public assistant practical on Gemini's free tier.
+ASK_HOURLY_LIMIT = "8"
+ASK_GLOBAL_DAILY_LIMIT = "400"
 # Safepay sandbox plan created for the Monitoring Desk.
 SAFEPAY_PLAN_ID = "plan_06e4e6c9-c108-456e-a746-777036fc7553"
 SAFEPAY_ENVIRONMENT = "sandbox"

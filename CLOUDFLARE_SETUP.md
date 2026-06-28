@@ -66,6 +66,18 @@ npx wrangler deploy
 ```
 `X_USERNAME`, `GITHUB_REPO`, `GITHUB_BRANCH` are already set in `wrangler.toml`.
 
+**Explorer Gemini assistant (free tier):**
+1. Create a new Gemini API key in Google AI Studio. Do not reuse a key that has
+   appeared in browser code or Git history.
+2. Keep the AI Studio project on the free tier while usage is small.
+3. Store the key only in the Worker:
+```bash
+npx wrangler secret put GEMINI_API_KEY
+```
+The Worker defaults to `gemini-3.5-flash`, sends only the selected public TGD
+profile context, and caps visitors at 8 questions per hour plus a site-wide
+daily ceiling. Change those non-secret limits in `worker/wrangler.toml`.
+
 **Monitoring Desk paywall (Safepay):**
 1. In Safepay, create a monthly subscription plan named **TGD Monitoring Desk** at **$20/month**.
 2. Copy the Plan ID into `worker/wrangler.toml` as `SAFEPAY_PLAN_ID`.
@@ -138,6 +150,7 @@ Workers & Pages so it isn't running for nothing.
 curl https://theglobaldecipher.com/api/incidents | head -c 200       # feed
 curl https://theglobaldecipher.com/api/maintenance                   # {"on":false}
 curl -I https://theglobaldecipher.com/monitoring/                    # should show the Monitoring access page until subscribed
+# POST /api/ask from the Explorer after GEMINI_API_KEY is configured
 # open /admin, log in, add a test incident, toggle maintenance on/off
 cd worker && npx wrangler tail                                        # live worker logs
 ```

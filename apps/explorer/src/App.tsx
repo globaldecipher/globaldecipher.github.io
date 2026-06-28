@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import type { EntityDataset } from "./types";
 import { selectedEntity, useExplorer } from "./lib/store";
 import { initRouter } from "./lib/router";
@@ -61,6 +61,14 @@ export default function App() {
 
   useEffect(() => {
     setMobilePane("profile");
+  }, [ent?.id]);
+
+  useLayoutEffect(() => {
+    // The browse directory can be several screens tall. A selected profile is
+    // a new research view, so never inherit the directory's scroll position.
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    window.scrollTo(0, 0);
   }, [ent?.id]);
 
   useEffect(() => {

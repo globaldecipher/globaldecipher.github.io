@@ -51,15 +51,54 @@ const RELTYPE_MAP = {
   "member-of": "member-of"
 };
 
+// A small number of legacy records predate explicit entity typing. Keep these
+// corrections close to the transformer so every generated Explorer dataset
+// receives the same research-safe classification.
+const TYPE_OVERRIDES = {
+  "tehreek-e-taliban-pakistan": "organization",
+  "baitullah-mehsud": "person",
+  "org-al-qaeda": "organization",
+  "org-islamic-state": "organization",
+  "org-iskp": "organization",
+  "sanaullah-ghafari": "person",
+  "hafiz-saeed": "person",
+  "masood-azhar": "person",
+  "balochistan-liberation-army": "organization"
+};
+
+const NAME_OVERRIDES = {
+  "org-al-qaeda": "Al-Qaeda",
+  "org-islamic-state": "Islamic State",
+  "org-iskp": "Islamic State Khorasan Province"
+};
+
+// The deep ISKP profile is canonical. Redirect the old index-only record so
+// search and relationship views do not show two versions of the same group.
+const ID_REDIRECTS = {
+  "org-iskp": "iskp"
+};
+
 function mapRelType(t) {
   if (!t) return "ideological-link";
   return RELTYPE_MAP[t.toLowerCase()] || "ideological-link";
 }
 
+function canonicalId(id) {
+  return ID_REDIRECTS[id] || id;
+}
+
+function normalizeStatus(status) {
+  const value = String(status || "").trim();
+  if (!value) return "active";
+  if (/^un[- ]listed$/i.test(value)) return "UN-listed";
+  return value.toLowerCase();
+}
+
 function entityFromNode(node) {
   const isOrg = !node.type || node.type === "organisation" || node.type === "organization";
   const isPerson = node.type === "individual" || node.type === "person";
-  const type = isPerson ? "person" : isOrg ? "organization" : "front";
+  const type = TYPE_OVERRIDES[node.id] || (isPerson ? "person" : isOrg ? "organization" : "front");
+  const id = canonicalId(node.id);
 
   // Pull legacy sources by id reference
   const sources = (node.sources || [])
@@ -76,11 +115,11 @@ function entityFromNode(node) {
   });
 
   return {
-    id: node.id,
+    id,
     type,
-    name: node.label || node.id.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    name: NAME_OVERRIDES[node.id] || node.label || id.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     aliases: node.aliases || [],
-    status: (node.status || "").toLowerCase() || (type === "person" ? "active" : "active"),
+    status: normalizeStatus(node.status),
     ideology: node.category || node.role || "",
     region: node.region || "South Asia",
     country: node.country || "Pakistan",
@@ -92,16 +131,31 @@ function entityFromNode(node) {
   };
 }
 
-const baseEntities = (pak.nodes || []).map(entityFromNode);
+const baseById = new Map();
+for (const node of pak.nodes || []) {
+  const entity = entityFromNode(node);
+  const existing = baseById.get(entity.id);
+  baseById.set(entity.id, existing ? {
+    ...existing,
+    ...entity,
+    aliases: [...new Set([...(existing.aliases || []), ...(entity.aliases || [])])],
+    sources: [...new Map([...(existing.sources || []), ...(entity.sources || [])].map((source) => [source.id, source])).values()],
+    designations: [...(existing.designations || []), ...(entity.designations || [])]
+  } : entity);
+}
+const baseEntities = [...baseById.values()];
 
 // Map legacy edges into relationship arrays on each source entity.
 for (const e of pak.edges || []) {
   if (!e?.source || !e?.target) continue;
-  const owner = baseEntities.find((x) => x.id === e.source);
+  const source = canonicalId(e.source);
+  const target = canonicalId(e.target);
+  if (source === target) continue;
+  const owner = baseById.get(source);
   if (!owner) continue;
   owner.relationships = owner.relationships || [];
   owner.relationships.push({
-    to: e.target,
+    to: target,
     type: mapRelType(e.type),
     note: e.label
   });

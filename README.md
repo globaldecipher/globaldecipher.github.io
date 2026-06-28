@@ -2,7 +2,7 @@
 
 Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.
 
-**Live site:** https://globaldecipher.github.io
+**Live site:** https://theglobaldecipher.com
 
 The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opinion, monitoring updates, monthly reports, and threat-actor / organisation profiles, plus two interactive tools: a **Pakistan incident map** and a **militant network graph**. Editors and interns manage everything — incidents, articles, profiles — from a web **admin panel** at `/admin` (one shared password), which also has a **maintenance-mode** switch that takes the public site offline. An optional cron can still auto-import incidents from X.
 
@@ -14,7 +14,7 @@ The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opin
 |---|---|
 | Site generator | Custom static-site builder in a single file, [`build.mjs`](build.mjs) (~2,000 lines). **Zero npm dependencies** — pure Node.js stdlib (`node:fs`, `node:path`). Hand-rolled Markdown parser, HTML templating (template literals), RSS/Atom feed, sitemap, robots.txt, and JSON search index. |
 | Content | Markdown + front-matter files under [`content/`](content) (`news`, `opinion`, `monitoring`, `reports`, `profiles`, `pages`). |
-| Frontend | Vanilla JS, no framework. [`main.js`](static/main.js) (client-side search), [`incident-map.js`](static/incident-map.js) (interactive map), [`network-graph.js`](static/network-graph.js) (network graph) + CSS. The map and graph are hand-built from SVG/JSON — no Leaflet/D3/Mapbox. |
+| Frontend | Vanilla JS for the publication shell and incident map; React/Vite, D3, and MapLibre for the research Explorer under [`apps/explorer/`](apps/explorer). |
 | Data | JSON under [`static/data/`](static/data) — `incidents.json`, `network-*.json`. |
 | Build runtime | Node.js 22. |
 | Hosting | Cloudflare Pages (static site) on `theglobaldecipher.com`. |
@@ -36,7 +36,7 @@ static/           ← CSS, JS, brand images, and static JSON data
   data/           ← network graphs, district coords; incidents.json (seed only)
 build.mjs         ← static-site builder (also emits /admin, maintenance.html, _worker.js)
 worker/           ← Cloudflare Worker: incident feed + admin API + maintenance flag
-  src/            ← index.js (entry), feed.js, x.js, github.js
+  src/            ← index.js (entry), ask.js, feed.js, content.js, media.js
   wrangler.toml   ← Worker config (KV binding, cron, route)
 .github/
   workflows/      ← GitHub Actions (deploy + content/incident publishing)
@@ -76,12 +76,13 @@ See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.
 
 | File | Role |
 |---|---|
-| `index.js` | `fetch()` API (incidents CRUD, content CRUD, maintenance toggle, auth) + `scheduled()` cron (X import + prune) |
+| `index.js` | `fetch()` API (incidents CRUD, content CRUD, Explorer AI, maintenance toggle, auth) + `scheduled()` cron (X import + prune) |
+| `ask.js` | Source-bound Gemini proxy with private credentials and free-tier-friendly limits |
 | `x.js` | X (Twitter) account polling → incident objects (optional) |
 | `github.js` | GitHub Contents API wrapper — list/read/write/delete Markdown under `content/` |
 | `feed.js` | district lookup, date/archive helpers, KV read/write, merge/dedupe/prune |
 
-Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron, route `theglobaldecipher.com/api/*`, vars `X_USERNAME`/`GITHUB_REPO`/`GITHUB_BRANCH`. Secrets (`wrangler secret put`): `ADMIN_TOKEN` (admin password), `GITHUB_TOKEN` (Contents: write), `X_BEARER_TOKEN` (optional). The Pages project also needs a `MAINTENANCE_KV` binding to the same KV namespace.
+Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron, route `theglobaldecipher.com/api/*`, and non-secret model/rate-limit settings. Secrets (`wrangler secret put`): `ADMIN_TOKEN`, `GITHUB_TOKEN`, `GEMINI_API_KEY`, plus optional integrations. The Pages project also needs a `MAINTENANCE_KV` binding to the same KV namespace.
 
 ### Admin panel (`static/admin.js`, `/admin`)
 

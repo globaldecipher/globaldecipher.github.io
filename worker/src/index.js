@@ -22,7 +22,7 @@
 //     GET    /                       health check
 //
 // KV binding: INCIDENTS   D1 binding: CONTENT_DB
-// Secrets: ADMIN_TOKEN, X_BEARER_TOKEN (optional), PAGES_DEPLOY_HOOK (optional)
+// Secrets: ADMIN_TOKEN, GEMINI_API_KEY, X_BEARER_TOKEN (optional), PAGES_DEPLOY_HOOK (optional)
 // Vars: X_USERNAME
 
 import {

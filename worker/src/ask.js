@@ -1,124 +1,231 @@
-// /api/ask — Explorer's "Ask the database" panel.
+// /api/ask — source-bound Gemini assistant for TGD Explorer.
 //
-// The client posts: { entityId: string, question: string, context: { entities: Entity[] } }
+// The browser sends public structured profile data to this Worker. The Worker
+// keeps the Gemini credential private, enforces small free-tier-friendly
+// limits, and returns one concise answer with TGD source IDs.
 //
-// The Worker proxies to the Anthropic Messages API with a locked system prompt
-// that forbids any answer not grounded in the provided structured data and
-// requires `[src-…]` citations. Streaming SSE flows straight back to the
-// browser unaltered so the React panel can render token-by-token.
+// Secret:
+//   GEMINI_API_KEY — set with `wrangler secret put GEMINI_API_KEY`
 //
-// Keys & limits:
-//   ANTHROPIC_API_KEY  — secret (wrangler secret put ANTHROPIC_API_KEY)
-//   ANTHROPIC_MODEL    — optional var; defaults to claude-sonnet-4-6
-//   ASK_RATE_LIMIT_KV  — optional KV binding for IP-keyed rate-limit (10 / hour)
+// Optional non-secret vars:
+//   GEMINI_MODEL          defaults to gemini-3.5-flash
+//   ASK_HOURLY_LIMIT      defaults to 8 requests per visitor
+//   ASK_GLOBAL_DAILY_LIMIT defaults to 400 requests across the site
 
-const CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "POST, OPTIONS",
-  "access-control-allow-headers": "content-type"
-};
-const MAX_QUESTION_LEN = 1500;
-const MAX_CONTEXT_BYTES = 180_000; // ~45k tokens of context max
+const MAX_QUESTION_LEN = 700;
+const MAX_CONTEXT_BYTES = 100_000;
+const MAX_HISTORY_TURNS = 6;
+const MAX_HISTORY_CHARS = 12_000;
+const DEFAULT_HOURLY_LIMIT = 8;
+const DEFAULT_GLOBAL_DAILY_LIMIT = 400;
+const DEFAULT_MODEL = "gemini-3.5-flash";
+const ALLOWED_ROLES = new Set(["user", "assistant"]);
 
-function json(body, status = 200, extra = {}) {
+function cors(request, env) {
+  const configured = String(env.SITE_URL || "https://theglobaldecipher.com").replace(/\/+$/, "");
+  const origin = request.headers.get("origin");
+  const allowed = !origin || origin === configured || origin === "https://www.theglobaldecipher.com"
+    || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return {
+    allowed,
+    headers: {
+      "access-control-allow-origin": allowed && origin ? origin : configured,
+      "access-control-allow-methods": "POST, OPTIONS",
+      "access-control-allow-headers": "content-type",
+      "access-control-max-age": "86400",
+      "vary": "Origin"
+    }
+  };
+}
+
+function json(request, env, body, status = 200, extra = {}) {
+  const { headers } = cors(request, env);
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...CORS, ...extra }
+    headers: { "content-type": "application/json; charset=utf-8", ...headers, ...extra }
   });
 }
 
-async function clientIp(request) {
-  const cf = request.headers.get("cf-connecting-ip");
-  if (cf) return cf;
-  return request.headers.get("x-forwarded-for") || "unknown";
+function positiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-async function rateLimited(env, ip) {
-  if (!env.INCIDENTS) return false; // KV not bound — skip
-  const key = `ask:rl:${ip}:${Math.floor(Date.now() / 3_600_000)}`;
-  const raw = await env.INCIDENTS.get(key);
-  const n = Number(raw || 0);
-  if (n >= 10) return true;
-  // 1h TTL (slightly larger than the window so the slot survives the count)
-  await env.INCIDENTS.put(key, String(n + 1), { expirationTtl: 4000 });
-  return false;
+function clientIp(request) {
+  return request.headers.get("cf-connecting-ip")
+    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || "unknown";
 }
 
-export async function askDatabase(request, env, ctx) {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+async function consumeRateLimit(env, ip) {
+  if (!env.INCIDENTS) return null;
+  const hour = Math.floor(Date.now() / 3_600_000);
+  const day = Math.floor(Date.now() / 86_400_000);
+  const visitorKey = `ask:visitor:${hour}:${ip}`;
+  const globalKey = `ask:global:${day}`;
+  const [visitorRaw, globalRaw] = await Promise.all([
+    env.INCIDENTS.get(visitorKey),
+    env.INCIDENTS.get(globalKey)
+  ]);
+  const visitorCount = Number(visitorRaw || 0);
+  const globalCount = Number(globalRaw || 0);
+  const visitorLimit = positiveInt(env.ASK_HOURLY_LIMIT, DEFAULT_HOURLY_LIMIT);
+  const globalLimit = positiveInt(env.ASK_GLOBAL_DAILY_LIMIT, DEFAULT_GLOBAL_DAILY_LIMIT);
+
+  if (visitorCount >= visitorLimit) return "visitor";
+  if (globalCount >= globalLimit) return "global";
+
+  await Promise.all([
+    env.INCIDENTS.put(visitorKey, String(visitorCount + 1), { expirationTtl: 4000 }),
+    env.INCIDENTS.put(globalKey, String(globalCount + 1), { expirationTtl: 90_000 })
+  ]);
+  return null;
+}
+
+function cleanHistory(input) {
+  if (!Array.isArray(input)) return [];
+  let used = 0;
+  const result = [];
+  for (const turn of input.slice(-MAX_HISTORY_TURNS)) {
+    const role = String(turn?.role || "");
+    const content = String(turn?.content || "").trim();
+    if (!ALLOWED_ROLES.has(role) || !content) continue;
+    const remaining = MAX_HISTORY_CHARS - used;
+    if (remaining <= 0) break;
+    const bounded = content.slice(0, remaining);
+    result.push({
+      role: role === "assistant" ? "model" : "user",
+      parts: [{ text: bounded }]
+    });
+    used += bounded.length;
+  }
+  return result;
+}
+
+function profileContext(entities) {
+  return entities.map((entity) => ({
+    id: entity?.id,
+    name: entity?.name,
+    aliases: entity?.aliases,
+    type: entity?.type,
+    founded: entity?.founded,
+    dissolved: entity?.dissolved,
+    status: entity?.status,
+    ideology: entity?.ideology,
+    country: entity?.country,
+    countries: entity?.countries,
+    summary: entity?.summary,
+    designations: entity?.designations,
+    leaders: entity?.leaders,
+    financing: entity?.financing,
+    attacks: entity?.attacks,
+    relationships: entity?.relationships,
+    sources: entity?.sources
+  }));
+}
+
+export async function askDatabase(request, env) {
+  const access = cors(request, env);
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: access.headers });
+  }
+  if (!access.allowed) return json(request, env, { error: "This endpoint is available only from TGD Explorer." }, 403);
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > MAX_CONTEXT_BYTES + MAX_HISTORY_CHARS + 5000) {
+    return json(request, env, { error: "The selected research context is too large. Open a narrower profile." }, 413);
+  }
 
   let payload;
-  try { payload = await request.json(); }
-  catch { return json({ error: "Invalid JSON body" }, 400); }
+  try {
+    payload = await request.json();
+  } catch {
+    return json(request, env, { error: "Invalid request." }, 400);
+  }
 
   const question = String(payload?.question || "").trim();
   const entityId = String(payload?.entityId || "").trim();
   const entities = Array.isArray(payload?.context?.entities) ? payload.context.entities : [];
+  if (!question) return json(request, env, { error: "Enter a research question." }, 400);
+  if (!entityId || entities.length === 0) return json(request, env, { error: "Open a researched profile before asking." }, 400);
+  if (question.length > MAX_QUESTION_LEN) {
+    return json(request, env, { error: `Keep the question under ${MAX_QUESTION_LEN} characters.` }, 413);
+  }
 
-  if (!question) return json({ error: "Missing question" }, 400);
-  if (!entityId) return json({ error: "Missing entityId" }, 400);
-  if (entities.length === 0) return json({ error: "Missing context.entities" }, 400);
-  if (question.length > MAX_QUESTION_LEN) return json({ error: "Question too long" }, 413);
-
-  const contextJson = JSON.stringify(entities);
+  const contextJson = JSON.stringify(profileContext(entities));
   if (contextJson.length > MAX_CONTEXT_BYTES) {
-    return json({ error: "Context too large; narrow the selection." }, 413);
+    return json(request, env, { error: "The selected research context is too large. Open a narrower profile." }, 413);
+  }
+  if (!env.GEMINI_API_KEY) {
+    return json(request, env, { error: "The research assistant is being configured. The sourced profiles remain available." }, 503);
   }
 
-  if (!env.ANTHROPIC_API_KEY) {
-    return json({ error: "ANTHROPIC_API_KEY not configured on Worker." }, 503);
+  const limited = await consumeRateLimit(env, clientIp(request));
+  if (limited === "visitor") {
+    return json(request, env, { error: "You have reached the hourly research-assistant limit. Please try again later." }, 429);
   }
-
-  const ip = await clientIp(request);
-  if (await rateLimited(env, ip)) {
-    return json({ error: "Rate limit reached. Try again in an hour." }, 429);
+  if (limited === "global") {
+    return json(request, env, { error: "Today’s free research-assistant allowance is full. Please try again tomorrow." }, 429);
   }
 
   const system = [
-    "You are a research assistant for The Global Decipher (TGD), a Pakistan-focused terrorism research database.",
-    "You may ONLY answer using the structured profile data provided below. Do not introduce any fact that is not present in the data.",
-    "For every factual claim, cite the source id in square brackets — e.g. [src-iskp-1]. Use the source ids exactly as they appear in the data.",
-    "If the data does not contain the answer, say so explicitly. Do not speculate.",
-    "Be concise. Researchers value precision over volume.",
-    "When asked for comparison, structure as side-by-side bullet points.",
+    "You are the source-bound research assistant for The Global Decipher (TGD), a terrorism research database.",
+    "Answer only from the structured TGD profile data supplied below. Never add outside facts or guess.",
+    "Every factual sentence must include one or more exact source IDs in square brackets, for example [src-iskp-1].",
+    "If the supplied data cannot answer the question, say exactly what is missing.",
+    "Distinguish confirmed facts, reported claims, analytical assessments, and unknowns.",
+    "Do not provide operational guidance that could facilitate violence, targeting, weapons construction, recruitment, financing, concealment, or evasion. Redirect such requests to high-level historical or prevention-focused analysis.",
+    "Use neutral research language. Do not glorify organisations or individuals.",
+    "Prefer concise paragraphs or a small comparison table. End with a one-sentence verification note.",
     "",
-    `The active entity is "${entityId}".`,
+    `Active entity ID: ${entityId}`,
     "",
-    "Structured profile data follows (JSON). Do not output JSON; write English prose with bracketed citations.",
-    "",
+    "Structured TGD profile data (JSON):",
     contextJson
   ].join("\n");
 
-  const model = env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+  const model = String(env.GEMINI_MODEL || DEFAULT_MODEL);
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const contents = cleanHistory(payload?.history);
+  contents.push({ role: "user", parts: [{ text: question }] });
+
+  const upstream = await fetch(endpoint, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01"
+      "x-goog-api-key": env.GEMINI_API_KEY
     },
     body: JSON.stringify({
-      model,
-      max_tokens: 1500,
-      system,
-      stream: true,
-      messages: [{ role: "user", content: question }]
+      system_instruction: { parts: [{ text: system }] },
+      contents,
+      generationConfig: {
+        temperature: 0.15,
+        maxOutputTokens: 900
+      }
     })
   });
 
-  if (!upstream.ok || !upstream.body) {
-    const text = await upstream.text().catch(() => "");
-    return json({ error: "Upstream error", detail: text.slice(0, 400) }, upstream.status || 502);
+  const data = await upstream.json().catch(() => null);
+  if (!upstream.ok) {
+    console.error(JSON.stringify({
+      message: "Gemini request failed",
+      status: upstream.status,
+      model,
+      upstreamStatus: data?.error?.status || "unknown"
+    }));
+    const error = upstream.status === 429
+      ? "The free Gemini allowance is temporarily exhausted. Please try again later."
+      : "The research assistant is temporarily unavailable.";
+    return json(request, env, { error }, upstream.status === 429 ? 429 : 502);
   }
 
-  // Pass the SSE stream through directly. Cloudflare workers handle this natively.
-  return new Response(upstream.body, {
-    status: 200,
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      "connection": "keep-alive",
-      ...CORS
-    }
-  });
+  const answer = data?.candidates?.[0]?.content?.parts
+    ?.map((part) => part?.text || "")
+    .join("")
+    .trim();
+  if (!answer) {
+    return json(request, env, { error: "Gemini did not return a source-grounded answer. Try a narrower question." }, 502);
+  }
+
+  return json(request, env, { answer, model });
 }

@@ -765,8 +765,34 @@ svg [role="button"]:focus-visible circle {
   }
   .dark .entity-stats > div:nth-child(-n+3) { border-color: theme(colors.line.dark); }
   .pane-header { min-height: 46px; padding: 8px 10px; }
-  .pane-toolbar { max-width: 76%; }
+  .pane-header:has(.pane-toolbar:not(:empty)) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .pane-toolbar:not(:empty) {
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+  }
+  .pane-toolbar:not(:empty) > div {
+    width: 100%;
+    flex-wrap: wrap;
+  }
   .pane-toolbar button { min-height: 34px; white-space: nowrap; }
+  .dossier-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+    overflow: visible;
+    padding: 0 4px;
+  }
+  .dossier-tabs button {
+    min-width: 0;
+    padding: 10px 5px;
+    font-size: 0.76rem;
+  }
+  .explorer-dossier dl {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
 }
 
 @media print {
