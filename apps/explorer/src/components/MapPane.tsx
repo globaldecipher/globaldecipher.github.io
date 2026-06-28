@@ -6,7 +6,7 @@ import { useExplorer, selectedEntity } from "../lib/store";
 
 type Layer = "aor" | "attacks" | "leadership";
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export default function MapPane() {
   const ent = useExplorer(selectedEntity);
@@ -82,8 +82,8 @@ export default function MapPane() {
             "heatmap-opacity": 0.7,
             "heatmap-color": [
               "interpolate", ["linear"], ["heatmap-density"],
-              0, "rgba(24,95,165,0)",
-              0.2, "rgba(24,95,165,0.18)",
+              0, "rgba(185,28,44,0)",
+              0.2, "rgba(185,28,44,0.18)",
               0.5, "rgba(186,117,23,0.5)",
               0.8, "rgba(163,45,45,0.8)",
               1, "rgba(163,45,45,0.95)"
@@ -140,9 +140,9 @@ export default function MapPane() {
           const p = f.properties || {};
           const [lng, lat] = (f.geometry as any).coordinates;
           const html = `
-            <div style="font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.45; max-width: 220px;">
+            <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; line-height: 1.45; max-width: 220px;">
               <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B6B6B;">${p.date}</div>
-              <div style="font-family: 'Source Serif Pro', Georgia, serif; font-weight: 500; font-size: 14px; margin: 2px 0 4px;">${p.label}</div>
+              <div style="font-family: 'Source Serif 4', Georgia, serif; font-weight: 500; font-size: 14px; margin: 2px 0 4px;">${p.label}</div>
               <div style="color: #A32D2D; font-weight: 600;">${p.casualties || 0} killed</div>
               ${p.attackType ? `<div style="color: #6B6B6B; font-size: 11px; margin-top: 2px;">${p.attackType}</div>` : ""}
               ${p.summary ? `<div style="margin-top: 6px;">${p.summary}</div>` : ""}
@@ -174,7 +174,7 @@ export default function MapPane() {
           source: "tgd-leadership-src",
           paint: {
             "circle-radius": 16,
-            "circle-color": "#185FA5",
+            "circle-color": "#b91c2c",
             "circle-opacity": 0.18
           }
         });
@@ -184,7 +184,7 @@ export default function MapPane() {
           source: "tgd-leadership-src",
           paint: {
             "circle-radius": 7,
-            "circle-color": "#185FA5",
+            "circle-color": "#b91c2c",
             "circle-stroke-color": "#FFFFFF",
             "circle-stroke-width": 2
           }
@@ -194,7 +194,7 @@ export default function MapPane() {
           const [lng, lat] = (f.geometry as any).coordinates;
           new maplibregl.Popup({ closeButton: true, maxWidth: "240px" })
             .setLngLat([lng, lat])
-            .setHTML(`<div style="font-family:'Inter',sans-serif;font-size:12px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6B6B6B;">Primary base</div><div style="font-family:'Source Serif Pro',Georgia,serif;font-weight:500;font-size:14px;margin-top:2px;">${f.properties?.label ?? "Headquarters"}</div></div>`)
+            .setHTML(`<div style="font-family:'IBM Plex Sans',sans-serif;font-size:12px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6B6B6B;">Primary base</div><div style="font-family:'Source Serif 4',Georgia,serif;font-weight:500;font-size:14px;margin-top:2px;">${f.properties?.label ?? "Headquarters"}</div></div>`)
             .addTo(map);
         });
       }

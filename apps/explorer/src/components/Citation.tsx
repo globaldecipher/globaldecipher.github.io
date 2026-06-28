@@ -60,7 +60,7 @@ function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
         <span
           role="tooltip"
           id={`pop-${id}`}
-          className="absolute left-0 top-full mt-1 w-72 z-20 bg-surface-light dark:bg-surface-dark border-hair border-line-light dark:border-line-dark p-2 text-[12px] leading-snug shadow-sm"
+          className="absolute left-0 top-full mt-1 w-72 z-20 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark p-2 text-[12px] leading-snug shadow-editorial"
         >
           <span className="block font-medium text-ink-light dark:text-ink-dark">{src.title}</span>
           <span className="block text-muted-light dark:text-muted-dark mt-1">
