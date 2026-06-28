@@ -2300,8 +2300,7 @@ input:focus-visible {
     .band,
     .threat-board,
     .desk-section,
-    .pitch-band,
-    .article-band {
+    .pitch-band {
       animation: section-zoom-in linear both;
       animation-timeline: view();
       animation-range: entry 0% cover 22%;
@@ -2944,4 +2943,3 @@ input:focus-visible {
   }
   .hero-map { transform: none !important; }
 }
-
