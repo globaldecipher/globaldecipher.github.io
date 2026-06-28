@@ -1695,7 +1695,7 @@ function adminPage() {
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260626-table-heal" defer></script>
+<script src="/assets/admin.js?v=20260629-fatality-split" defer></script>
 </body>
 </html>
 `;

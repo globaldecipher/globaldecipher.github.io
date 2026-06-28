@@ -375,6 +375,26 @@
   ];
   const SEV_CHIP = { High: "chip chip-high", Medium: "chip chip-medium", Low: "chip chip-low" };
 
+  function incidentFatalityBreakdown(incident = {}) {
+    const source = incident.fatality_breakdown || incident.fatalities_breakdown || incident.fatalities_by || {};
+    const value = (...keys) => {
+      for (const key of keys) {
+        if (source[key] != null && source[key] !== "") return Number(source[key]) || 0;
+      }
+      return 0;
+    };
+    const forces = value("forces", "security_forces", "force", "forces_casualties");
+    const terrorists = value("terrorists", "militants", "militant", "militants_casualties");
+    const civilians = value("civilians", "civilian", "civilian_casualties");
+    const total = Number(incident.fatalities) || 0;
+    return {
+      forces,
+      terrorists,
+      civilians,
+      unclassified: Math.max(0, total - forces - terrorists - civilians)
+    };
+  }
+
   async function renderIncidents(view) {
     view.append(pageHead(
       "Incidents",
@@ -526,6 +546,7 @@
 
   function incidentForm(view, existing) {
     const it = existing || {};
+    const existingFatalities = incidentFatalityBreakdown(it);
     const f = {};
     const add = (key, label, opts) => {
       const { wrap, input } = makeField(label, opts, it[key]);
@@ -577,7 +598,8 @@
       // ---- Actors & casualties ----
       section("Actors & casualties", "Who was involved, and the human toll. Use the slash-separated convention to capture both sides where applicable (e.g. “Security Forces / TTP”).",
         add("actor", "Reported actor(s)", { default: it.actor || "Unidentified", datalist: ACTORS, wide: true, placeholder: "e.g. Security Forces / Tehreek-e-Taliban Pakistan (TTP)", hint: "Pick from suggestions for known groups, or enter custom. Use “/” to list two sides." }),
-        add("fatalities", "Fatalities", { type: "number", min: 0, default: 0, hint: "Confirmed dead, including attackers if known." }),
+        add("security_forces_fatalities", "Security forces fatalities", { type: "number", min: 0, default: existingFatalities.forces, hint: "Confirmed security personnel killed." }),
+        add("terrorist_fatalities", "Terrorist fatalities", { type: "number", min: 0, default: existingFatalities.terrorists, hint: "Confirmed terrorists or militants killed." }),
         add("injuries", "Injuries", { type: "number", min: 0, default: 0, hint: "Reported wounded." })
       ),
 
@@ -609,6 +631,11 @@
     if (!title) return toast("Headline is required.", "err");
     if (!district) return toast("District / area is required.", "err");
     if (!summary) return toast("Brief summary is required.", "err");
+    const existingFatalities = incidentFatalityBreakdown(existing);
+    const forcesFatalities = Number(f.security_forces_fatalities.value) || 0;
+    const terroristFatalities = Number(f.terrorist_fatalities.value) || 0;
+    const breakdownChanged = forcesFatalities !== existingFatalities.forces || terroristFatalities !== existingFatalities.terrorists;
+    const unclassifiedFatalities = breakdownChanged ? 0 : existingFatalities.unclassified;
     const id = existing.id || `${date}-${slug(district || "incident")}-${slug(title)}`;
     const incident = {
       id, date,
@@ -624,7 +651,12 @@
       actor: f.actor.value.trim() || "Unidentified",
       status: f.status.value.trim() || "Initial report",
       severity: f.severity.value,
-      fatalities: Number(f.fatalities.value) || 0,
+      fatalities: forcesFatalities + terroristFatalities + existingFatalities.civilians + unclassifiedFatalities,
+      fatality_breakdown: {
+        forces: forcesFatalities,
+        terrorists: terroristFatalities,
+        civilians: existingFatalities.civilians
+      },
       injuries: Number(f.injuries.value) || 0,
       summary,
       source: f.source.value.trim() || "TGD Desk",
