@@ -8,9 +8,10 @@
 //   GEMINI_API_KEY — set with `wrangler secret put GEMINI_API_KEY`
 //
 // Optional non-secret vars:
-//   GEMINI_MODEL          defaults to gemini-3.5-flash
+//   GEMINI_MODEL          defaults to gemini-3.1-flash-lite
 //   GEMINI_FALLBACK_MODEL defaults to gemini-2.5-flash
-//   GEMINI_RETRY_DELAY_MS defaults to 300ms
+//   GEMINI_REQUEST_TIMEOUT_MS defaults to 12000ms per model call
+//   ASK_TOTAL_TIMEOUT_MS  defaults to 15000ms across primary + fallback
 //   ASK_HOURLY_LIMIT      defaults to 8 requests per visitor
 //   ASK_GLOBAL_DAILY_LIMIT defaults to 400 requests across the site
 
@@ -20,11 +21,12 @@ const MAX_HISTORY_TURNS = 6;
 const MAX_HISTORY_CHARS = 12_000;
 const DEFAULT_HOURLY_LIMIT = 8;
 const DEFAULT_GLOBAL_DAILY_LIMIT = 400;
-const DEFAULT_MODEL = "gemini-3.5-flash";
+const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash";
-const DEFAULT_RETRY_DELAY_MS = 300;
+const DEFAULT_REQUEST_TIMEOUT_MS = 12_000;
+const DEFAULT_TOTAL_TIMEOUT_MS = 15_000;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
-const RETRYABLE_GEMINI_STATUSES = new Set([0, 429, 500, 502, 503, 504]);
+const FALLBACK_GEMINI_STATUSES = new Set([0, 408, 429, 500, 502, 503, 504]);
 
 function cors(request, env) {
   const configured = String(env.SITE_URL || "https://theglobaldecipher.com").replace(/\/+$/, "");
@@ -129,15 +131,21 @@ function profileContext(entities) {
   }));
 }
 
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function geminiEndpoint(model) {
   return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 }
 
-async function callGemini(model, apiKey, body) {
+function requestBodyForModel(base, model) {
+  const generationConfig = { ...base.generationConfig };
+  if (/^gemini-3(?:\.|-)/.test(model)) {
+    generationConfig.thinkingConfig = { thinkingLevel: "low" };
+  }
+  return { ...base, generationConfig };
+}
+
+async function callGemini(model, apiKey, body, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const upstream = await fetch(geminiEndpoint(model), {
       method: "POST",
@@ -145,7 +153,8 @@ async function callGemini(model, apiKey, body) {
         "content-type": "application/json",
         "x-goog-api-key": apiKey
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(requestBodyForModel(body, model)),
+      signal: controller.signal
     });
     const data = await upstream.json().catch(() => null);
     return {
@@ -157,14 +166,19 @@ async function callGemini(model, apiKey, body) {
       upstreamMessage: String(data?.error?.message || "").slice(0, 240)
     };
   } catch (error) {
+    const timedOut = error?.name === "AbortError";
     return {
       ok: false,
       status: 0,
       model,
       data: null,
-      upstreamStatus: "NETWORK_ERROR",
-      upstreamMessage: String(error?.message || "Network request failed").slice(0, 240)
+      upstreamStatus: timedOut ? "TIMEOUT" : "NETWORK_ERROR",
+      upstreamMessage: timedOut
+        ? `Gemini did not respond within ${timeoutMs}ms`
+        : String(error?.message || "Network request failed").slice(0, 240)
     };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -179,8 +193,8 @@ function logGeminiFailure(result, attempt) {
   }));
 }
 
-function isRetryableGeminiFailure(result) {
-  return !result.ok && RETRYABLE_GEMINI_STATUSES.has(result.status);
+function shouldUseFallback(result) {
+  return !result.ok && FALLBACK_GEMINI_STATUSES.has(result.status);
 }
 
 export async function askDatabase(request, env) {
@@ -245,7 +259,14 @@ export async function askDatabase(request, env) {
 
   const model = String(env.GEMINI_MODEL || DEFAULT_MODEL);
   const fallbackModel = String(env.GEMINI_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL);
-  const retryDelay = Math.min(positiveInt(env.GEMINI_RETRY_DELAY_MS, DEFAULT_RETRY_DELAY_MS), 1000);
+  const requestTimeout = Math.min(
+    positiveInt(env.GEMINI_REQUEST_TIMEOUT_MS, DEFAULT_REQUEST_TIMEOUT_MS),
+    DEFAULT_REQUEST_TIMEOUT_MS
+  );
+  const totalTimeout = Math.min(
+    positiveInt(env.ASK_TOTAL_TIMEOUT_MS, DEFAULT_TOTAL_TIMEOUT_MS),
+    DEFAULT_TOTAL_TIMEOUT_MS
+  );
   const contents = cleanHistory(payload?.history);
   contents.push({ role: "user", parts: [{ text: question }] });
 
@@ -254,29 +275,36 @@ export async function askDatabase(request, env) {
     contents,
     generationConfig: {
       temperature: 0.15,
-      maxOutputTokens: 900
+      maxOutputTokens: 600
     }
   };
 
-  let result = await callGemini(model, env.GEMINI_API_KEY, requestBody);
+  const deadline = Date.now() + totalTimeout;
+  const availableTime = () => Math.min(requestTimeout, Math.max(1, deadline - Date.now()));
+
+  let result = await callGemini(model, env.GEMINI_API_KEY, requestBody, availableTime());
   if (!result.ok) logGeminiFailure(result, "primary");
 
-  if (isRetryableGeminiFailure(result)) {
-    await wait(retryDelay);
-    result = await callGemini(model, env.GEMINI_API_KEY, requestBody);
-    if (!result.ok) logGeminiFailure(result, "primary-retry");
-  }
-
-  if (isRetryableGeminiFailure(result) && fallbackModel && fallbackModel !== model) {
-    result = await callGemini(fallbackModel, env.GEMINI_API_KEY, requestBody);
+  if (
+    shouldUseFallback(result)
+    && fallbackModel
+    && fallbackModel !== model
+    && deadline - Date.now() > 200
+  ) {
+    result = await callGemini(fallbackModel, env.GEMINI_API_KEY, requestBody, availableTime());
     if (!result.ok) logGeminiFailure(result, "fallback");
   }
 
   if (!result.ok) {
-    const error = result.status === 429
+    if (result.upstreamStatus === "TIMEOUT" || Date.now() >= deadline) {
+      return json(request, env, {
+        error: "The research assistant reached its 15-second limit. Please try a narrower question."
+      }, 504);
+    }
+    const message = result.status === 429
       ? "The free Gemini allowance is temporarily exhausted. Please try again later."
       : "The research assistant is temporarily unavailable.";
-    return json(request, env, { error }, result.status === 429 ? 429 : 502);
+    return json(request, env, { error: message }, result.status === 429 ? 429 : 502);
   }
 
   const answer = result.data?.candidates?.[0]?.content?.parts
