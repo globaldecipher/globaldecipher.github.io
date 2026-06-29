@@ -123,7 +123,7 @@ export default function App() {
     ? ([
         ["profile", "Profile"],
         panes.network ? ["network", "Network"] : null,
-        panes.timeline ? ["timeline", "Timeline"] : null,
+        panes.timeline ? ["timeline", "Events"] : null,
         panes.map ? ["map", "Map"] : null
       ].filter(Boolean) as [MobilePane, string][])
     : [];
