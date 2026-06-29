@@ -122,7 +122,7 @@ export default function App() {
   const mobilePanes = panes
     ? ([
         ["profile", "Profile"],
-        panes.network ? ["network", "Network"] : null,
+        panes.network ? ["network", "Connections"] : null,
         panes.timeline ? ["timeline", "Events"] : null,
         panes.map ? ["map", "Map"] : null
       ].filter(Boolean) as [MobilePane, string][])
