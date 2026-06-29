@@ -8,13 +8,11 @@ interface ExplorerState {
   byId: Map<string, Entity>;
   selectedId: string | null;
   relFilter: RelFilter;
-  timeWindow: { center: string; deltaDays: number } | null;
   askOpen: boolean;
 
   hydrate: (entities: Entity[]) => void;
   select: (id: string | null) => void;
   setRelFilter: (f: RelFilter) => void;
-  setTimeWindow: (center: string | null, deltaDays?: number) => void;
   toggleAsk: (open?: boolean) => void;
 }
 
@@ -23,7 +21,6 @@ export const useExplorer = create<ExplorerState>((set) => ({
   byId: new Map(),
   selectedId: null,
   relFilter: "all",
-  timeWindow: null,
   askOpen: false,
 
   hydrate: (entities) => {
@@ -34,12 +31,9 @@ export const useExplorer = create<ExplorerState>((set) => ({
   select: (id) =>
     set((state) => ({
       selectedId: id,
-      timeWindow: null,
       askOpen: id && !state.byId.get(id)?.stub ? state.askOpen : false
     })),
   setRelFilter: (f) => set({ relFilter: f }),
-  setTimeWindow: (center, deltaDays = 90) =>
-    set({ timeWindow: center ? { center, deltaDays } : null }),
   toggleAsk: (open) => set((s) => ({ askOpen: typeof open === "boolean" ? open : !s.askOpen }))
 }));
 

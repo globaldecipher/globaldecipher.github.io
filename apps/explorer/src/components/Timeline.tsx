@@ -5,230 +5,319 @@ import { useExplorer, selectedEntity } from "../lib/store";
 import type { Entity, TimelineEvent } from "../types";
 
 const EVENT_COLOR: Record<TimelineEvent["type"], string> = {
-  "founded":             "#b91c2c",
-  "dissolved":           "#888780",
-  "leadership-change":   "#534AB7",
-  "split":               "#BA7517",
-  "merger":              "#3B6D11",
-  "attack":              "#A32D2D",
-  "designation":         "#16181D"
+  founded: "#b91c2c",
+  dissolved: "#888780",
+  "leadership-change": "#534AB7",
+  split: "#BA7517",
+  merger: "#3B6D11",
+  attack: "#A32D2D",
+  designation: "#64748B"
 };
 
+const EVENT_LABEL: Record<TimelineEvent["type"], string> = {
+  founded: "Founded",
+  dissolved: "Dissolved",
+  "leadership-change": "Leadership",
+  split: "Split",
+  merger: "Merger",
+  attack: "Attack",
+  designation: "Designation"
+};
+
+function eventKey(event: TimelineEvent) {
+  return `${event.date}::${event.type}::${event.label}`;
+}
+
 function collectEvents(ent: Entity): TimelineEvent[] {
-  const out: TimelineEvent[] = [...(ent.events ?? [])];
-  for (const a of ent.attacks ?? []) {
-    if (a.date) out.push({
-      date: a.date,
+  const explicit = [...(ent.events ?? [])];
+  const coveredDates = new Set(explicit.map((event) => `${event.date}::${event.type}`));
+  const attacks = (ent.attacks ?? [])
+    .filter((attack) => attack.date && !coveredDates.has(`${attack.date}::attack`))
+    .map((attack): TimelineEvent => ({
+      date: attack.date,
       type: "attack",
-      label: `${a.location ?? "Attack"} — ${a.casualties ?? "?"} killed`,
-      significance: a.casualties ? Math.min(1, Math.log10(Math.max(2, a.casualties)) / 2.4) : 0.5,
-      sources: a.sources
-    });
-  }
-  const seen = new Set<string>();
-  return out.filter((e) => {
-    const k = `${e.date}::${e.label}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  }).sort((a, b) => a.date.localeCompare(b.date));
+      label: `${attack.location ?? "Attack"} — ${attack.casualties ?? "unknown number"} killed`,
+      significance: attack.casualties
+        ? Math.min(1, Math.log10(Math.max(2, attack.casualties)) / 2.4)
+        : 0.5,
+      sources: attack.sources
+    }));
+
+  return [...explicit, ...attacks].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function formatDate(value: string) {
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(date);
 }
 
 export default function Timeline() {
   const ent = useExplorer(selectedEntity);
-  const setTimeWindow = useExplorer((s) => s.setTimeWindow);
-  const timeWindow = useExplorer((s) => s.timeWindow);
   const ref = useRef<SVGSVGElement | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const events = useMemo(() => (ent ? collectEvents(ent) : []), [ent]);
+  const selectedEvent = useMemo(
+    () => events.find((event) => eventKey(event) === selectedKey) ?? null,
+    [events, selectedKey]
+  );
+
+  useEffect(() => {
+    setSelectedKey(null);
+  }, [ent?.id]);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const ro = new ResizeObserver(() => {
-      const r = node.getBoundingClientRect();
-      setSize((prev) => (prev.w === r.width && prev.h === r.height ? prev : { w: r.width, h: r.height }));
+    const observer = new ResizeObserver(() => {
+      const rect = node.getBoundingClientRect();
+      setSize((previous) => (
+        previous.w === rect.width && previous.h === rect.height
+          ? previous
+          : { w: rect.width, h: rect.height }
+      ));
     });
-    ro.observe(node);
-    return () => ro.disconnect();
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
     const svg = d3.select(ref.current);
     svg.selectAll("*").remove();
     if (!ref.current || !ent || events.length === 0) return;
+
     const rect = ref.current.getBoundingClientRect();
     const width = size.w || rect.width;
     const height = size.h || rect.height;
     if (width === 0 || height === 0) {
-      const id = requestAnimationFrame(() => setSize({ w: rect.width, h: rect.height }));
-      return () => cancelAnimationFrame(id);
-    }
-    const margin = { top: 36, right: 20, bottom: 30, left: 20 };
-    const w = width - margin.left - margin.right;
-    const h = height - margin.top - margin.bottom;
-
-    const minDate = ent.founded ? new Date(ent.founded) : d3.min(events, (e) => new Date(e.date))!;
-    const maxDate = ent.dissolved ? new Date(ent.dissolved) : new Date();
-    const x = d3.scaleTime().domain([minDate, maxDate]).range([0, w]).nice();
-    const r = d3.scaleSqrt().domain([0, 1]).range([3, 11]);
-
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-    const baselineY = h - 8;
-
-    // Period band (founded → dissolved or today)
-    g.append("rect")
-      .attr("x", x(minDate))
-      .attr("y", baselineY - 3)
-      .attr("width", Math.max(2, x(maxDate) - x(minDate)))
-      .attr("height", 4)
-      .attr("fill", ent.dissolved ? "#888780" : "#b91c2c")
-      .attr("fill-opacity", ent.dissolved ? 0.25 : 0.18);
-
-    // Time-window highlight (when a dot is selected, shade ±delta)
-    if (timeWindow) {
-      const c = new Date(timeWindow.center);
-      const delta = timeWindow.deltaDays * 86400_000;
-      const w0 = x(new Date(c.getTime() - delta));
-      const w1 = x(new Date(c.getTime() + delta));
-      g.append("rect")
-        .attr("x", Math.max(0, w0))
-        .attr("y", 0)
-        .attr("width", Math.max(2, Math.min(w, w1) - Math.max(0, w0)))
-        .attr("height", h)
-        .attr("fill", "#b91c2c")
-        .attr("fill-opacity", 0.05);
+      const frame = requestAnimationFrame(() => setSize({ w: rect.width, h: rect.height }));
+      return () => cancelAnimationFrame(frame);
     }
 
-    // Axis
-    const axis = d3.axisBottom(x).ticks(Math.max(4, Math.floor(w / 110))).tickSizeOuter(0);
-    const axisG = g.append("g")
+    const margin = { top: 18, right: 18, bottom: 28, left: 18 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const firstDate = ent.founded ? new Date(ent.founded) : d3.min(events, (event) => new Date(event.date))!;
+    const lastEventDate = d3.max(events, (event) => new Date(event.date))!;
+    const lastDate = ent.dissolved
+      ? new Date(ent.dissolved)
+      : d3.max([lastEventDate, new Date()])!;
+    const x = d3.scaleTime().domain([firstDate, lastDate]).range([0, chartWidth]).nice();
+    const radius = d3.scaleSqrt().domain([0, 1]).range([4, 8]);
+    const root = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const baselineY = chartHeight - 2;
+
+    const axis = d3.axisBottom(x)
+      .ticks(Math.max(4, Math.floor(chartWidth / 105)))
+      .tickSizeOuter(0);
+    const axisGroup = root.append("g")
       .attr("transform", `translate(0,${baselineY})`)
       .call(axis as any);
-    axisG.selectAll("text")
+    axisGroup.selectAll("text")
       .attr("font-family", "'IBM Plex Mono', monospace")
       .attr("font-size", 10)
       .attr("fill", "currentColor")
-      .attr("opacity", 0.8);
-    axisG.selectAll(".domain").attr("stroke", "currentColor").attr("stroke-opacity", 0.25);
-    axisG.selectAll(".tick line").attr("stroke", "currentColor").attr("stroke-opacity", 0.18);
+      .attr("opacity", 0.75);
+    axisGroup.selectAll(".domain")
+      .attr("stroke", "currentColor")
+      .attr("stroke-opacity", 0.3);
+    axisGroup.selectAll(".tick line")
+      .attr("stroke", "currentColor")
+      .attr("stroke-opacity", 0.16);
 
-    // Year tick markers above baseline
     const yearTicks = x.ticks(d3.timeYear.every(2)!);
-    g.append("g")
+    root.append("g")
       .selectAll("line")
       .data(yearTicks)
       .join("line")
-      .attr("x1", (d) => x(d))
-      .attr("x2", (d) => x(d))
-      .attr("y1", baselineY - 4)
-      .attr("y2", 6)
+      .attr("x1", (date) => x(date))
+      .attr("x2", (date) => x(date))
+      .attr("y1", 0)
+      .attr("y2", baselineY)
       .attr("stroke", "currentColor")
-      .attr("stroke-opacity", 0.05)
+      .attr("stroke-opacity", 0.055)
       .attr("stroke-dasharray", "1 3");
 
-    // Stack events when they collide on x
-    const positioned = events.map((e) => ({ ...e, x: x(new Date(e.date)) }));
-    const layerHeight = 22;
-    const slotCount = Math.max(3, Math.floor((baselineY - 14) / layerHeight));
+    const positioned = events.map((event) => ({ ...event, x: x(new Date(event.date)) }));
+    const layerHeight = 20;
+    const slotCount = Math.max(2, Math.floor((baselineY - 8) / layerHeight));
     const lastInSlot: number[] = Array(slotCount).fill(-Infinity);
-    const minGap = 22;
-    const withLayer = positioned.map((e) => {
+    const withLayer = positioned.map((event) => {
       let slot = 0;
-      for (let i = 0; i < slotCount; i++) {
-        if (e.x - lastInSlot[i] > minGap) { slot = i; break; }
-        if (i === slotCount - 1) { slot = i; }
+      for (let index = 0; index < slotCount; index++) {
+        if (event.x - lastInSlot[index] > 20) {
+          slot = index;
+          break;
+        }
+        if (index === slotCount - 1) slot = index;
       }
-      lastInSlot[slot] = e.x;
-      return { ...e, slot };
+      lastInSlot[slot] = event.x;
+      return { ...event, slot };
     });
 
-    const dots = g.selectAll("g.event")
-      .data(withLayer).enter()
+    const selected = withLayer.find((event) => eventKey(event) === selectedKey);
+    if (selected) {
+      root.append("line")
+        .attr("x1", selected.x)
+        .attr("x2", selected.x)
+        .attr("y1", 0)
+        .attr("y2", baselineY)
+        .attr("stroke", EVENT_COLOR[selected.type])
+        .attr("stroke-width", 1.25)
+        .attr("stroke-dasharray", "2 3")
+        .attr("stroke-opacity", 0.55);
+    }
+
+    const dots = root.selectAll("g.key-event")
+      .data(withLayer)
+      .enter()
       .append("g")
-      .attr("class", "event")
-      .attr("transform", (d) => `translate(${d.x}, ${baselineY - 12 - d.slot * layerHeight})`)
+      .attr("class", "key-event")
+      .attr("transform", (event) => (
+        `translate(${event.x}, ${baselineY - 12 - event.slot * layerHeight})`
+      ))
       .attr("role", "button")
       .attr("tabindex", 0)
-      .attr("aria-label", (d) => `${d.date}: ${d.label}`)
+      .attr("aria-label", (event) => `${formatDate(event.date)}: ${event.label}`)
+      .attr("aria-pressed", (event) => eventKey(event) === selectedKey ? "true" : "false")
       .style("cursor", "pointer")
-      .on("click", (_e, d) => setTimeWindow(d.date, 90))
-      .on("keydown", (event: KeyboardEvent, d) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setTimeWindow(d.date, 90);
+      .on("click", (_event, datum) => setSelectedKey(eventKey(datum)))
+      .on("keydown", (keyboardEvent: KeyboardEvent, datum) => {
+        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+          keyboardEvent.preventDefault();
+          setSelectedKey(eventKey(datum));
         }
       });
 
-    // Drop line connecting dot to baseline
     dots.append("line")
-      .attr("x1", 0).attr("x2", 0)
-      .attr("y1", 0).attr("y2", (d) => 12 + d.slot * layerHeight)
-      .attr("stroke", (d) => EVENT_COLOR[d.type])
-      .attr("stroke-opacity", 0.25)
-      .attr("stroke-width", 1);
+      .attr("x1", 0)
+      .attr("x2", 0)
+      .attr("y1", 0)
+      .attr("y2", (event) => 12 + event.slot * layerHeight)
+      .attr("stroke", (event) => EVENT_COLOR[event.type])
+      .attr("stroke-opacity", 0.22);
+
+    dots.filter((event) => eventKey(event) === selectedKey)
+      .append("circle")
+      .attr("r", (event) => radius(event.significance ?? 0.4) + 4)
+      .attr("fill", "none")
+      .attr("stroke", (event) => EVENT_COLOR[event.type])
+      .attr("stroke-width", 1.5)
+      .attr("stroke-opacity", 0.55);
 
     dots.append("circle")
-      .attr("r", (d) => r(d.significance ?? 0.4))
-      .attr("fill", (d) => EVENT_COLOR[d.type])
+      .attr("r", (event) => radius(event.significance ?? 0.4))
+      .attr("fill", (event) => EVENT_COLOR[event.type])
       .attr("stroke", "#FFFFFF")
-      .attr("stroke-width", 1);
+      .attr("stroke-width", 1.2);
 
-    dots.append("title").text((d) => `${d.date} — ${d.label}`);
-  }, [ent, events, setTimeWindow, size, timeWindow]);
+    dots.append("title").text((event) => `${formatDate(event.date)} — ${event.label}`);
+  }, [ent, events, selectedKey, size]);
 
   if (!ent) {
     return (
-      <Pane label="Timeline">
-        <div className="p-4 text-meta text-muted-light dark:text-muted-dark">Select an entity to see its timeline.</div>
+      <Pane label="Key events">
+        <div className="p-4 text-meta text-muted-light dark:text-muted-dark">
+          Select an entity to see its key events.
+        </div>
       </Pane>
     );
   }
 
+  const visibleTypes = [...new Set(events.map((event) => event.type))];
+  const sourcesById = new Map((ent.sources ?? []).map((source) => [source.id, source]));
+
   return (
     <Pane
-      label="Timeline"
-      toolbar={
-        <div className="flex items-center gap-2">
-          <Legend />
-          {timeWindow && (
-            <button
-              type="button"
-              onClick={() => setTimeWindow(null)}
-              className="text-[10px] uppercase tracking-eyebrow text-accent hover:underline"
-            >
-              Clear filter
-            </button>
-          )}
-        </div>
-      }
+      label="Key events"
+      className="key-events-pane"
+      toolbar={<span className="key-events-count">{events.length} recorded</span>}
     >
-      <div className="relative h-full p-2">
-        <svg ref={ref} className="w-full h-full text-ink-light dark:text-ink-dark" />
-        {events.length === 0 && (
-          <p className="absolute inset-0 grid place-items-center text-meta text-muted-light dark:text-muted-dark pointer-events-none">
-            No events recorded yet.
+      <div className="key-events-content">
+        <div className="key-events-guide">
+          <p>
+            Each dot is a dated milestone. Larger dots mark events recorded as more significant.
+            Select any dot or row for its evidence.
           </p>
+          <Legend types={visibleTypes} />
+        </div>
+
+        <div className="key-events-chart" aria-label="Key events chart">
+          <svg ref={ref} className="w-full h-full text-ink-light dark:text-ink-dark" />
+        </div>
+
+        {events.length > 0 ? (
+          <ol className="key-events-list" aria-label="Chronological event list">
+            {events.map((event) => {
+              const key = eventKey(event);
+              const active = key === selectedKey;
+              const evidence = (event.sources ?? [])
+                .map((id) => sourcesById.get(id))
+                .filter(Boolean);
+              return (
+                <li key={key} className={active ? "is-selected" : ""}>
+                  <button
+                    type="button"
+                    className="key-event-row"
+                    onClick={() => setSelectedKey(active ? null : key)}
+                    aria-pressed={active}
+                  >
+                    <span className="key-event-marker" style={{ background: EVENT_COLOR[event.type] }} />
+                    <span className="key-event-date">{formatDate(event.date)}</span>
+                    <span className="key-event-copy">
+                      <span className="key-event-type">{EVENT_LABEL[event.type]}</span>
+                      <strong>{event.label}</strong>
+                    </span>
+                    <span className="key-event-open" aria-hidden="true">{active ? "−" : "+"}</span>
+                  </button>
+                  {active && (
+                    <div className="key-event-evidence" aria-live="polite">
+                      <span>Evidence</span>
+                      {evidence.length > 0 ? (
+                        <ul>
+                          {evidence.map((source) => source && (
+                            <li key={source.id}>
+                              {source.url ? (
+                                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                                  {source.title}
+                                </a>
+                              ) : (
+                                source.title
+                              )}
+                              <small>{[source.outlet, source.date].filter(Boolean).join(" · ")}</small>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No source link has been attached to this milestone yet.</p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <p className="key-events-empty">No dated events are recorded for this profile yet.</p>
         )}
       </div>
     </Pane>
   );
 }
 
-function Legend() {
-  const items: { t: TimelineEvent["type"]; label: string }[] = [
-    { t: "attack", label: "Attack" },
-    { t: "leadership-change", label: "Leadership" },
-    { t: "split", label: "Split" },
-    { t: "merger", label: "Merger" },
-    { t: "designation", label: "Designation" }
-  ];
+function Legend({ types }: { types: TimelineEvent["type"][] }) {
   return (
-    <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-eyebrow text-muted-light dark:text-muted-dark">
-      {items.map((i) => (
-        <span key={i.t} className="inline-flex items-center gap-1">
-          <span className="inline-block w-2 h-2 rounded-full" style={{ background: EVENT_COLOR[i.t] }} />
-          {i.label}
+    <div className="key-events-legend" aria-label="Event colour guide">
+      {types.map((type) => (
+        <span key={type}>
+          <i style={{ background: EVENT_COLOR[type] }} />
+          {EVENT_LABEL[type]}
         </span>
       ))}
     </div>
