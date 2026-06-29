@@ -9,6 +9,8 @@
 //
 // Optional non-secret vars:
 //   GEMINI_MODEL          defaults to gemini-3.5-flash
+//   GEMINI_FALLBACK_MODEL defaults to gemini-2.5-flash
+//   GEMINI_RETRY_DELAY_MS defaults to 300ms
 //   ASK_HOURLY_LIMIT      defaults to 8 requests per visitor
 //   ASK_GLOBAL_DAILY_LIMIT defaults to 400 requests across the site
 
@@ -19,7 +21,10 @@ const MAX_HISTORY_CHARS = 12_000;
 const DEFAULT_HOURLY_LIMIT = 8;
 const DEFAULT_GLOBAL_DAILY_LIMIT = 400;
 const DEFAULT_MODEL = "gemini-3.5-flash";
+const DEFAULT_FALLBACK_MODEL = "gemini-2.5-flash";
+const DEFAULT_RETRY_DELAY_MS = 300;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
+const RETRYABLE_GEMINI_STATUSES = new Set([0, 429, 500, 502, 503, 504]);
 
 function cors(request, env) {
   const configured = String(env.SITE_URL || "https://theglobaldecipher.com").replace(/\/+$/, "");
@@ -124,6 +129,60 @@ function profileContext(entities) {
   }));
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function geminiEndpoint(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+}
+
+async function callGemini(model, apiKey, body) {
+  try {
+    const upstream = await fetch(geminiEndpoint(model), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await upstream.json().catch(() => null);
+    return {
+      ok: upstream.ok,
+      status: upstream.status,
+      model,
+      data,
+      upstreamStatus: data?.error?.status || (upstream.ok ? "OK" : "unknown"),
+      upstreamMessage: String(data?.error?.message || "").slice(0, 240)
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      model,
+      data: null,
+      upstreamStatus: "NETWORK_ERROR",
+      upstreamMessage: String(error?.message || "Network request failed").slice(0, 240)
+    };
+  }
+}
+
+function logGeminiFailure(result, attempt) {
+  console.error(JSON.stringify({
+    message: "Gemini request failed",
+    attempt,
+    status: result.status,
+    model: result.model,
+    upstreamStatus: result.upstreamStatus,
+    upstreamMessage: result.upstreamMessage
+  }));
+}
+
+function isRetryableGeminiFailure(result) {
+  return !result.ok && RETRYABLE_GEMINI_STATUSES.has(result.status);
+}
+
 export async function askDatabase(request, env) {
   const access = cors(request, env);
   if (request.method === "OPTIONS") {
@@ -185,41 +244,42 @@ export async function askDatabase(request, env) {
   ].join("\n");
 
   const model = String(env.GEMINI_MODEL || DEFAULT_MODEL);
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const fallbackModel = String(env.GEMINI_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL);
+  const retryDelay = Math.min(positiveInt(env.GEMINI_RETRY_DELAY_MS, DEFAULT_RETRY_DELAY_MS), 1000);
   const contents = cleanHistory(payload?.history);
   contents.push({ role: "user", parts: [{ text: question }] });
 
-  const upstream = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-goog-api-key": env.GEMINI_API_KEY
-    },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: system }] },
-      contents,
-      generationConfig: {
-        temperature: 0.15,
-        maxOutputTokens: 900
-      }
-    })
-  });
+  const requestBody = {
+    system_instruction: { parts: [{ text: system }] },
+    contents,
+    generationConfig: {
+      temperature: 0.15,
+      maxOutputTokens: 900
+    }
+  };
 
-  const data = await upstream.json().catch(() => null);
-  if (!upstream.ok) {
-    console.error(JSON.stringify({
-      message: "Gemini request failed",
-      status: upstream.status,
-      model,
-      upstreamStatus: data?.error?.status || "unknown"
-    }));
-    const error = upstream.status === 429
-      ? "The free Gemini allowance is temporarily exhausted. Please try again later."
-      : "The research assistant is temporarily unavailable.";
-    return json(request, env, { error }, upstream.status === 429 ? 429 : 502);
+  let result = await callGemini(model, env.GEMINI_API_KEY, requestBody);
+  if (!result.ok) logGeminiFailure(result, "primary");
+
+  if (isRetryableGeminiFailure(result)) {
+    await wait(retryDelay);
+    result = await callGemini(model, env.GEMINI_API_KEY, requestBody);
+    if (!result.ok) logGeminiFailure(result, "primary-retry");
   }
 
-  const answer = data?.candidates?.[0]?.content?.parts
+  if (isRetryableGeminiFailure(result) && fallbackModel && fallbackModel !== model) {
+    result = await callGemini(fallbackModel, env.GEMINI_API_KEY, requestBody);
+    if (!result.ok) logGeminiFailure(result, "fallback");
+  }
+
+  if (!result.ok) {
+    const error = result.status === 429
+      ? "The free Gemini allowance is temporarily exhausted. Please try again later."
+      : "The research assistant is temporarily unavailable.";
+    return json(request, env, { error }, result.status === 429 ? 429 : 502);
+  }
+
+  const answer = result.data?.candidates?.[0]?.content?.parts
     ?.map((part) => part?.text || "")
     .join("")
     .trim();
@@ -227,5 +287,9 @@ export async function askDatabase(request, env) {
     return json(request, env, { error: "Gemini did not return a source-grounded answer. Try a narrower question." }, 502);
   }
 
-  return json(request, env, { answer, model });
+  return json(request, env, {
+    answer,
+    model: result.model,
+    fallback: result.model !== model
+  });
 }
