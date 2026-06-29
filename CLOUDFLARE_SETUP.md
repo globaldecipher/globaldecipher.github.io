@@ -74,9 +74,11 @@ npx wrangler deploy
 ```bash
 npx wrangler secret put GEMINI_API_KEY
 ```
-The Worker defaults to `gemini-3.5-flash`, sends only the selected public TGD
-profile context, and caps visitors at 8 questions per hour plus a site-wide
-daily ceiling. Change those non-secret limits in `worker/wrangler.toml`.
+The Worker defaults to `gemini-3.1-flash-lite` with low thinking, sends the
+selected public TGD profile plus its direct relationships, and caps visitors at
+8 questions per hour plus a site-wide daily ceiling. Each model call is limited
+to 12 seconds and the primary-plus-fallback path is limited to 15 seconds.
+Change those non-secret limits in `worker/wrangler.toml`.
 
 **Monitoring Desk paywall (Safepay):**
 1. In Safepay, create a monthly subscription plan named **TGD Monitoring Desk** at **$20/month**.

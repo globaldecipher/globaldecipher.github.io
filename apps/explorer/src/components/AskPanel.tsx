@@ -22,6 +22,7 @@ const SUGGESTIONS = [
   "Compare this group with a key rival",
   "Which designations apply, and when?"
 ];
+const CLIENT_TIMEOUT_MS = 16_000;
 
 export default function AskPanel() {
   const ent = useExplorer(selectedEntity);
@@ -36,7 +37,7 @@ export default function AskPanel() {
 
   const contextEntities = useMemo(() => {
     if (!ent) return [] as Entity[];
-    const ids = neighborhood(byId, ent.id, 2);
+    const ids = neighborhood(byId, ent.id, 1);
     return [...ids].map((id) => byId.get(id)!).filter(Boolean);
   }, [ent, byId]);
 
@@ -61,10 +62,13 @@ export default function AskPanel() {
     const next: Turn[] = [...turns, { role: "user", content: question }, { role: "assistant", content: "" }];
     setTurns(next);
     setStreaming(true);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           entityId: ent.id,
           question,
@@ -91,8 +95,13 @@ export default function AskPanel() {
         const last = prev[prev.length - 1];
         return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
       });
-      setError(e?.message ?? "Failed to reach the research assistant.");
+      setError(
+        e?.name === "AbortError"
+          ? "The research assistant reached its 15-second limit. Please try a narrower question."
+          : e?.message ?? "Failed to reach the research assistant."
+      );
     } finally {
+      window.clearTimeout(timeout);
       setStreaming(false);
     }
   }
