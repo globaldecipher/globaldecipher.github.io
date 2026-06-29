@@ -51,7 +51,7 @@ function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="mx-0.5 text-[10px] text-accent border-hair border-accent/40 px-1 rounded-sm align-super hover:bg-accent hover:text-white"
+        className="ml-0.5 text-[10px] text-accent border-hair border-accent/40 px-1 rounded-sm align-super hover:bg-accent hover:text-white"
         aria-describedby={`pop-${id}`}
       >
         [{id}]

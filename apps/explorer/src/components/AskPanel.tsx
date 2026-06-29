@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useExplorer, selectedEntity, neighborhood } from "../lib/store";
 import type { Entity, SourceRef } from "../types";
-import CitationText from "./Citation";
+import ResearchAnswer from "./ResearchAnswer";
 
 interface Turn {
   role: "user" | "assistant";
@@ -43,7 +43,14 @@ export default function AskPanel() {
   const contextSources = useMemo(() => flattenSources(contextEntities), [contextEntities]);
 
   useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+    const log = logRef.current;
+    if (!log) return;
+    if (streaming) {
+      log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+      return;
+    }
+    const latestAnswer = log.querySelector<HTMLElement>(".research-answer:last-of-type");
+    if (latestAnswer) latestAnswer.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [turns, streaming]);
 
   async function send(text?: string) {
@@ -80,6 +87,10 @@ export default function AskPanel() {
         return [...prev.slice(0, -1), { ...last, content: answer }];
       });
     } catch (e: any) {
+      setTurns((prev) => {
+        const last = prev[prev.length - 1];
+        return last?.role === "assistant" && !last.content ? prev.slice(0, -1) : prev;
+      });
       setError(e?.message ?? "Failed to reach the research assistant.");
     } finally {
       setStreaming(false);
@@ -96,13 +107,13 @@ export default function AskPanel() {
       role="dialog"
       aria-modal="true"
       aria-label="Ask the database"
-      className="fixed top-0 right-0 bottom-0 w-full sm:w-[440px] bg-page-light dark:bg-page-dark border-l border-line-light dark:border-line-dark z-40 flex flex-col shadow-[-20px_0_40px_-20px_rgba(0,0,0,0.25)] dark:shadow-none"
+      className="ask-panel fixed top-0 right-0 bottom-0 w-full sm:w-[520px] bg-page-light dark:bg-page-dark border-l border-line-light dark:border-line-dark z-40 flex flex-col shadow-[-20px_0_40px_-20px_rgba(0,0,0,0.25)] dark:shadow-none"
     >
-      <header className="flex items-center justify-between px-4 h-14 border-b-hair border-line-light dark:border-line-dark">
+      <header className="ask-panel-header">
         <div className="min-w-0">
-          <div className="pane-label flex items-center gap-2">
-            Ask the database
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <div className="ask-panel-heading">
+            <span className="pane-label">Ask the database</span>
+            <span className="ask-mode">Evidence mode</span>
           </div>
           <div className="entity-name text-meta truncate">{ent.name}</div>
         </div>
@@ -110,30 +121,33 @@ export default function AskPanel() {
           type="button"
           onClick={close}
           aria-label="Close panel"
-          className="text-meta text-muted-light dark:text-muted-dark hover:text-ink-light dark:hover:text-ink-dark p-1.5"
+          className="ask-close"
         >
-          ✕
+          ×
         </button>
       </header>
 
-      <div ref={logRef} className="flex-1 min-h-0 overflow-auto px-4 py-4 space-y-4">
+      <div ref={logRef} className="ask-log" aria-live="polite">
         {turns.length === 0 && (
-          <div className="text-meta text-muted-light dark:text-muted-dark space-y-3">
+          <div className="ask-welcome">
+            <span className="ask-welcome-eyebrow">Research this profile</span>
+            <h2>Interrogate the evidence, not just the headline.</h2>
             <p>
-              Ask in plain English. Answers cite source IDs like{" "}
-              <code className="text-accent">[src-iskp-1]</code> that link back to the dossier.
+              Ask a focused question about leadership, attacks, financing, relationships, or designations.
+              Every factual answer links back to the profile evidence.
             </p>
-            <div className="space-y-1.5">
-              <div className="pane-label">Try</div>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="ask-suggestions">
+              <div className="pane-label">Suggested questions</div>
+              <div className="ask-suggestion-grid">
                 {SUGGESTIONS.map((s, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => { setInput(s); void send(s); }}
-                    className="text-[12px] text-left px-2.5 py-1 border-hair border-line-light dark:border-line-dark text-ink-light dark:text-ink-dark hover:border-accent hover:text-accent transition-colors"
+                    className="ask-suggestion"
                   >
-                    {s}
+                    <span>{String(i + 1).padStart(2, "0")}</span>
+                    <strong>{s}</strong>
                   </button>
                 ))}
               </div>
@@ -142,53 +156,58 @@ export default function AskPanel() {
         )}
 
         {turns.map((t, i) => (
-          <div key={i} className={t.role === "user" ? "" : "border-l-2 border-accent pl-3"}>
-            <div className="pane-label mb-1">{t.role === "user" ? "You" : "Database"}</div>
-            <div className="text-body whitespace-pre-wrap leading-[1.55]">
-              {t.role === "assistant" ? (
-                showTypingDots && i === turns.length - 1 ? (
-                  <span className="inline-flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: "120ms" }} />
-                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: "240ms" }} />
-                  </span>
-                ) : (
-                  <CitationText text={t.content} sources={contextSources} />
-                )
-              ) : (
-                t.content
-              )}
-            </div>
-          </div>
+          t.role === "user" ? (
+            <section key={i} className="research-question">
+              <span className="pane-label">Research question</span>
+              <p>{t.content}</p>
+            </section>
+          ) : showTypingDots && i === turns.length - 1 ? (
+            <section key={i} className="research-answer research-answer-loading" aria-label="Preparing research brief">
+              <header className="research-answer-head">
+                <div>
+                  <span className="research-answer-kicker">TGD research brief</span>
+                  <span className="research-answer-status">Reviewing evidence</span>
+                </div>
+              </header>
+              <div className="research-loading-lines" aria-hidden="true">
+                <span /><span /><span />
+              </div>
+            </section>
+          ) : (
+            <ResearchAnswer key={i} text={t.content} sources={contextSources} />
+          )
         ))}
 
         {error && (
-          <div className="text-meta text-danger border-l-2 border-danger pl-3">{error}</div>
+          <div className="ask-error">
+            <strong>Research desk unavailable</strong>
+            <span>{error}</span>
+          </div>
         )}
       </div>
 
-      <footer className="border-t-hair border-line-light dark:border-line-dark p-2">
+      <footer className="ask-composer">
         <form
           onSubmit={(e) => { e.preventDefault(); void send(); }}
-          className="flex gap-2"
+          className="ask-composer-form"
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Ask about ${ent.short ?? ent.name}…`}
-            className="flex-1 bg-transparent border-hair border-line-light dark:border-line-dark h-9 px-3 text-meta focus:outline-none focus:border-accent"
+            aria-label={`Ask about ${ent.short ?? ent.name}`}
             autoFocus
           />
           <button
             type="submit"
             disabled={streaming || !input.trim()}
-            className="h-9 px-4 bg-accent text-white text-meta font-medium disabled:opacity-40"
           >
-            {streaming ? "…" : "Ask"}
+            {streaming ? "Reviewing…" : "Ask"}
           </button>
         </form>
-        <p className="mt-1 text-[10px] uppercase tracking-eyebrow text-dim-light dark:text-dim-dark">
-          Gemini answers are bound to TGD profile data, rate-limited, and should be verified before citing.
+        <p className="ask-evidence-policy">
+          <span aria-hidden="true">✓</span>
+          Answers use TGD profile evidence. Inspect cited sources before publication.
         </p>
       </footer>
     </aside>
