@@ -34,12 +34,11 @@ function subtitle(e: Entity): string {
 
 interface Stat { value: number | string; label: string; mute?: boolean }
 
-function buildStats(e: Entity): Stat[] {
+function buildStats(e: Entity, relationshipCount: number): Stat[] {
   const countries = new Set<string>([...(e.countries ?? []), ...(e.aor ?? []).map((a) => a.label).filter(Boolean) as string[]]);
   const designations = (e.designations ?? []).length;
   const leaders = (e.leaders ?? []).length;
   const attacks = (e.attacks ?? []).length;
-  const linked = (e.relationships ?? []).length;
   const casualties = (e.attacks ?? []).reduce((sum, a) => sum + (a.casualties ?? 0), 0);
   return [
     { value: attacks || "—", label: "Attacks" },
@@ -47,12 +46,13 @@ function buildStats(e: Entity): Stat[] {
     { value: leaders || "—", label: "Leaders" },
     { value: designations || "—", label: "Designations" },
     { value: countries.size || "—", label: "Countries" },
-    { value: linked || "—", label: "Linked" }
+    { value: relationshipCount || "—", label: "Relations" }
   ];
 }
 
 export default function EntityHeader() {
   const ent = useExplorer(selectedEntity);
+  const byId = useExplorer((state) => state.byId);
 
   if (!ent) {
     return (
@@ -62,7 +62,12 @@ export default function EntityHeader() {
     );
   }
   const accent = typeAccent(ent.type);
-  const stats = buildStats(ent);
+  const inboundRelationshipCount = [...byId.values()].reduce(
+    (count, candidate) =>
+      count + (candidate.relationships ?? []).filter((relationship) => relationship.to === ent.id).length,
+    0
+  );
+  const stats = buildStats(ent, (ent.relationships ?? []).length + inboundRelationshipCount);
 
   return (
     <section className="explorer-profile-header shrink-0 bg-page-light dark:bg-page-dark border-b border-line-light dark:border-line-dark" aria-labelledby="entity-title">
