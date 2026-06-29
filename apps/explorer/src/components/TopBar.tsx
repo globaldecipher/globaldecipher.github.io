@@ -23,6 +23,9 @@ export default function TopBar() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => document.documentElement.dataset.theme === "dark" ? "dark" : "light"
+  );
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const fuse = useMemo(
@@ -69,6 +72,14 @@ export default function TopBar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
   function pick(e: Entity) {
     select(e.id);
     setQuery("");
@@ -88,6 +99,19 @@ export default function TopBar() {
     } else if (e.key === "Escape") {
       setOpen(false);
     }
+  }
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    document.documentElement.classList.toggle("dark", next === "dark");
+    document.documentElement.dataset.theme = next;
+    document.getElementById("theme-color-meta")?.setAttribute("content", next === "dark" ? "#0f1318" : "#f7f5ef");
+    try {
+      window.localStorage.setItem("tgd-theme", next);
+    } catch {
+      // The visible theme still changes when storage is unavailable.
+    }
+    setTheme(next);
   }
 
   return (
@@ -171,6 +195,25 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="theme-switch"
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.5" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z" />
+            </svg>
+          )}
+          <span>{theme === "dark" ? "Light" : "Dark"}</span>
+        </button>
         {selected && !selected.stub && (
           <button
             type="button"
