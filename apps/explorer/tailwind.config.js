@@ -5,12 +5,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        page:    { light: "#fafaf7", dark: "#0f1318" },
-        surface: { light: "#fafaf7", dark: "#171d24" },
-        paper2:  { light: "#f3efe6", dark: "#171d24" },
-        paper3:  { light: "#ebe6d8", dark: "#202832" },
-        line:    { light: "#d8d3c5", dark: "#303843" },
-        line2:   { light: "#c0baa9", dark: "#46505c" },
+        page:    { light: "#f7f5ef", dark: "#0f1318" },
+        surface: { light: "#fcfbf7", dark: "#171d24" },
+        paper2:  { light: "#efede6", dark: "#171d24" },
+        paper3:  { light: "#e5e1d7", dark: "#202832" },
+        line:    { light: "#d2cec3", dark: "#303843" },
+        line2:   { light: "#aaa598", dark: "#46505c" },
         ink:     { light: "#0d1b2a", dark: "#f2f0ea" },
         ink2:    { light: "#1a2a3a", dark: "#e5e0d5" },
         text:    { light: "#1a1a1a", dark: "#ede9df" },

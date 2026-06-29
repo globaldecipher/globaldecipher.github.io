@@ -57,32 +57,49 @@ export default function Browse() {
   return (
     <main className="explorer-browse flex-1">
       <section className="browse-hero">
-        <div className="max-w-3xl">
-          <p className="browse-eyebrow">TGD Research Database</p>
-          <h1>Trace the people, organisations and relationships behind the headlines.</h1>
-          <p>
-            Start with a researched profile or browse the wider Pakistan-theatre index.
-            Every record shows its coverage level, sources and known gaps before you open it.
+        <div className="browse-hero-main">
+          <p className="browse-kicker">
+            <span>Research index</span>
+            <span>Pakistan theatre</span>
           </p>
+          <h1>Pakistan militant network index</h1>
+          <p className="browse-deck">
+            A working directory of organisations, leaders, fronts and their documented
+            connections—built for tracing a name, testing a link and following the evidence.
+          </p>
+          <div className="browse-actions">
+            <a href="#record-directory">Browse {entities.length} records</a>
+            {featured[0] && (
+              <button type="button" onClick={() => select(featured[0].id)}>
+                Open the TTP dossier <span aria-hidden="true">→</span>
+              </button>
+            )}
+          </div>
         </div>
-        <div className="browse-metrics" aria-label="Database coverage">
-          <div><strong>{entities.length}</strong><span>Records</span></div>
-          <div><strong>{deepCount}</strong><span>Deep profiles</span></div>
-          <div><strong>{Math.max(0, entities.length - deepCount)}</strong><span>Basic records</span></div>
-          <div><strong>{sources}</strong><span>Source links</span></div>
-        </div>
+        <aside className="browse-brief" aria-label="Database coverage">
+          <p className="browse-brief-label">At a glance</p>
+          <dl>
+            <div><dt>Indexed records</dt><dd>{entities.length}</dd></div>
+            <div><dt>Sourced dossiers</dt><dd>{deepCount}</dd></div>
+            <div><dt>Source links</dt><dd>{sources}</dd></div>
+          </dl>
+          <p>
+            Basic records identify a known actor. Sourced dossiers add narrative,
+            chronology, relationships and citations. Coverage is stated on every record.
+          </p>
+        </aside>
       </section>
 
       <section className="browse-section" aria-labelledby="featured-title">
         <div className="browse-section-head">
           <div>
-            <p className="browse-eyebrow">Recommended starting points</p>
-            <h2 id="featured-title">Featured research</h2>
+            <p className="browse-eyebrow">Editor’s selection</p>
+            <h2 id="featured-title">Selected dossiers</h2>
           </div>
-          <p>Deep profiles contain sourced narrative, leadership, attacks and linked visual evidence.</p>
+          <p>Three useful entry points into the present Pakistan–Afghanistan militant landscape.</p>
         </div>
         <div className="featured-grid">
-          {featured.map((ent) => (
+          {featured.map((ent, index) => (
             <button
               key={ent.id}
               type="button"
@@ -90,22 +107,25 @@ export default function Browse() {
               className="featured-card"
               aria-label={`Open deep profile: ${ent.name}`}
             >
-              <span className="coverage-badge coverage-deep">Deep profile</span>
-              <strong>{ent.name}</strong>
+              <span className="featured-index" aria-hidden="true">0{index + 1}</span>
+              <span className="featured-card-copy">
+                <small>{[TYPE_LABEL[ent.type], ent.country, ent.status].filter(Boolean).join(" · ")}</small>
+                <strong>{ent.name}</strong>
+              </span>
               <span>{previewText(ent.summary) || "Open the sourced research profile."}</span>
-              <small>{[ent.country, ent.status].filter(Boolean).join(" · ")}</small>
+              <span className="featured-open">View dossier <span aria-hidden="true">↗</span></span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="browse-section browse-directory" aria-labelledby="directory-title">
+      <section id="record-directory" className="browse-section browse-directory" aria-labelledby="directory-title">
         <div className="browse-section-head">
           <div>
-            <p className="browse-eyebrow">Browse the index</p>
-            <h2 id="directory-title">All records</h2>
+            <p className="browse-eyebrow">Research directory</p>
+            <h2 id="directory-title">The index</h2>
           </div>
-          <p>Use search above for a name or narrow this directory by coverage, type and country.</p>
+          <p>Search a name above, or narrow the working index by depth, record type and country.</p>
         </div>
 
         <div className="directory-filters" aria-label="Record filters">

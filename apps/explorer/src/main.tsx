@@ -3,15 +3,30 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 
-function syncTheme() {
-  const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.classList.toggle("dark", isDark);
-  document.documentElement.dataset.theme = isDark ? "dark" : "light";
-  const meta = document.getElementById("theme-color-meta") as HTMLMetaElement | null;
-  if (meta) meta.content = isDark ? "#0f1318" : "#fafaf7";
+type Theme = "light" | "dark";
+
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+
+function storedTheme(): Theme | null {
+  try {
+    const value = window.localStorage.getItem("tgd-theme");
+    return value === "light" || value === "dark" ? value : null;
+  } catch {
+    return null;
+  }
 }
-syncTheme();
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncTheme);
+
+function applyTheme(theme: Theme) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.dataset.theme = theme;
+  const meta = document.getElementById("theme-color-meta") as HTMLMetaElement | null;
+  if (meta) meta.content = theme === "dark" ? "#0f1318" : "#f7f5ef";
+}
+
+applyTheme(storedTheme() ?? (themeMedia.matches ? "dark" : "light"));
+themeMedia.addEventListener("change", (event) => {
+  if (!storedTheme()) applyTheme(event.matches ? "dark" : "light");
+});
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
