@@ -25,12 +25,24 @@ function writeHash(id: string | null) {
 
 export function initRouter() {
   if (typeof window === "undefined") return () => {};
-  const { byId, select } = useExplorer.getState();
+  const { byId, select, setResearchMode, setCompareId, setPathTargetId } = useExplorer.getState();
   // A valid hash opens a record directly. Without a hash, show the browse
   // screen so first-time visitors can understand the database before choosing.
   const fromHash = readHash();
   const initial = fromHash && byId.has(fromHash) ? fromHash : null;
   select(initial);
+  if (initial) {
+    const params = new URLSearchParams(window.location.search);
+    const compare = params.get("compare");
+    const path = params.get("path");
+    if (compare && compare !== initial && byId.has(compare)) {
+      setCompareId(compare);
+      setResearchMode("compare");
+    } else if (path && path !== initial && byId.has(path)) {
+      setPathTargetId(path);
+      setResearchMode("path");
+    }
+  }
 
   // React to back/forward.
   const onPop = () => {

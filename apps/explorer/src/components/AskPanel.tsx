@@ -28,6 +28,8 @@ export default function AskPanel() {
   const ent = useExplorer(selectedEntity);
   const byId = useExplorer((s) => s.byId);
   const close = useExplorer((s) => () => s.toggleAsk(false));
+  const askDraft = useExplorer((s) => s.askDraft);
+  const consumeAskDraft = useExplorer((s) => s.consumeAskDraft);
 
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -42,6 +44,12 @@ export default function AskPanel() {
   }, [ent, byId]);
 
   const contextSources = useMemo(() => flattenSources(contextEntities), [contextEntities]);
+
+  useEffect(() => {
+    if (!askDraft) return;
+    setInput(askDraft);
+    consumeAskDraft();
+  }, [askDraft, consumeAskDraft]);
 
   useEffect(() => {
     const log = logRef.current;

@@ -33,6 +33,7 @@ export default function Browse() {
   const [coverage, setCoverage] = useState<CoverageFilter>("all");
   const [type, setType] = useState<TypeFilter>("all");
   const [country, setCountry] = useState("all");
+  const [investigationQuery, setInvestigationQuery] = useState("");
 
   const deepCount = entities.filter((e) => !e.stub).length;
   const sources = new Set(entities.flatMap((e) => (e.sources ?? []).map((s) => s.url || s.id))).size;
@@ -43,6 +44,18 @@ export default function Browse() {
   const featured = FEATURED_IDS
     .map((id) => entities.find((e) => e.id === id))
     .filter(Boolean) as Entity[];
+  const investigationMatches = useMemo(() => {
+    const query = investigationQuery.trim().toLowerCase();
+    if (!query) return featured.slice(0, 3);
+    return entities
+      .filter((entity) =>
+        [entity.name, entity.short, ...(entity.aliases ?? [])]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query))
+      )
+      .sort((a, b) => Number(Boolean(a.stub)) - Number(Boolean(b.stub)) || a.name.localeCompare(b.name))
+      .slice(0, 6);
+  }, [entities, featured, investigationQuery]);
 
   const filtered = useMemo(
     () =>
@@ -67,6 +80,37 @@ export default function Browse() {
             A working directory of organisations, leaders, fronts and their documented
             connections—built for tracing a name, testing a link and following the evidence.
           </p>
+          <div className="browse-investigate">
+            <label htmlFor="browse-investigate-input">Investigate an actor</label>
+            <div>
+              <input
+                id="browse-investigate-input"
+                type="search"
+                value={investigationQuery}
+                onChange={(event) => setInvestigationQuery(event.target.value)}
+                placeholder="Try TTP, ISKP or Noor Wali Mehsud"
+              />
+              <button
+                type="button"
+                disabled={investigationMatches.length === 0}
+                onClick={() => investigationMatches[0] && select(investigationMatches[0].id)}
+              >
+                Open dossier →
+              </button>
+            </div>
+            {investigationQuery && (
+              <div className="browse-investigate-results" aria-label="Matching actors">
+                {investigationMatches.length ? investigationMatches.map((entity) => (
+                  <button key={entity.id} type="button" onClick={() => select(entity.id)}>
+                    <strong>{entity.short ?? entity.name}</strong>
+                    <span>{[TYPE_LABEL[entity.type], entity.country, coverageLabel(entity)].filter(Boolean).join(" · ")}</span>
+                  </button>
+                )) : (
+                  <p>No matching actor. Try an alias or browse the index below.</p>
+                )}
+              </div>
+            )}
+          </div>
           <div className="browse-actions">
             <a href="#record-directory">Browse {entities.length} records</a>
             {featured[0] && (

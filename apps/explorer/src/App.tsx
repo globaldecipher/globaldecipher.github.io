@@ -9,6 +9,7 @@ import Relationships from "./components/Relationships";
 import Timeline from "./components/Timeline";
 import AskPanel from "./components/AskPanel";
 import Browse from "./components/Browse";
+import InvestigationTools from "./components/InvestigationTools";
 
 const MapPane = lazy(() => import("./components/MapPane"));
 
@@ -146,6 +147,7 @@ export default function App() {
       ) : (
         <>
           <EntityHeader />
+          <InvestigationTools />
 
           {!desktop ? (
             <>
