@@ -110,20 +110,52 @@ export async function getFile(env, filePath) {
   return { path: filePath, content, sha: row.updated_at };
 }
 
-export async function putFile(env, filePath, content) {
+export async function putFile(env, filePath, content, expectedSha = null) {
   const { collection, slug } = parsePath(filePath);
   const { fm, body } = parseMarkdown(content);
   const tagsJson = JSON.stringify(Array.isArray(fm.tags) ? fm.tags : []);
   const now = new Date().toISOString();
   const status = collection === "pages" ? "published" : (fm.status === "published" ? "published" : "draft");
-  const publishedAt = status === "published" ? now : null;
   // upsert by (collection, slug)
   const existing = await env.CONTENT_DB
-    .prepare("SELECT id FROM content WHERE collection = ? AND slug = ?")
+    .prepare("SELECT id, updated_at, published_at FROM content WHERE collection = ? AND slug = ?")
     .bind(collection, slug)
     .first();
+  if (existing && expectedSha && existing.updated_at !== expectedSha) {
+    const error = new Error("This item changed after you opened it. Reload it before saving so another editor's work is not overwritten.");
+    error.status = 409;
+    throw error;
+  }
+  const publishedAt = status === "published" ? (existing?.published_at || now) : null;
   if (existing) {
-    await env.CONTENT_DB
+    const statement = expectedSha
+      ? env.CONTENT_DB
+        .prepare(`UPDATE content SET
+          type = ?, title = ?, date = ?, author = ?, category = ?, region = ?,
+          summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
+          eyebrow = ?, body = ?, updated_at = ?
+          WHERE id = ? AND updated_at = ?`)
+        .bind(
+          fm.type || collection,
+          fm.title || slug,
+          fm.date || null,
+          fm.author || null,
+          fm.category || null,
+          fm.region || null,
+          fm.summary || null,
+          tagsJson,
+          fm.access || "free",
+          fm.sensitivity || "standard",
+          status,
+          publishedAt,
+          fm.featured ? 1 : 0,
+          fm.eyebrow || null,
+          body,
+          now,
+          existing.id,
+          expectedSha
+        )
+      : env.CONTENT_DB
       .prepare(`UPDATE content SET
         type = ?, title = ?, date = ?, author = ?, category = ?, region = ?,
         summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
@@ -147,9 +179,19 @@ export async function putFile(env, filePath, content) {
         body,
         now,
         existing.id
-      )
-      .run();
+      );
+    const result = await statement.run();
+    if (expectedSha && !result.meta.changes) {
+      const error = new Error("This item changed while you were saving. Reload it before trying again.");
+      error.status = 409;
+      throw error;
+    }
   } else {
+    if (expectedSha) {
+      const error = new Error("This item no longer exists. Return to the list before saving.");
+      error.status = 409;
+      throw error;
+    }
     await env.CONTENT_DB
       .prepare(`INSERT INTO content
         (collection, slug, type, title, date, author, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
@@ -180,15 +222,36 @@ export async function putFile(env, filePath, content) {
   return { path: filePath, sha: now };
 }
 
-export async function deleteFile(env, filePath) {
+export async function deleteFile(env, filePath, expectedSha = null) {
   const { collection, slug } = parsePath(filePath);
-  const res = await env.CONTENT_DB
-    .prepare("DELETE FROM content WHERE collection = ? AND slug = ?")
+  const existing = await env.CONTENT_DB
+    .prepare("SELECT updated_at FROM content WHERE collection = ? AND slug = ?")
     .bind(collection, slug)
-    .run();
-  if (!res.meta.changes) {
+    .first();
+  if (!existing) {
     const err = new Error("Not found");
     err.status = 404;
+    throw err;
+  }
+  if (expectedSha && existing.updated_at !== expectedSha) {
+    const error = new Error("This item changed after you opened it. Reload it before deleting.");
+    error.status = 409;
+    throw error;
+  }
+  const res = expectedSha
+    ? await env.CONTENT_DB
+      .prepare("DELETE FROM content WHERE collection = ? AND slug = ? AND updated_at = ?")
+      .bind(collection, slug, expectedSha)
+      .run()
+    : await env.CONTENT_DB
+      .prepare("DELETE FROM content WHERE collection = ? AND slug = ?")
+      .bind(collection, slug)
+      .run();
+  if (!res.meta.changes) {
+    const err = new Error(expectedSha
+      ? "This item changed while you were deleting it. Reload before trying again."
+      : "Not found");
+    err.status = expectedSha ? 409 : 404;
     throw err;
   }
   return { path: filePath };
@@ -262,4 +325,47 @@ export async function triggerRebuild(env) {
   } catch (err) {
     return { triggered: false, reason: err.message };
   }
+}
+
+export async function latestDeployment(env) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) {
+    return { configured: false, error: "GitHub deployment access is not configured." };
+  }
+  const workflow = env.DEPLOY_WORKFLOW || "deploy.yml";
+  const branch = env.GITHUB_BRANCH || "main";
+  const url = `https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${encodeURIComponent(workflow)}/runs?branch=${encodeURIComponent(branch)}&per_page=1`;
+  const res = await fetch(url, {
+    headers: {
+      authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      accept: "application/vnd.github+json",
+      "user-agent": "tgd-admin-worker",
+      "x-github-api-version": "2022-11-28"
+    }
+  });
+  if (!res.ok) {
+    return {
+      configured: true,
+      available: false,
+      status: res.status,
+      error: "GitHub could not return deployment status. Check the token's Actions permission."
+    };
+  }
+  const payload = await res.json();
+  const run = Array.isArray(payload.workflow_runs) ? payload.workflow_runs[0] : null;
+  if (!run) return { configured: true, available: true, run: null };
+  return {
+    configured: true,
+    available: true,
+    run: {
+      id: run.id,
+      status: run.status,
+      conclusion: run.conclusion,
+      event: run.event,
+      title: run.display_title,
+      url: run.html_url,
+      startedAt: run.run_started_at || run.created_at,
+      updatedAt: run.updated_at,
+      headSha: run.head_sha
+    }
+  };
 }

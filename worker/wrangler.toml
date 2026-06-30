@@ -9,7 +9,7 @@ crons = ["*/5 * * * *"]
 
 # Non-secret config. Secrets are set with `wrangler secret put`, never committed:
 #   ADMIN_TOKEN    shared admin-panel password (also the issue-form ingest key)
-#   GITHUB_TOKEN   fine-grained PAT, Contents: Read and write on this repo
+#   GITHUB_TOKEN   fine-grained PAT, Actions: Read and write + Contents: Read
 #   X_BEARER_TOKEN optional, only if X auto-import is wanted
 #   SAFEPAY_SECRET_KEY             creates Monitoring Desk checkouts
 #   SAFEPAY_WEBHOOK_SECRET         verifies Safepay webhooks
@@ -31,6 +31,9 @@ ASK_GLOBAL_DAILY_LIMIT = "400"
 SAFEPAY_PLAN_ID = "plan_06e4e6c9-c108-456e-a746-777036fc7553"
 SAFEPAY_ENVIRONMENT = "sandbox"
 SAFEPAY_API_BASE = "https://sandbox.api.getsafepay.com"
+
+[observability]
+enabled = true
 
 # KV namespace that stores the incident feed + Telegram poll state.
 # Replace the placeholder id after running:

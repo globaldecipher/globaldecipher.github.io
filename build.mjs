@@ -316,6 +316,10 @@ function refreshManagedAssetUrls(value = "") {
 async function readCollection(collection) {
   const headers = CONTENT_DUMP_TOKEN ? { authorization: `Bearer ${CONTENT_DUMP_TOKEN}` } : {};
   const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
+  if (res.status === 401 && collection === "monitoring" && !CONTENT_DUMP_TOKEN && process.env.CI !== "true") {
+    console.warn("Skipping protected Monitoring content in local build (CONTENT_DUMP_TOKEN is not set).");
+    return [];
+  }
   if (!res.ok) throw new Error(`Failed to fetch ${collection} from ${CONTENT_API}: HTTP ${res.status}`);
   const { items } = await res.json();
   return (items || [])

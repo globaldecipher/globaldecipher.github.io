@@ -4,7 +4,7 @@ Independent, research-first coverage of terrorism, militant networks, and securi
 
 **Live site:** https://theglobaldecipher.com
 
-The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opinion, monitoring updates, monthly reports, and threat-actor / organisation profiles, plus two interactive tools: a **Pakistan incident map** and a **militant network graph**. Editors and interns manage everything — incidents, articles, profiles — from a web **admin panel** at `/admin` (one shared password), which also has a **maintenance-mode** switch that takes the public site offline. An optional cron can still auto-import incidents from X.
+The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opinion, monitoring updates, monthly reports, and threat-actor / organisation profiles, plus two interactive tools: a **Pakistan incident map** and a **militant network graph**. Editors and interns manage incidents, D1-backed editorial content, R2 media, monthly report drafts, and maintenance from the web **admin panel** at `/admin`.
 
 ---
 
@@ -13,13 +13,14 @@ The Global Decipher (TGD) is an OSINT publication. It puts out news briefs, opin
 | Layer | Choice |
 |---|---|
 | Site generator | Custom static-site builder in a single file, [`build.mjs`](build.mjs) (~2,000 lines). **Zero npm dependencies** — pure Node.js stdlib (`node:fs`, `node:path`). Hand-rolled Markdown parser, HTML templating (template literals), RSS/Atom feed, sitemap, robots.txt, and JSON search index. |
-| Content | Markdown + front-matter files under [`content/`](content) (`news`, `opinion`, `monitoring`, `reports`, `profiles`, `pages`). |
+| Editorial content | Cloudflare D1 rows (`news`, `opinion`, `monitoring`, `reports`, `profiles`, `pages`), exchanged as Markdown with front matter through the Admin API. |
 | Frontend | Vanilla JS for the publication shell and incident map; React/Vite, D3, and MapLibre for the research Explorer under [`apps/explorer/`](apps/explorer). |
-| Data | JSON under [`static/data/`](static/data) — `incidents.json`, `network-*.json`. |
+| Data | Cloudflare KV for the live incident feed; JSON under [`static/data/`](static/data) for the historical incident baseline and Explorer/network datasets. |
 | Build runtime | Node.js 22. |
 | Hosting | Cloudflare Pages (static site) on `theglobaldecipher.com`. |
-| Live incident feed | Cloudflare **Worker** (cron poller) + **KV** store — see [`worker/`](worker). |
-| CI/CD & automation | GitHub Actions (build/deploy + content publishing). |
+| Media | Cloudflare R2 for uploaded research media and generated monthly charts. |
+| Live services | Cloudflare **Worker** + **KV**, **D1**, and **R2** bindings — see [`worker/`](worker). |
+| CI/CD & automation | GitHub Actions for code/deployment; Worker cron for monthly report drafts and optional X imports. |
 
 The rendered pages pull Google Fonts CSS; everything else (map UI, graph, search, district coords) is same-origin static. The **incident feed is dynamic** — fetched from the Worker at `/api/incidents`, not baked into the build.
 
@@ -28,20 +29,20 @@ The rendered pages pull Google Fonts CSS; everything else (map UI, graph, search
 ## Repo structure
 
 ```
-content/          ← Markdown source for every article (you edit these)
+content/          ← historical migration snapshot; production editorial content lives in D1
   news/  opinion/  monitoring/  reports/  profiles/
   pages/          ← static pages (About, Contact, Methodology, policies…)
 static/           ← CSS, JS, brand images, and static JSON data
   admin.js / admin.css ← the /admin panel SPA (self-contained)
   data/           ← network graphs, district coords; incidents.json (seed only)
 build.mjs         ← static-site builder (also emits /admin, maintenance.html, _worker.js)
-worker/           ← Cloudflare Worker: incident feed + admin API + maintenance flag
-  src/            ← index.js (entry), ask.js, feed.js, content.js, media.js
-  wrangler.toml   ← Worker config (KV binding, cron, route)
+worker/           ← Cloudflare Worker: admin API, incidents, editorial content, analytics
+  src/            ← index.js, analytics.js, ask.js, feed.js, content.js, media.js
+  wrangler.toml   ← Worker config (KV, D1, R2, cron, routes)
 .github/
-  workflows/      ← GitHub Actions (deploy + content/incident publishing)
-  scripts/        ← issue-form parsers (article + incident)
-  ISSUE_TEMPLATE/ ← issue forms for publishing content & incidents
+  workflows/      ← GitHub Actions (deploy + optional incident issue ingestion)
+  scripts/        ← incident issue-form parser
+  ISSUE_TEMPLATE/ ← optional incident issue form
 site/             ← built output (gitignored — regenerated on every build)
 ```
 
@@ -49,7 +50,7 @@ site/             ← built output (gitignored — regenerated on every build)
 
 ## How it builds
 
-`node build.mjs` reads `content/` + `static/`, renders every page, and writes a complete static site to `site/`:
+`node build.mjs` downloads published editorial rows from the Worker/D1 API, reads `static/`, renders every page, and writes a complete static site to `site/`:
 
 - HTML pages for each article, profile, organisation, region, and listing
 - `feed.xml` / `rss.xml`, `sitemap.xml`, `robots.txt`, `404.html`
@@ -66,9 +67,9 @@ The site `url`, title, contact, and social links live in the `SITE` object at th
 The site splits cleanly in two so that high-frequency incident updates never trigger a rebuild:
 
 - **Static (Cloudflare Pages):** all articles, profiles, orgs, regions, the map UI, JS/CSS, network graph, district coords, plus the admin panel (`/admin`) and the maintenance gate (`_worker.js`). Rebuilt + deployed **only when content changes**.
-- **Dynamic (Cloudflare Worker + KV):** the live incident feed + the admin API. The Worker serves `GET /api/incidents` (the map reads this), handles authed writes from the admin panel, commits article/profile edits to GitHub, and stores the maintenance flag. An optional cron imports from X and prunes the archive window. **No commits, no builds, no deploys for incident updates.**
+- **Dynamic (Cloudflare Worker + bindings):** D1 stores articles/profiles/pages and the audit log; KV stores the live incident feed and maintenance state; R2 stores uploads and generated charts. The Worker serves the APIs, validates writes, and creates monthly report drafts. **No commits, builds, or deploys are required for incident updates.**
 
-The admin panel writes incidents straight to KV (instant) and writes articles/profiles as Markdown files via the GitHub API (commit → rebuild). Maintenance mode is a KV flag the Pages `_worker.js` checks on every request.
+The admin panel writes incidents straight to KV. Draft editorial content is saved privately in D1. Publishing content updates D1 and asks GitHub Actions to rebuild; the build fetches published D1 rows and deploys the generated site to Cloudflare Pages. Maintenance mode is a KV flag the Pages `_worker.js` checks on every request.
 
 See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.md`](CLOUDFLARE_SETUP.md).
 
@@ -76,24 +77,23 @@ See [`worker/`](worker) and the full provisioning runbook in [`CLOUDFLARE_SETUP.
 
 | File | Role |
 |---|---|
-| `index.js` | `fetch()` API (incidents CRUD, content CRUD, Explorer AI, maintenance toggle, auth) + `scheduled()` cron (X import + prune) |
+| `index.js` | `fetch()` API (incidents, content, analytics, deployment status, Explorer AI, maintenance, auth) + scheduled jobs |
+| `analytics.js` | Monthly aggregates, SVG chart generation, R2 chart storage, and private D1 report drafts |
 | `ask.js` | Source-bound Gemini proxy with private credentials and free-tier-friendly limits |
 | `x.js` | X (Twitter) account polling → incident objects (optional) |
-| `github.js` | GitHub Contents API wrapper — list/read/write/delete Markdown under `content/` |
-| `feed.js` | district lookup, date/archive helpers, KV read/write, merge/dedupe/prune |
+| `feed.js` | validation, district/date helpers, KV read/write, merge/dedupe/archive logic |
 
 Config in `worker/wrangler.toml`: KV binding `INCIDENTS`, cron, route `theglobaldecipher.com/api/*`, and non-secret model/rate-limit settings. Secrets (`wrangler secret put`): `ADMIN_TOKEN`, `GITHUB_TOKEN`, `GEMINI_API_KEY`, plus optional integrations. The Pages project also needs a `MAINTENANCE_KV` binding to the same KV namespace.
 
 ### Admin panel (`static/admin.js`, `/admin`)
 
-Vanilla-JS SPA. Login with `ADMIN_TOKEN`. Tabs: **Incidents** (KV CRUD, instant) and **Articles & Profiles** (Markdown CRUD via GitHub, ~1-min rebuild). Header toggle for **maintenance mode**. Self-contained styles (`static/admin.css`) so it loads even while the site is gated.
+Vanilla-JS SPA. Login with `ADMIN_TOKEN`. Tabs: **Incidents** (KV CRUD and monthly analytics), **Articles & Profiles** (D1 drafts/publishing with conflict protection and deployment status), and **Activity**. Header toggle for **maintenance mode**. Self-contained styles (`static/admin.css`) so it loads even while the site is gated.
 
 ### GitHub Actions (`.github/workflows/`)
 
 | Workflow | Trigger | What it does | Secrets |
 |---|---|---|---|
 | **deploy.yml** | push to `main`, manual | Build the site and deploy to Cloudflare Pages (direct upload via wrangler). | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` |
-| **content-upload.yml** | issue with `content-upload` label | Issue form → Markdown article in `content/` → commit → deploy. Write-gated. | `CLOUDFLARE_*` |
 | **incident-update.yml** | issue with `incident-update` label | Issue form → parse incident → **POST to the Worker** (KV), no commit. Write-gated. | `WORKER_INGEST_URL`, `TGD_ADMIN_TOKEN` |
 
 The repo is **public**, so Actions minutes are free and unmetered. The deploy uses Cloudflare **direct upload**, which doesn't count against Pages' 500-build/month free limit.
@@ -105,16 +105,17 @@ The repo is **public**, so Actions minutes are free and unmetered. The deploy us
 Primary path is the **admin panel** at `/admin` (log in with `ADMIN_TOKEN`):
 
 - **Incident:** Incidents tab → add/edit/delete. Live map updates in ~1 min, no deploy.
-- **Article / profile / page:** Articles & Profiles tab → pick folder → add/edit/delete. Commits to GitHub → site rebuilds in ~1 min.
+- **Article / profile / page:** Articles & Profiles tab → add/edit/save in D1 → publish → GitHub Actions rebuilds from D1 in ~1 min.
+- **Monthly report:** Incidents → Monthly reports → review totals → generate a private D1 draft and R2 charts → edit → publish.
 - **Maintenance:** header toggle takes the public site offline behind a maintenance screen.
 
-Still available as fallbacks: editing Markdown in `content/` directly, the GitHub *Content upload* / *Incident update* issue forms (see [`HOW_TO_PUBLISH.md`](HOW_TO_PUBLISH.md)), and optional X auto-import via the Worker cron.
+The optional GitHub *Incident update* issue form and X auto-import remain available. Direct GitHub article publishing was removed because D1 is now the editorial source of truth.
 
 ---
 
 ## Build locally (optional)
 
-Only needed for testing CSS or build changes — articles can be published entirely from the GitHub web UI.
+Only needed for testing code or design changes. Editorial content should be managed through TGD Admin.
 
 ```bash
 node build.mjs
