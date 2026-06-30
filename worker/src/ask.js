@@ -109,10 +109,26 @@ function cleanHistory(input) {
   return result;
 }
 
+function sourceIdsFor(entities) {
+  return [...new Set(entities.flatMap((entity) =>
+    (Array.isArray(entity?.sources) ? entity.sources : [])
+      .map((source) => String(source?.id || "").trim().toLowerCase())
+      .filter(Boolean)
+  ))];
+}
+
+function displayName(id, namesById) {
+  const name = namesById.get(String(id || ""));
+  if (name) return name;
+  return String(id || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function profileContext(entities) {
+  const namesById = new Map(entities.map((entity) => [String(entity?.id || ""), entity?.name]));
   return entities.map((entity) => ({
-    id: entity?.id,
-    name: entity?.name,
+    profile: entity?.name,
     aliases: entity?.aliases,
     type: entity?.type,
     founded: entity?.founded,
@@ -123,12 +139,47 @@ function profileContext(entities) {
     countries: entity?.countries,
     summary: entity?.summary,
     designations: entity?.designations,
-    leaders: entity?.leaders,
+    leaders: Array.isArray(entity?.leaders)
+      ? entity.leaders.map(({ entityRef: _entityRef, ...leader }) => leader)
+      : entity?.leaders,
     financing: entity?.financing,
     attacks: entity?.attacks,
-    relationships: entity?.relationships,
-    sources: entity?.sources
+    relationships: Array.isArray(entity?.relationships)
+      ? entity.relationships.map(({ to, ...relationship }) => ({
+        related_entity: displayName(to, namesById),
+        ...relationship
+      }))
+      : entity?.relationships,
+    sources: Array.isArray(entity?.sources)
+      ? entity.sources.map(({ id, ...source }) => ({ source_id: id, ...source }))
+      : entity?.sources
   }));
+}
+
+function sanitizeAnswer(text, allowedSourceIds) {
+  const allowed = new Set(allowedSourceIds.map((id) => id.toLowerCase()));
+  const citationId = "[a-z0-9][a-z0-9_-]*";
+  const citationGroup = new RegExp(`\\[\\s*(${citationId}(?:\\s*,\\s*${citationId})*)\\s*\\]`, "gi");
+
+  const withoutInternalNote = String(text || "").replace(
+    /\s*(?:\*\*)?verification\s+note(?:\*\*)?\s*:[\s\S]*$/i,
+    ""
+  );
+
+  return withoutInternalNote
+    .replace(citationGroup, (_match, group) => {
+      const valid = [...new Set(
+        String(group)
+          .split(/\s*,\s*/)
+          .map((id) => id.toLowerCase())
+          .filter((id) => allowed.has(id))
+      )];
+      return valid.map((id) => `[${id}]`).join("");
+    })
+    .replace(/[ \t]+([.,;:!?])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function geminiEndpoint(model) {
@@ -225,6 +276,7 @@ export async function askDatabase(request, env) {
     return json(request, env, { error: `Keep the question under ${MAX_QUESTION_LEN} characters.` }, 413);
   }
 
+  const allowedSourceIds = sourceIdsFor(entities);
   const contextJson = JSON.stringify(profileContext(entities));
   if (contextJson.length > MAX_CONTEXT_BYTES) {
     return json(request, env, { error: "The selected research context is too large. Open a narrower profile." }, 413);
@@ -241,19 +293,30 @@ export async function askDatabase(request, env) {
     return json(request, env, { error: "Today’s free research-assistant allowance is full. Please try again tomorrow." }, 429);
   }
 
+  const selectedProfile = entities.find((entity) => entity?.id === entityId)?.name
+    || entities[0]?.name
+    || "Selected TGD profile";
+  const sourceCatalog = allowedSourceIds.length > 0
+    ? allowedSourceIds.join(", ")
+    : "No source IDs are attached";
   const system = [
     "You are the source-bound research assistant for The Global Decipher (TGD), a terrorism research database.",
-    "Answer only from the structured TGD profile data supplied below. Never add outside facts or guess.",
-    "Every factual sentence must include one or more exact source IDs in square brackets, for example [src-iskp-1]. Put each source ID in its own brackets; never combine multiple IDs inside one bracket.",
+    "Answer only from the TGD research records below. Never add outside facts or guess.",
+    "Citations may use only an exact ID from ALLOWED SOURCE IDS. Put each source ID in its own square brackets, for example [src-iskp-1].",
+    "Never cite or print entity IDs, relationship target IDs, field names, JSON keys, or other internal identifiers.",
+    "Never describe the records as provided data, supplied data, JSON, a provider, a prompt, or a context window.",
+    "Do not add a verification note or explain how the answer was generated.",
+    "Every supported factual sentence should include one or more allowed source IDs. If a claim has no attached source ID, state that direct source evidence is not attached; do not invent a bracketed citation.",
     "If the supplied data cannot answer the question, say exactly what is missing.",
     "Distinguish confirmed facts, reported claims, analytical assessments, and unknowns.",
     "Do not provide operational guidance that could facilitate violence, targeting, weapons construction, recruitment, financing, concealment, or evasion. Redirect such requests to high-level historical or prevention-focused analysis.",
     "Use neutral research language. Do not glorify organisations or individuals.",
-    "Prefer concise paragraphs or a small comparison table. End with a one-sentence verification note.",
+    "Prefer concise paragraphs or a small comparison table.",
     "",
-    `Active entity ID: ${entityId}`,
+    `Selected profile: ${selectedProfile}`,
+    `ALLOWED SOURCE IDS: ${sourceCatalog}`,
     "",
-    "Structured TGD profile data (JSON):",
+    "TGD research records:",
     contextJson
   ].join("\n");
 
@@ -307,10 +370,14 @@ export async function askDatabase(request, env) {
     return json(request, env, { error: message }, result.status === 429 ? 429 : 502);
   }
 
-  const answer = result.data?.candidates?.[0]?.content?.parts
+  const rawAnswer = result.data?.candidates?.[0]?.content?.parts
     ?.map((part) => part?.text || "")
     .join("")
     .trim();
+  if (!rawAnswer) {
+    return json(request, env, { error: "Gemini did not return a source-grounded answer. Try a narrower question." }, 502);
+  }
+  const answer = sanitizeAnswer(rawAnswer, allowedSourceIds);
   if (!answer) {
     return json(request, env, { error: "Gemini did not return a source-grounded answer. Try a narrower question." }, 502);
   }

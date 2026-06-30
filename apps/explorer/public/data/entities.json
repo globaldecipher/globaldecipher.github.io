@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "TGD Explorer entity dataset",
-    "last_updated": "2026-06-29",
+    "last_updated": "2026-06-30",
     "coverage": "Pakistan-theatre militant organisations, factions, fronts, and key actors. Deep-coverage seed: ISKP and TTP."
   },
   "entities": [
@@ -70,7 +70,10 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Deputy amir"
+          "note": "Deputy amir",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -191,17 +194,26 @@
         {
           "to": "harakat-ul-mujahidin",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "lashkar-e-jhangvi",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -244,6 +256,16 @@
           "id": "un-1267",
           "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
           "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "nctc-ttp",
+          "title": "U.S. National Counterterrorism Center: TTP profile",
+          "url": "https://www.dni.gov/nctc/groups/ttp.html"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
         }
       ],
       "stub": true,
@@ -251,22 +273,34 @@
         {
           "to": "tehreek-e-taliban-pakistan",
           "type": "ideological-link",
-          "note": "Historic close ties documented by NCTC"
+          "note": "Historic close ties documented by NCTC",
+          "sources": [
+            "nctc-ttp"
+          ]
         },
         {
           "to": "etim-tip",
           "type": "ideological-link",
-          "note": "UN-listed al-Qaeda-associated organisation"
+          "note": "UN-listed al-Qaeda-associated organisation",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "islamic-movement-of-uzbekistan",
           "type": "ideological-link",
-          "note": "UN-listed al-Qaeda-associated organisation"
+          "note": "UN-listed al-Qaeda-associated organisation",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "313-brigade",
           "type": "ideological-link",
-          "note": "Pakistan designation record placed in al-Qaeda-linked research cluster; relationship pending deeper source review"
+          "note": "Pakistan designation record placed in al-Qaeda-linked research cluster; relationship pending deeper source review",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -332,17 +366,26 @@
         {
           "to": "balochistan-liberation-army",
           "type": "ideological-link",
-          "note": "Documented BRAS coalition member"
+          "note": "Documented BRAS coalition member",
+          "sources": [
+            "nacta-watch-2020"
+          ]
         },
         {
           "to": "balochistan-liberation-front",
           "type": "ideological-link",
-          "note": "Documented BRAS coalition member"
+          "note": "Documented BRAS coalition member",
+          "sources": [
+            "nacta-watch-2020"
+          ]
         },
         {
           "to": "baloch-republican-army",
           "type": "ideological-link",
-          "note": "Documented BRAS coalition member"
+          "note": "Documented BRAS coalition member",
+          "sources": [
+            "nacta-watch-2020"
+          ]
         }
       ]
     },
@@ -389,12 +432,18 @@
         {
           "to": "majeed-brigade",
           "type": "ideological-link",
-          "note": "BLA unit / alias in U.S. designation"
+          "note": "BLA unit / alias in U.S. designation",
+          "sources": [
+            "state-bla-2025"
+          ]
         },
         {
           "to": "united-baloch-army",
           "type": "ideological-link",
-          "note": "Distinct organisation in the Baloch militant ecosystem"
+          "note": "Distinct organisation in the Baloch militant ecosystem",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -431,7 +480,10 @@
         {
           "to": "bluf",
           "type": "ideological-link",
-          "note": "Distinct organisation in the Baloch militant ecosystem"
+          "note": "Distinct organisation in the Baloch militant ecosystem",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -714,7 +766,11 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Founder and leader"
+          "note": "Founder and leader",
+          "sources": [
+            "un-xml",
+            "rfj-hafiz-saeed"
+          ]
         }
       ]
     },
@@ -754,7 +810,10 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Chief of finance"
+          "note": "Chief of finance",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -804,12 +863,18 @@
         {
           "to": "lashkar-e-jhangvi",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -978,12 +1043,18 @@
         {
           "to": "islamic-jihad-union",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "etim-tip",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -1027,6 +1098,11 @@
           "id": "un-1267",
           "title": "UN Security Council ISIL (Da'esh) and Al-Qaida Sanctions List",
           "url": "https://main.un.org/securitycouncil/en/sanctions/1267/aq_sanctions_list"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
         }
       ],
       "stub": true,
@@ -1034,7 +1110,10 @@
         {
           "to": "iskp",
           "type": "ideological-link",
-          "note": "Islamic State Khorasan branch"
+          "note": "Islamic State Khorasan branch",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -1509,37 +1588,58 @@
         {
           "to": "khuddam-ul-islam",
           "type": "split-from",
-          "note": "Successor / split name after 2003"
+          "note": "Successor / split name after 2003",
+          "sources": [
+            "nctc-jem"
+          ]
         },
         {
           "to": "jamat-ul-furqan",
           "type": "split-from",
-          "note": "Faction emerging from 2003 split"
+          "note": "Faction emerging from 2003 split",
+          "sources": [
+            "nctc-jem"
+          ]
         },
         {
           "to": "harakat-ul-mujahidin",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "harakat-ul-jihad-islami",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "al-akhtar-trust",
           "type": "parent",
-          "note": "Trust registered by JeM members"
+          "note": "Trust registered by JeM members",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "al-rashid-trust",
           "type": "ideological-link",
-          "note": "Association documented by UN"
+          "note": "Association documented by UN",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -1642,7 +1742,10 @@
         {
           "to": "hizb-ul-ahrar",
           "type": "split-from",
-          "note": "HuA emerged from the JuA milieu"
+          "note": "HuA emerged from the JuA milieu",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -1715,7 +1818,10 @@
         {
           "to": "sindhudesh-revolutionary-army",
           "type": "ideological-link",
-          "note": "Separate designation records in the Sindh separatist ecosystem"
+          "note": "Separate designation records in the Sindh separatist ecosystem",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -1866,12 +1972,18 @@
         {
           "to": "lashkar-e-jhangvi-al-alami",
           "type": "split-from",
-          "note": "Al-Alami faction"
+          "note": "Al-Alami faction",
+          "sources": [
+            "nacta-2024"
+          ]
         },
         {
           "to": "jundullah-pakistan",
           "type": "ideological-link",
-          "note": "Pakistan sectarian militant ecosystem; identity claims require case-level review"
+          "note": "Pakistan sectarian militant ecosystem; identity claims require case-level review",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -1967,12 +2079,18 @@
         {
           "to": "jamaat-ud-dawa",
           "type": "ideological-link",
-          "note": "UN-listed alias / front"
+          "note": "UN-listed alias / front",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "falah-e-insaniat-foundation",
           "type": "parent",
-          "note": "Affiliated charitable front"
+          "note": "Affiliated charitable front",
+          "sources": [
+            "nctc-let"
+          ]
         }
       ]
     },
@@ -2060,7 +2178,11 @@
         {
           "to": "jaish-e-mohammed",
           "type": "ideological-link",
-          "note": "Founded JeM"
+          "note": "Founded JeM",
+          "sources": [
+            "un-xml",
+            "nctc-jem"
+          ]
         }
       ]
     },
@@ -2096,6 +2218,11 @@
           "id": "un-xml",
           "title": "UN Security Council sanctions data, XML edition",
           "url": "https://scsanctions.un.org/xml/en/al-qaida"
+        },
+        {
+          "id": "nctc-ttp",
+          "title": "U.S. National Counterterrorism Center: TTP profile",
+          "url": "https://www.dni.gov/nctc/groups/ttp.html"
         }
       ],
       "stub": true,
@@ -2103,12 +2230,19 @@
         {
           "to": "tehreek-e-taliban-pakistan",
           "type": "ideological-link",
-          "note": "Former TTP leader"
+          "note": "Former TTP leader",
+          "sources": [
+            "un-xml"
+          ]
         },
         {
           "to": "ttp-swat",
           "type": "ideological-link",
-          "note": "Led TTP's Swat network"
+          "note": "Led TTP's Swat network",
+          "sources": [
+            "un-xml",
+            "nctc-ttp"
+          ]
         }
       ]
     },
@@ -2151,7 +2285,10 @@
         {
           "to": "iskp",
           "type": "ideological-link",
-          "note": "Senior ISKP leader"
+          "note": "Senior ISKP leader",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -2195,7 +2332,10 @@
         {
           "to": "tehreek-e-taliban-pakistan",
           "type": "ideological-link",
-          "note": "Leads TTP"
+          "note": "Leads TTP",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -2234,7 +2374,10 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "member-of",
-          "note": "Senior member"
+          "note": "Senior member",
+          "sources": [
+            "rfj-sajid-mir"
+          ]
         }
       ]
     },
@@ -2346,7 +2489,10 @@
         {
           "to": "sindhudesh-liberation-army",
           "type": "ideological-link",
-          "note": "Sindh separatist militant ecosystem"
+          "note": "Sindh separatist militant ecosystem",
+          "sources": [
+            "nacta-2024"
+          ]
         }
       ]
     },
@@ -2383,6 +2529,11 @@
           "id": "nacta-2024",
           "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
           "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "un-xml",
+          "title": "UN Security Council sanctions data, XML edition",
+          "url": "https://scsanctions.un.org/xml/en/al-qaida"
         }
       ],
       "stub": true,
@@ -2390,7 +2541,11 @@
         {
           "to": "lashkar-e-jhangvi",
           "type": "split-from",
-          "note": "LeJ emerged from the SSP sectarian milieu"
+          "note": "LeJ emerged from the SSP sectarian milieu",
+          "sources": [
+            "nacta-2024",
+            "un-xml"
+          ]
         }
       ]
     },
@@ -2461,7 +2616,10 @@
         {
           "to": "iskp",
           "type": "member-of",
-          "note": "ISKP spokesperson"
+          "note": "ISKP spokesperson",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -2940,6 +3098,11 @@
           "id": "nacta-2024",
           "title": "Pakistan NACTA: Proscribed Organisations List, updated 6 October 2024",
           "url": "https://nacta.gov.pk/wp-content/uploads/2024/10/proscribed-organizations-06-oct-2024.pdf"
+        },
+        {
+          "id": "nctc-ttp",
+          "title": "U.S. National Counterterrorism Center: TTP profile",
+          "url": "https://www.dni.gov/nctc/groups/ttp.html"
         }
       ],
       "stub": true,
@@ -2947,7 +3110,11 @@
         {
           "to": "ttp-swat",
           "type": "ideological-link",
-          "note": "Historic Swat-Malakand militant ecosystem"
+          "note": "Historic Swat-Malakand militant ecosystem",
+          "sources": [
+            "nacta-2024",
+            "nctc-ttp"
+          ]
         }
       ]
     },
@@ -3110,7 +3277,10 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Co-founder and senior leader"
+          "note": "Co-founder and senior leader",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     },
@@ -3186,7 +3356,10 @@
         {
           "to": "lashkar-e-tayyiba",
           "type": "ideological-link",
-          "note": "Chief of operations"
+          "note": "Chief of operations",
+          "sources": [
+            "un-xml"
+          ]
         }
       ]
     }
