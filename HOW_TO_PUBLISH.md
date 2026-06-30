@@ -1,196 +1,77 @@
-# How to publish an article
+# How to publish on The Global Decipher
 
-You publish from a web browser. No terminal needed. Works from your laptop, phone, or any computer.
+The live editorial source of truth is Cloudflare D1. GitHub stores the website
+code and runs the deployment; it is not the article database.
 
-## Quick steps
+## Publish an article, profile, report, or page
 
-1. Go to https://github.com/globaldecipher/globaldecipher.github.io
-2. Open the `content/` folder, then pick the section your article belongs in:
-   - `content/news/` — news briefings and analytical notes
-   - `content/opinion/` — opinion / commentary essays
-   - `content/monitoring/` — monitoring desk previews
-   - `content/reports/` — research reports
-   - `content/profiles/` — actor profiles (individuals or groups)
-3. Click **"Add file → Create new file"** (top right of the file list)
-4. Type a filename, dash-separated, ending in `.md`. Example:
-   `2026-05-17-ttp-claim-cycle.md`
-5. Paste a template (see below) and fill in your content
-6. Scroll down. Leave "Commit directly to the main branch" selected. Click **Commit changes**.
-7. Wait ~60–90 seconds. The site rebuilds itself and updates at https://globaldecipher.github.io
+1. Go to `https://theglobaldecipher.com/admin`.
+2. Sign in.
+3. Open **Articles & Profiles** and choose the correct section.
+4. Create a new item or edit an existing one.
+5. Write in the editor or import a `.docx` file.
+6. Complete the title, date, summary, region, category, tags, and sensitivity.
+7. Preview the page.
+8. Choose:
+   - **Save draft** — private D1 record, no website rebuild.
+   - **Publish to website** — published D1 record followed by a website rebuild.
 
-That's it.
+When a publish starts, the Worker dispatches `deploy.yml`. GitHub Actions checks
+out the code, `build.mjs` downloads all published D1 rows, the Explorer is
+built, and the resulting `site/` directory is uploaded to Cloudflare Pages.
 
-## Template — news / opinion / monitoring
+The Admin **Website deployment** panel shows the latest state.
 
-```markdown
----
-title: "Your headline here"
-date: "2026-05-17"
-author: "TGD News Desk"
-type: "news"
-category: "Pakistan"
-region: "Pakistan"
-summary: "One or two lines that show on cards and search."
-tags: ["Pakistan", "TTP", "Public Sources"]
-access: "free"
-sensitivity: "standard"
-featured: false
----
+## Publish an incident
 
-## Executive signal
+1. Open **Incidents**.
+2. Select **New incident**.
+3. Enter the date, headline, summary, location, classification, actors,
+   casualties, source, and verification state.
+4. Select **Publish incident**.
 
-Your first paragraph here.
+The Worker validates the record and writes it directly to Cloudflare KV.
+The public map and all interactive incident analytics update without a Pages
+build.
 
-## What to watch
+## Generate a monthly report draft
 
-- Bullet one
-- Bullet two
-- Bullet three
+1. Open **Incidents → Monthly reports**.
+2. Choose the reporting month.
+3. Review the calculated totals and rankings.
+4. Select **Generate report draft**.
+5. Open Reports under **Articles & Profiles**.
+6. Review the generated draft and R2 charts.
+7. Replace the Editor analysis placeholder with reviewed research.
+8. Publish only after checking source links, duplicate events, casualty
+   classifications, actor labels, and prose.
 
-## Why it matters
+On the first day of each month, the Worker also attempts to generate the
+previous month automatically. It creates a draft only and will not overwrite an
+existing report.
 
-Closing paragraph.
-```
+## Editing safety
 
-## Template — actor profile
+Every editor receives the version timestamp that was current when the item was
+opened. If another editor saves first, the older editor receives a conflict
+warning instead of overwriting the newer work.
 
-```markdown
----
-title: "Full name"
-date: "2026-05-17"
-author: "TGD Research Desk"
-type: "profiles"
-category: "Individual"
-region: "Pakistan"
-summary: "One or two lines summarising who they are and why they matter."
-tags: ["Group name", "Role", "Status"]
-access: "free"
-sensitivity: "research-sensitive"
-featured: false
----
+## Content and file locations
 
-## Status
+| Material | Source of truth |
+| --- | --- |
+| Articles, reports, profiles, pages | Cloudflare D1 |
+| Incidents and maintenance state | Cloudflare KV |
+| Images, PDFs, imported document media, generated charts | Cloudflare R2 |
+| Website code, CSS, JavaScript, templates, Explorer datasets | GitHub |
+| Public generated website | Cloudflare Pages |
 
-Living / deceased / in custody — with date and brief context.
+The repository `content/` files are retained as a migration snapshot and are
+not read by the production build.
 
-## Identification
+## Access and accountability
 
-- **Full name:** ...
-- **Born:** date, place
-- **Nationality:** ...
-- **Organisation:** ...
-
-## Background
-
-Two or three short paragraphs of biographical detail drawn from public sources.
-
-## Significance
-
-Why this person is a reference point for the desk's research.
-
-## Public-source notes
-
-A note about the public sources used (Wikipedia, Britannica, government documents, academic biographies, on-record reporting).
-```
-
-## Field reference (frontmatter)
-
-| field | required | options / notes |
-| --- | --- | --- |
-| `title` | yes | The headline. |
-| `date` | yes | `YYYY-MM-DD` |
-| `author` | yes | e.g. `TGD News Desk`, `TGD Research Desk`. |
-| `type` | yes | One of: `news`, `opinion`, `monitoring`, `reports`, `profiles`. |
-| `category` | recommended | Short label shown on cards, e.g. `Pakistan`, `Digital Propaganda`. |
-| `region` | recommended | e.g. `Pakistan`, `South Asia`, `Middle East`, `Global`. |
-| `summary` | yes | Used in cards and search index. Keep under ~30 words. |
-| `tags` | yes | Array of 2–4 short tags. |
-| `access` | yes | `free` or `premium-preview` (shows a premium badge + sidebar CTA). |
-| `sensitivity` | yes | `standard` or `research-sensitive` (red badge). |
-| `featured` | optional | `true` to show in the "Featured" homepage band. |
-
-## Tips
-
-- The build runs automatically after every commit. If the site doesn't update within ~2 minutes, check the **Actions** tab on the repo for the latest run.
-- You don't have to build locally. Just edit on github.com and commit.
-- Want to fix a typo in a live article? Browse to the `.md` file on GitHub, click the pencil icon (top right), edit, commit. Site rebuilds.
-
-## Adding charts, tables, PDFs, and embeds to a report
-
-### 1. Charts and images (PNG, JPG, SVG)
-
-Export your chart from Excel / Google Sheets / Canva / Datawrapper / Flourish as **PNG** (or SVG for sharper rendering). Then:
-
-1. On github.com, browse to `static/charts/`
-2. Click **Add file → Upload files**, drag the image in, **Commit changes**
-3. In your article markdown, reference it on its own line:
-
-   ```markdown
-   ![Reported incidents by month, Pakistan Q1 2026](/assets/charts/may-2026-incidents.png)
-   ```
-
-   The text in `[ ]` is the alt text AND the caption. Put a quoted caption after the URL if you want a different caption:
-
-   ```markdown
-   ![](/assets/charts/may-2026-incidents.png "Source: TGD monitoring · public sources only")
-   ```
-
-When an image is on its own line, the site wraps it in a `<figure>` with a red-bar caption below. Inside a paragraph the image inlines normally.
-
-### 2. Data tables
-
-GitHub-flavoured markdown tables work. Pipe-separated rows, with a header separator. Use `---` for default, `---:` for right-align, `:---:` for center.
-
-```markdown
-| Region | Incidents | Claimed | Verified | Trend |
-| --- | ---: | ---: | ---: | :---: |
-| Pakistan | 51 | 38 | 22 | ↑ |
-| Afghanistan | 34 | 26 | 14 | → |
-```
-
-Renders as a proper styled table with bold uppercase headers, hairline rows, and hover highlights.
-
-### 3. PDF (or XLSX / CSV / ZIP) downloads
-
-1. On github.com, browse to `static/reports/`
-2. Upload your PDF (e.g. `2026-05-monthly-threat-review.pdf`)
-3. In the article, link to it like any other link:
-
-   ```markdown
-   [Download the May 2026 Threat Review (PDF)](/assets/reports/2026-05-monthly-threat-review.pdf)
-   ```
-
-The site automatically styles PDF/XLSX/CSV/ZIP links as download buttons with a coloured file-type badge.
-
-### 4. Interactive charts (Datawrapper, Flourish, Tableau, etc.)
-
-Paste the `<iframe>` embed code from the chart tool on its own block (with blank lines above and below). Example from Datawrapper:
-
-```html
-<iframe src="https://datawrapper.dwcdn.net/abc123/1/" width="100%" height="500" frameborder="0" scrolling="no" allowfullscreen></iframe>
-```
-
-The site renders the iframe in a styled embed container with rounded corners.
-
-### 5. Pull quotes
-
-Quote-style emphasis with `>`:
-
-```markdown
-> Public-source monitoring is a leading indicator of attention, not of capability.
-```
-
-Renders with a red left border in italic serif.
-
-### Putting it together (monthly report example)
-
-A realistic report mixes them all — see [`content/reports/2026-05-monthly-threat-review.md`](content/reports/2026-05-monthly-threat-review.md) in the repo for a working template.
-
-## What NOT to publish
-
-- Verbatim propaganda statements, recruitment text, or operational/tactical detail.
-- Unverified single-source claims framed as confirmed facts.
-- Graphic media or hostage imagery.
-- Anything that could identify a confidential source.
-
-If unsure, save it as a draft (don't commit) and review with the desk first.
+The existing shared access key remains available until Cloudflare Access is
+configured with the owner's and interns' approved email addresses. Do not
+enable an Access policy before those identities are confirmed, because doing so
+could lock the owner out of `/admin`.

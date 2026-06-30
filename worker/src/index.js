@@ -11,6 +11,9 @@
 //     GET    /api/content?folder=    public — list articles in a collection (D1)
 //     GET    /api/content/file?path= public — read one article { content, sha }
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
+//     GET    /api/deployment         authed — latest GitHub/Cloudflare deployment state
+//     GET    /api/analytics/monthly  authed — monthly incident aggregates
+//     POST   /api/analytics/monthly/generate authed — create report draft + R2 charts
 //     POST   /api/monitoring/checkout public — create Safepay checkout
 //     GET    /api/monitoring/return   public — activate paid Monitoring access
 //     GET    /api/monitoring/me       public — read Monitoring session state
@@ -34,13 +37,27 @@ import {
   archiveStartDate,
   ARCHIVE_DAYS,
   PAKISTAN_TIME_ZONE,
-  MAINTENANCE_KEY
+  MAINTENANCE_KEY,
+  validateIncident
 } from "./feed.js";
 import { pollX } from "./x.js";
-import { listContent, getFile, putFile, deleteFile, dumpCollection, triggerRebuild } from "./content.js";
+import {
+  listContent,
+  getFile,
+  putFile,
+  deleteFile,
+  dumpCollection,
+  triggerRebuild,
+  latestDeployment
+} from "./content.js";
 import { uploadMedia, readMedia } from "./media.js";
 import { logAudit, listAudit, actorFingerprint } from "./audit.js";
 import { askDatabase } from "./ask.js";
+import {
+  generateMonthlyReportDraft,
+  getMonthlyAnalytics,
+  maybeGeneratePreviousMonthDraft
+} from "./analytics.js";
 import {
   handleSafepayWebhook,
   handleMonitoringCheckout,
@@ -179,6 +196,20 @@ export default {
 
       if (path === "/api/admin/ping") return json({ ok: true });
 
+      if (path === "/api/deployment" && method === "GET") {
+        return json(await latestDeployment(env));
+      }
+
+      if (path === "/api/analytics/monthly" && method === "GET") {
+        const month = url.searchParams.get("month") || "";
+        return json(await getMonthlyAnalytics(env, month));
+      }
+      if (path === "/api/analytics/monthly/generate" && method === "POST") {
+        const body = await readJson(request);
+        const month = String(body?.month || "");
+        return json(await generateMonthlyReportDraft(env, month), 201);
+      }
+
       // ---- Admin content reads (drafts are never exposed publicly) ----
       if (path === "/api/content" && method === "GET") {
         const folder = url.searchParams.get("folder") || "";
@@ -218,11 +249,22 @@ export default {
       if (path === "/api/incidents" && method === "POST") {
         const payload = await readJson(request);
         const incoming = Array.isArray(payload) ? payload : Array.isArray(payload?.incidents) ? payload.incidents : [payload];
-        const valid = incoming.filter((i) => i && i.id && i.date);
-        if (!valid.length) return json({ error: "Each incident needs at least id and date" }, 400);
+        const candidates = incoming.filter(Boolean);
+        if (!candidates.length) return json({ error: "Submit at least one incident." }, 400);
+        const invalid = candidates
+          .map((incident) => ({ id: incident.id || null, errors: validateIncident(incident) }))
+          .filter((entry) => entry.errors.length);
+        if (invalid.length) {
+          return json({
+            error: "Some incident fields need attention before publishing.",
+            incidents: invalid
+          }, 400);
+        }
+        const valid = candidates;
         const today = pakistanDateFromSeconds();
         const feed = await loadFeed(env);
         const knownIds = new Set((feed.incidents || []).map((it) => it.id));
+        const updated = valid.filter((incident) => knownIds.has(incident.id)).length;
         feed.incidents = mergeIncidents(feed.incidents, valid, today);
         stampFeed(feed, today);
         await saveFeed(env, feed);
@@ -237,7 +279,12 @@ export default {
             actor
           }));
         }
-        return json({ ok: true, added: valid.length, total: feed.incidents.length });
+        return json({
+          ok: true,
+          added: valid.length - updated,
+          updated,
+          total: feed.incidents.length
+        });
       }
 
       // ---- Incidents: delete ----
@@ -269,13 +316,14 @@ export default {
         if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
         const before = await getFile(env, body.path).catch(() => null);
         const beforeStatus = before ? parseStatus(before.content) : null;
-        const result = await putFile(env, body.path, body.content);
+        const result = await putFile(env, body.path, body.content, body.sha || null);
         // Skip rebuild for autosave (still drafts) — no point burning a Pages
         // build for an in-flight save.
         const status = parseStatus(body.content);
         const isAutosave = body.autosave === true;
+        let deployment = null;
         if (!isAutosave && (status === "published" || beforeStatus === "published")) {
-          ctx.waitUntil(triggerRebuild(env));
+          deployment = await triggerRebuild(env);
         }
         const actor = await actorFingerprint(bearerToken(request));
         ctx.waitUntil(logAudit(env, {
@@ -286,15 +334,15 @@ export default {
           sha: result.sha,
           actor
         }));
-        return json(result);
+        return json({ ...result, deployment });
       }
       if (path === "/api/content/file" && method === "DELETE") {
         const body = await readJson(request);
         if (!body?.path) return json({ error: "path is required" }, 400);
         const before = await getFile(env, body.path).catch(() => null);
         const beforeTitle = before ? parseTitle(before.content) : null;
-        const result = await deleteFile(env, body.path);
-        ctx.waitUntil(triggerRebuild(env));
+        const result = await deleteFile(env, body.path, body.sha || null);
+        const deployment = await triggerRebuild(env);
         const actor = await actorFingerprint(bearerToken(request));
         ctx.waitUntil(logAudit(env, {
           action: "delete",
@@ -303,7 +351,7 @@ export default {
           label: beforeTitle || body.path,
           actor
         }));
-        return json(result);
+        return json({ ...result, deployment });
       }
 
       return json({ error: "Not found" }, 404);
@@ -351,6 +399,21 @@ async function runPollers(env) {
     feed.incidents = merged;
     stampFeed(feed, today);
     await saveFeed(env, feed);
+  }
+  try {
+    const monthly = await maybeGeneratePreviousMonthDraft(env, today);
+    if (monthly.created) {
+      console.log(JSON.stringify({
+        message: "monthly report draft generated",
+        month: monthly.analytics?.month,
+        path: monthly.path
+      }));
+    }
+  } catch (error) {
+    console.error(JSON.stringify({
+      message: "monthly report automation failed",
+      error: error.message
+    }));
   }
   console.log(`X +${xAdded.length}; feed now ${merged.length} (was ${before}).`);
 }

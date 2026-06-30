@@ -1,4 +1,5 @@
 const MEDIA_PREFIX = "uploads/";
+const GENERATED_PREFIX = "generated/";
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
 function safeName(value = "file") {
@@ -52,6 +53,6 @@ export async function uploadMedia(request, env) {
 }
 
 export async function readMedia(env, key) {
-  if (!env.MEDIA || !key.startsWith(MEDIA_PREFIX)) return null;
+  if (!env.MEDIA || (!key.startsWith(MEDIA_PREFIX) && !key.startsWith(GENERATED_PREFIX))) return null;
   return env.MEDIA.get(key);
 }

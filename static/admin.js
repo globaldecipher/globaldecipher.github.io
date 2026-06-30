@@ -50,7 +50,12 @@
     const res = await fetch(API + path, { method, headers, body: payload });
     let data = {};
     try { data = await res.json(); } catch {}
-    if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+    if (!res.ok) {
+      const fieldErrors = Array.isArray(data.incidents)
+        ? data.incidents.flatMap((incident) => incident.errors || []).slice(0, 4)
+        : [];
+      throw new Error([data.error || "HTTP " + res.status, ...fieldErrors].filter(Boolean).join(" "));
+    }
     return data;
   }
 
@@ -68,6 +73,12 @@
   const slug = (s) => String(s || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "")
     .replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
   const today = () => new Date().toISOString().slice(0, 10);
+  const previousMonthKey = () => {
+    const date = new Date();
+    date.setUTCDate(1);
+    date.setUTCMonth(date.getUTCMonth() - 1);
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  };
 
   // ---- YAML front-matter (mirror of build.mjs / publish script) ----
   const yStr = (v) => JSON.stringify(String(v ?? ""));
@@ -399,6 +410,7 @@
     view.append(pageHead(
       "Incidents",
       "Live feed that powers the public incident map. Edits show up on the map within a minute.",
+      el("button", { class: "btn", onclick: () => renderMonthlyReports(view) }, "Monthly reports"),
       el("button", { class: "btn primary", onclick: () => incidentForm(view) }, "+ New incident")
     ));
 
@@ -542,6 +554,108 @@
 
     searchInput.addEventListener("input", () => { query = searchInput.value; renderRows(); });
     await reload();
+  }
+
+  async function renderMonthlyReports(view) {
+    clear(view);
+    const monthInput = el("input", {
+      class: "field inline",
+      type: "month",
+      value: previousMonthKey(),
+      "aria-label": "Reporting month"
+    });
+    const results = el("div", { class: "monthly-results" }, el("p", { class: "muted" }, "Loading monthly incident totals…"));
+    const generate = el("button", { class: "btn primary" }, "Generate report draft");
+    view.append(
+      pageHead(
+        "Monthly report automation",
+        "Review the calculated totals, then create a private report draft with charts in R2.",
+        el("button", { class: "btn ghost", onclick: () => renderIncidents(clearView(view)) }, "← Incidents")
+      ),
+      el("section", { class: "card monthly-controls" },
+        el("label", { class: "fld-label" }, el("span", {}, "Reporting month"), monthInput),
+        el("button", { class: "btn", onclick: load }, "Refresh totals"),
+        generate
+      ),
+      results
+    );
+
+    function metric(label, value, note) {
+      return el("article", { class: "monthly-metric" },
+        el("span", {}, label),
+        el("strong", {}, String(value)),
+        el("small", {}, note || "")
+      );
+    }
+
+    function ranking(title, rows, valueLabel) {
+      const list = el("div", { class: "monthly-ranking" });
+      if (!rows.length) list.append(el("p", { class: "muted" }, "No records."));
+      rows.slice(0, 8).forEach((row, index) => {
+        list.append(el("div", {},
+          el("span", {}, `${index + 1}. ${row.name}`),
+          el("strong", {}, String(row.count ?? row.incidents ?? 0) + (valueLabel || ""))
+        ));
+      });
+      return el("section", { class: "card" }, el("div", { class: "section-head" }, el("h3", {}, title)), list);
+    }
+
+    async function load() {
+      clear(results);
+      results.append(el("p", { class: "muted" }, "Calculating…"));
+      try {
+        const data = await api("/analytics/monthly?month=" + encodeURIComponent(monthInput.value));
+        clear(results);
+        results.append(
+          el("div", { class: "monthly-metrics" },
+            metric("Incidents", data.totals.incidents, `${data.change.incidents >= 0 ? "+" : ""}${data.change.incidents} vs previous month`),
+            metric("Fatalities", data.totals.fatalities, `${data.change.fatalities >= 0 ? "+" : ""}${data.change.fatalities} vs previous month`),
+            metric("Injuries", data.totals.injuries, `${data.change.injuries >= 0 ? "+" : ""}${data.change.injuries} vs previous month`),
+            metric("Verified", data.totals.verified, `${data.sourceCoverage.linked}/${data.sourceCoverage.total} with source links`)
+          ),
+          el("div", { class: "monthly-grid" },
+            ranking("Province comparison", data.provinces, " incidents"),
+            ranking("Reported actors", data.actors),
+            ranking("Tactics and categories", data.tactics)
+          ),
+          el("p", { class: "monthly-note" },
+            "These figures are calculated directly from the incident database. The generated report remains a private draft until an editor reviews and publishes it."
+          )
+        );
+        generate.disabled = data.totals.incidents === 0;
+      } catch (error) {
+        clear(results);
+        results.append(el("p", { class: "err" }, "Could not calculate this month: " + error.message));
+        generate.disabled = true;
+      }
+    }
+
+    generate.addEventListener("click", async () => {
+      if (!confirm(`Generate a private monthly report draft for ${monthInput.value}? Existing drafts will not be overwritten.`)) return;
+      generate.disabled = true;
+      generate.textContent = "Generating charts…";
+      try {
+        const result = await api("/analytics/monthly/generate", {
+          method: "POST",
+          body: { month: monthInput.value }
+        });
+        if (!result.created) {
+          toast(result.reason || "A draft already exists.", "warn");
+        } else {
+          toast("Monthly report draft and charts created.");
+          activeFolder = "reports";
+          activeTab = "content";
+          renderContent(clearView(view));
+        }
+      } catch (error) {
+        toast("Could not generate the report: " + error.message, "err");
+      } finally {
+        generate.disabled = false;
+        generate.textContent = "Generate report draft";
+      }
+    });
+
+    await load();
   }
 
   function incidentForm(view, existing) {
@@ -1221,6 +1335,65 @@
   const PUBLICATION_STATUS = ["draft", "published"];
   let activeFolder = "news";
 
+  function deploymentPanel() {
+    const status = el("span", { class: "deployment-state is-loading" }, "Checking deployment…");
+    const detail = el("span", { class: "deployment-detail" }, "The latest website build will appear here.");
+    const open = el("a", {
+      class: "btn small",
+      target: "_blank",
+      rel: "noopener noreferrer",
+      hidden: true
+    }, "Open build");
+    const refresh = el("button", { class: "btn small" }, "Refresh");
+    const panel = el("section", { class: "deployment-panel", "aria-live": "polite" },
+      el("div", {},
+        el("span", { class: "deployment-label" }, "Website deployment"),
+        status,
+        detail
+      ),
+      el("div", { class: "deployment-actions" }, refresh, open)
+    );
+
+    async function load() {
+      status.className = "deployment-state is-loading";
+      status.textContent = "Checking deployment…";
+      try {
+        const data = await api("/deployment");
+        const run = data.run;
+        if (!data.available || !run) {
+          status.className = "deployment-state is-warning";
+          status.textContent = data.error || "No deployment found";
+          detail.textContent = "Content remains safely stored in D1. Check the GitHub token's Actions permission if this persists.";
+          open.hidden = true;
+          return;
+        }
+        const success = run.status === "completed" && run.conclusion === "success";
+        const failed = run.status === "completed" && run.conclusion && run.conclusion !== "success";
+        status.className = `deployment-state ${success ? "is-success" : failed ? "is-error" : "is-running"}`;
+        status.textContent = success ? "Live" : failed ? "Build failed" : "Building";
+        detail.textContent = `${run.title || "Website deployment"} · ${run.updatedAt ? formatRelative(new Date(run.updatedAt)) : run.status}`;
+        open.href = run.url;
+        open.hidden = !run.url;
+      } catch (error) {
+        status.className = "deployment-state is-error";
+        status.textContent = "Status unavailable";
+        detail.textContent = error.message;
+        open.hidden = true;
+      }
+    }
+    refresh.addEventListener("click", load);
+    setTimeout(load, 0);
+    return panel;
+  }
+
+  function publicationResult(result, successText) {
+    if (result?.deployment && !result.deployment.triggered) {
+      toast("Saved in D1, but the website rebuild did not start. Check deployment status.", "warn");
+      return;
+    }
+    toast(successText);
+  }
+
   async function renderContent(view) {
     const folder = FOLDERS.find((f) => f.key === activeFolder);
     const sel = el("select", { class: "field inline", onchange: (e) => { activeFolder = e.target.value; renderContent(clearView(view)); } });
@@ -1231,6 +1404,7 @@
       el("label", { class: "fld-label", style: "margin:0" }, el("span", {}, "Section"), sel),
       el("button", { class: "btn primary", onclick: () => contentForm(view, null) }, "+ New " + folder.singular)
     ));
+    view.append(deploymentPanel());
 
     const searchInput = el("input", { type: "search", placeholder: "Filter by title or slug…", "aria-label": "Search content" });
     const countEl = el("div", { class: "list-meta" }, "Loading…");
@@ -1457,7 +1631,19 @@
 
     // Autosave drafts every ~15s. Pages are always published — skip them.
     if (activeFolder !== "pages") {
-      startAutosave({ folder, file, sha, f, tagChips, view });
+      startAutosave({
+        folder,
+        file,
+        path,
+        sha,
+        f,
+        tagChips,
+        view,
+        onSaved: (saved) => {
+          path = saved.path;
+          sha = saved.sha;
+        }
+      });
     }
   }
 
@@ -1573,8 +1759,8 @@
       if (!sha) {
         try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
       }
-      await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
-      toast(fm.status === "published" ? "Published. Site refreshes shortly." : "Draft saved.");
+      const result = await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
+      publicationResult(result, fm.status === "published" ? "Published. Website rebuild started." : "Draft saved.");
       stopAutosave();
       // Clean up editor instance to avoid leaks on re-mount
       try { window.__tgdEditor?.destroy(); } catch {}
@@ -1589,7 +1775,7 @@
       const got = await api("/content/file?path=" + encodeURIComponent(file.path));
       const parsed = parseMarkdown(got.content);
       parsed.fm.status = "published";
-      await api("/content/file", {
+      const result = await api("/content/file", {
         method: "PUT",
         body: {
           path: file.path,
@@ -1598,7 +1784,7 @@
           message: `Publish ${file.path}`
         }
       });
-      toast("Published. Site refreshes shortly.");
+      publicationResult(result, "Published. Website rebuild started.");
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
   }
@@ -1607,8 +1793,8 @@
     if (!confirm(`Delete ${file.slug}? This removes the page from the site.`)) return;
     try {
       const got = await api("/content/file?path=" + encodeURIComponent(file.path));
-      await api("/content/file", { method: "DELETE", body: { path: file.path, sha: got.sha, message: `Delete ${file.path}` } });
-      toast("Deleted. Site rebuilds in ~1 minute.");
+      const result = await api("/content/file", { method: "DELETE", body: { path: file.path, sha: got.sha, message: `Delete ${file.path}` } });
+      publicationResult(result, "Deleted. Website rebuild started.");
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
   }
@@ -1766,6 +1952,7 @@
     // Update ctx so subsequent autosaves work against the existing row.
     ctx.path = filePath;
     ctx.sha = (await api("/content/file?path=" + encodeURIComponent(filePath)).catch(() => ({}))).sha || sha;
+    ctx.onSaved?.({ path: ctx.path, sha: ctx.sha });
   }
 
   // ============================ PREVIEW ============================

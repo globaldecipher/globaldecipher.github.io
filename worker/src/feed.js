@@ -61,6 +61,63 @@ export function numberField(value) {
   return match ? Number(match[0]) : 0;
 }
 
+function validDate(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function nonNegativeNumber(value) {
+  if (value == null || value === "") return true;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0;
+}
+
+export function validateIncident(incident) {
+  const errors = [];
+  const required = [
+    ["id", "ID"],
+    ["date", "Date"],
+    ["title", "Headline"],
+    ["summary", "Summary"],
+    ["district", "District"],
+    ["province", "Province"],
+    ["category", "Category"],
+    ["actor", "Actor"],
+    ["source", "Source"]
+  ];
+  for (const [key, label] of required) {
+    if (!clean(incident?.[key])) errors.push(`${label} is required.`);
+  }
+  if (incident?.date && !validDate(incident.date)) errors.push("Date must be a real date in YYYY-MM-DD format.");
+  for (const [key, label] of [["fatalities", "Fatalities"], ["injuries", "Injuries"]]) {
+    if (!nonNegativeNumber(incident?.[key])) errors.push(`${label} must be zero or a positive number.`);
+  }
+  const split = incident?.fatality_breakdown || {};
+  for (const [key, label] of [["forces", "Security-force fatalities"], ["terrorists", "Militant fatalities"], ["civilians", "Civilian fatalities"]]) {
+    if (!nonNegativeNumber(split[key])) errors.push(`${label} must be zero or a positive number.`);
+  }
+  const lat = Number(incident?.lat);
+  const lng = Number(incident?.lng);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) errors.push("Latitude must be between -90 and 90.");
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) errors.push("Longitude must be between -180 and 180.");
+  if (incident?.source_url) {
+    const sourceUrl = clean(incident.source_url);
+    // Historical rows sometimes contain a source note in this field. Preserve
+    // those records, but reject protocol-bearing values that are not safe links.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(sourceUrl)) {
+      try {
+        const url = new URL(sourceUrl);
+        if (!["http:", "https:"].includes(url.protocol)) errors.push("Source link must use HTTP or HTTPS.");
+      } catch {
+        errors.push("Source link must be a valid URL.");
+      }
+    }
+  }
+  return errors;
+}
+
 export function normalProvince(value) {
   const compact = lower(value).replace(/[^a-z0-9]+/g, "");
   if (compact === "kpk" || compact.includes("khyber")) return "Khyber Pakhtunkhwa";

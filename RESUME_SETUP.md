@@ -86,7 +86,7 @@ Then tell the human:
 ## Optional (only if asked)
 - Set `X_BEARER_TOKEN` Worker secret to re-enable X auto-import: `cd worker && npx wrangler secret put X_BEARER_TOKEN && npx wrangler deploy`.
 - Delete the old (lost-token) Telegram Worker in the dashboard so it isn't lingering.
-- The GitHub issue-form workflows (`content-upload.yml`, `incident-update.yml`) are now redundant with the admin panel. To keep the incident issue form working you'd set repo secrets `WORKER_INGEST_URL` (`https://theglobaldecipher.com/api/incidents`) and `TGD_ADMIN_TOKEN` (= `ADMIN_TOKEN`); otherwise they can be deleted.
+- The obsolete GitHub content issue form was removed after D1 became the live editorial source. The optional `incident-update.yml` form still posts directly to the Worker when repo secrets `WORKER_INGEST_URL` (`https://theglobaldecipher.com/api/incidents`) and `TGD_ADMIN_TOKEN` (= `ADMIN_TOKEN`) are configured.
 
 ## Done when
 - `theglobaldecipher.com` serves the site, `/admin` logs in and can CRUD, the map

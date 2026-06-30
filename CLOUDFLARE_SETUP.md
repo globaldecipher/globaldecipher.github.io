@@ -5,15 +5,16 @@ One-time setup to run The Global Decipher on Cloudflare. Run every command on
 
 What you get:
 - **Site** on Cloudflare Pages at `theglobaldecipher.com`.
-- **Admin panel** at `theglobaldecipher.com/admin` — add/edit/delete incidents, articles, and profiles from a web UI (one shared password). No Telegram, no manual git.
+- **Admin panel** at `theglobaldecipher.com/admin` — manage incidents, D1 editorial content, R2 media, monthly report drafts, and deployment status.
 - **Maintenance mode** — a toggle in the admin panel that takes the whole public site offline behind a maintenance screen.
 - **Incident feed** in Cloudflare KV, served by a Worker. Incidents update with no rebuild; articles/profiles trigger a ~1-minute rebuild.
 
 ```
                   ┌──────────────── Cloudflare (free) ─────────────────┐
- Admin panel ───► │  Worker /api/*  ──► KV (incidents, maintenance flag) │
- (/admin)         │       │   └─► GitHub commit ─► deploy ─► rebuild      │
-                  │       ▼                                               │
+ Admin panel ───► │  Worker /api/* ─┬─► KV (incidents, maintenance)       │
+ (/admin)         │                  ├─► D1 (content, drafts, audit)         │
+                  │                  └─► R2 (media, generated charts)        │
+                  │       publish ─► GitHub workflow ─► build from D1       │
  Browser  ──────► │  Pages (_worker.js gate) ─► static site OR maint page │
    map widget ──► │  GET /api/incidents ──► Worker ──► KV                  │
                   └───────────────────────────────────────────────────────┘
@@ -52,9 +53,12 @@ npx wrangler kv namespace create INCIDENTS      # paste the printed id into wran
 npx wrangler kv key put --binding=INCIDENTS feed --path=../static/data/incidents.json
 ```
 
-**GitHub token** (lets the admin panel save articles/profiles). On GitHub: Settings →
+**GitHub token** (lets the Worker dispatch and inspect website deployments). On GitHub: Settings →
 Developer settings → **Fine-grained tokens** → new token, repository =
-`globaldecipher/globaldecipher.github.io`, permission **Contents: Read and write**.
+`globaldecipher/globaldecipher.github.io`, permissions:
+
+- **Actions: Read and write** — dispatch `deploy.yml` and show deployment status.
+- **Contents: Read** — sufficient for the current D1 publishing architecture.
 
 **Set the Worker secrets:**
 ```bash
@@ -135,7 +139,9 @@ npx wrangler pages deploy site --project-name=theglobaldecipher --branch=main
 - Go to `https://theglobaldecipher.com/admin`.
 - Log in with the `ADMIN_TOKEN` string from step 2 (this is the shared password — give it to internees).
 - **Incidents** tab: add/edit/delete — updates the live map within ~1 min, no rebuild.
-- **Articles & Profiles** tab: pick a folder (News/Opinion/Monitoring/Reports/Profiles/Pages), add/edit/delete — each save commits to GitHub and the site rebuilds in ~1 min.
+- **Articles & Profiles** tab: create and autosave private D1 drafts; publishing triggers the GitHub deployment workflow and the site rebuilds from D1 in ~1 min.
+- **Monthly reports**: Incidents → Monthly reports calculates comparisons and creates a private D1 draft with three R2 charts. The scheduled Worker attempts the previous month automatically on the first day of each month.
+- **Website deployment** panel: shows whether the latest GitHub/Cloudflare build is running, live, or failed.
 - **Maintenance mode** toggle (top right): ON locks the public site behind the maintenance screen; `/admin` stays reachable so you can turn it back off.
 - **Monitoring Desk** is paid at `/monitoring/`; subscribers enter through Safepay checkout and return to the desk after confirmation.
 
@@ -161,19 +167,29 @@ cd worker && npx wrangler tail                                        # live wor
 | Task | How |
 |---|---|
 | Add/edit/delete an incident | Admin panel → Incidents (instant) |
-| Add/edit/delete an article or profile | Admin panel → Articles & Profiles (rebuild ~1 min) |
+| Add/edit/delete an article or profile | Admin panel → Articles & Profiles (D1; rebuild only for public changes) |
+| Generate monthly charts/report draft | Admin panel → Incidents → Monthly reports |
 | Change Monitoring subscription price | Safepay subscription plan, then update `SAFEPAY_PLAN_ID` if you create a new plan |
 | Take the site offline | Admin panel → Maintenance mode toggle |
 | Change Worker code | edit `worker/src/*` → `npx wrangler deploy` |
 | Rotate the admin password | `wrangler secret put ADMIN_TOKEN` (also update `TGD_ADMIN_TOKEN` if you still use the issue form) |
 | Re-seed the feed | `wrangler kv key put --binding=INCIDENTS feed --path=<json>` |
 
-## Free-tier headroom
-- **Pages:** 500 builds/month — only on content saves (a handful/week). Incidents cause **zero** builds.
-- **Workers:** 100k requests/day + cron included.
-- **KV:** 100k reads/day, 1k writes/day. Feed reads are edge-cached 60s; the maintenance flag uses a 60s `cacheTtl`.
-
 ## Notes
 - The admin password is sent from the browser to the Worker over HTTPS. Anyone with it can edit content — treat it like a real password. Upgrade path: Clerk (works on Workers/Pages) for per-user login later.
 - `GITHUB_TOKEN` never reaches the browser; only the Worker uses it.
 - Weekly CSV bulk import was not ported — `POST` rows to `/api/incidents` (Bearer `ADMIN_TOKEN`) or re-seed KV if you need it.
+
+## Individual editor accounts
+
+Do not place `/admin` behind Cloudflare Access until the owner's and interns'
+approved email addresses (or an approved organisation email domain) are known.
+Enabling a restrictive policy without that list can lock the owner out.
+
+Once the identities are confirmed:
+
+1. Create a Cloudflare Access self-hosted application for
+   `theglobaldecipher.com/admin*`.
+2. Add an Allow policy containing only the approved emails or domain.
+3. Keep the existing Admin key temporarily as a second factor during rollout.
+4. Verify owner login before removing or rotating the shared key.
