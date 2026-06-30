@@ -90,6 +90,18 @@ function formatPeriod(from?: string, to?: string) {
   return `Until ${human(to!)}`;
 }
 
+function yearFrom(value?: string) {
+  const match = value?.match(/^(\d{4})/);
+  return match ? Number(match[1]) : null;
+}
+
+function activeInYear(relationship: Relationship, year: number | null) {
+  if (year == null) return true;
+  const start = yearFrom(relationship.from);
+  const end = yearFrom(relationship.to_date);
+  return (start == null || start <= year) && (end == null || end >= year);
+}
+
 function relationshipPhrase(connection: Connection) {
   const { type } = connection.relationship;
   const incoming = connection.direction === "inbound";
@@ -106,11 +118,15 @@ function relationshipPhrase(connection: Connection) {
   return "is connected to";
 }
 
-function collectSources(connection: Connection): SourceRef[] {
+function collectSources(connection: Connection, subject: Entity): SourceRef[] {
   const ids = connection.relationship.sources ?? [];
   if (ids.length === 0) return [];
 
-  const candidates = [...(connection.origin.sources ?? []), ...(connection.related.sources ?? [])];
+  const candidates = [
+    ...(subject.sources ?? []),
+    ...(connection.origin.sources ?? []),
+    ...(connection.related.sources ?? [])
+  ];
   return ids
     .map((id) => candidates.find((source) => source.id === id))
     .filter((source): source is SourceRef => Boolean(source));
@@ -124,7 +140,9 @@ export default function Relationships() {
   const select = useExplorer((state) => state.select);
   const filter = useExplorer((state) => state.relFilter);
   const setFilter = useExplorer((state) => state.setRelFilter);
+  const openAsk = useExplorer((state) => state.openAsk);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const connections = useMemo(() => {
     if (!ent) return [] as Connection[];
@@ -166,11 +184,21 @@ export default function Relationships() {
 
   useEffect(() => {
     setSelectedKey(null);
+    setSelectedYear(null);
     setFilter("all");
   }, [ent?.id, setFilter]);
 
+  const recordedYears = connections
+    .flatMap((connection) => [
+      yearFrom(connection.relationship.from),
+      yearFrom(connection.relationship.to_date)
+    ])
+    .filter((year): year is number => year != null);
+  const minYear = recordedYears.length ? Math.min(...recordedYears) : new Date().getFullYear();
+  const maxYear = Math.max(new Date().getFullYear(), ...(recordedYears.length ? recordedYears : [minYear]));
   const visibleConnections = connections.filter((connection) =>
-    relFilterAllows(connection.relationship.type, filter)
+    relFilterAllows(connection.relationship.type, filter) &&
+    activeInYear(connection.relationship, selectedYear)
   );
   const selected =
     visibleConnections.find((connection) => connection.key === selectedKey) ??
@@ -219,6 +247,22 @@ export default function Relationships() {
                 );
               })}
             </nav>
+            {recordedYears.length > 0 && (
+              <div className="relationship-time-filter">
+                <label>
+                  <span>Relationship date</span>
+                  <select
+                    aria-label="Network year"
+                    value={selectedYear ?? ""}
+                    onChange={(event) => setSelectedYear(event.target.value ? Number(event.target.value) : null)}
+                  >
+                    <option value="">All years</option>
+                    {Array.from({ length: maxYear - minYear + 1 }, (_, index) => maxYear - index)
+                      .map((year) => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
         </header>
 
@@ -253,6 +297,9 @@ export default function Relationships() {
               subject={ent}
               canOpen={byId.has(selected.related.id)}
               onOpen={() => select(selected.related.id)}
+              onAsk={() => openAsk(
+                `Explain the documented ${RELATION_META[selected.relationship.type].label.toLowerCase()} between ${ent.name} and ${selected.related.name}. Use the relationship note, dates and available profile sources, and clearly identify any evidence gaps.`
+              )}
             />
           </div>
         ) : (
@@ -270,17 +317,23 @@ function ConnectionDetail({
   connection,
   subject,
   canOpen,
-  onOpen
+  onOpen,
+  onAsk
 }: {
   connection: Connection;
   subject: Entity;
   canOpen: boolean;
   onOpen: () => void;
+  onAsk: () => void;
 }) {
   const meta = RELATION_META[connection.relationship.type];
-  const sources = collectSources(connection);
+  const sources = collectSources(connection, subject);
   const subjectLabel = subject.short ?? subject.name;
   const relatedLabel = connection.related.short ?? connection.related.name;
+  const profileSourceCount = new Set([
+    ...(subject.sources ?? []).map((source) => source.url || source.id),
+    ...(connection.related.sources ?? []).map((source) => source.url || source.id)
+  ]).size;
 
   return (
     <article className="relationship-detail" aria-live="polite">
@@ -326,16 +379,22 @@ function ConnectionDetail({
               )
             )
           ) : (
-            <small>Narrative note; direct source link not yet attached</small>
+            <>
+              <small>Direct citation pending for this relationship claim</small>
+              {profileSourceCount > 0 && <small>{profileSourceCount} profile sources available for contextual review</small>}
+            </>
           )}
         </div>
-        <button type="button" onClick={onOpen} disabled={!canOpen}>
-          {canOpen ? (
-            <>Open {relatedLabel} <span aria-hidden="true">→</span></>
-          ) : (
-            "Profile in preparation"
-          )}
-        </button>
+        <div className="relationship-detail-actions">
+          <button type="button" onClick={onAsk}>Ask Explorer</button>
+          <button type="button" onClick={onOpen} disabled={!canOpen}>
+            {canOpen ? (
+              <>Open {relatedLabel} <span aria-hidden="true">→</span></>
+            ) : (
+              "Profile in preparation"
+            )}
+          </button>
+        </div>
       </footer>
     </article>
   );
