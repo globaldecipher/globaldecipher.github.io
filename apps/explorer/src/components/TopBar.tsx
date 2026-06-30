@@ -80,9 +80,14 @@ export default function TopBar() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    setQuery(selected ? selected.short ?? selected.name : "");
+    setOpen(false);
+  }, [selected?.id]);
+
   function pick(e: Entity) {
     select(e.id);
-    setQuery("");
+    setQuery(e.short ?? e.name);
     setOpen(false);
     inputRef.current?.blur();
   }
@@ -115,130 +120,177 @@ export default function TopBar() {
   }
 
   return (
-    <header className="explorer-topbar">
-      <div className="flex min-w-0 items-center gap-3 shrink-0">
-        <a href="/" className="brand-link" aria-label="The Global Decipher home">
-          <span className="sm:hidden">TGD</span>
-          <span className="hidden sm:inline">THE GLOBAL DECIPHER</span>
-        </a>
-        <span className="text-line-light dark:text-line-dark select-none" aria-hidden="true">/</span>
-        <button
-          type="button"
-          onClick={() => select(null)}
-          className="entity-name text-[17px] hover:text-accent"
-          aria-current={selectedId ? undefined : "page"}
-        >
-          Explorer
-        </button>
+    <header className="explorer-shell">
+      <div className="explorer-topbar">
+        <div className="explorer-brand-group">
+          <a href="/" className="brand-link" aria-label="The Global Decipher home">
+            <span className="explorer-brand-short">TGD</span>
+            <span className="explorer-brand-picture">
+              <img
+                className="explorer-brand-logo explorer-brand-logo-light"
+                src="/assets/brand/tgd-logo-header-420.png"
+                alt="The Global Decipher"
+                width="420"
+                height="140"
+              />
+              <img
+                className="explorer-brand-logo explorer-brand-logo-dark"
+                src="/assets/brand/tgd-logo-footer-420.png"
+                alt=""
+                width="420"
+                height="140"
+              />
+            </span>
+          </a>
+          <span className="explorer-brand-divider" aria-hidden="true">/</span>
+          <button
+            type="button"
+            onClick={() => select(null)}
+            className="explorer-title"
+            aria-current={selectedId ? undefined : "page"}
+          >
+            Explorer
+          </button>
+        </div>
+
+        <nav className="site-links" aria-label="TGD sections">
+          <a href="/news/">News</a>
+          <a href="/opinion/">Opinion</a>
+          <a href="/monitoring/">Monitoring</a>
+          <a href="/incident-map/">Incident Map</a>
+          <a href="/reports/">Reports</a>
+          <a href="/profiles/">Profiles</a>
+        </nav>
+
+        <div className="explorer-global-actions">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="header-icon-button"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`${theme === "dark" ? "Light" : "Dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 12.8A8.7 8.7 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              inputRef.current?.focus();
+              setOpen(true);
+            }}
+            className="header-icon-button"
+            aria-label="Search Explorer database"
+            title="Search Explorer database"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </button>
+          <a className="topbar-pitch" href="/contact/">Pitch us</a>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="topbar-action xl:hidden"
+            aria-expanded={menuOpen}
+            aria-controls="explorer-site-menu"
+          >
+            {menuOpen ? "✕" : "Menu"}
+          </button>
+        </div>
       </div>
 
-      <nav className="site-links" aria-label="TGD sections">
-        <a href="/news/">News</a>
-        <a href="/opinion/">Opinion</a>
-        <a href="/monitoring/">Monitoring</a>
-        <a href="/incident-map/">Incident Map</a>
-        <a href="/reports/">Reports</a>
-        <a href="/profiles/">Profiles</a>
-      </nav>
-
-      <div className="explorer-search">
-        <input
-          ref={inputRef}
-          type="search"
-          spellCheck={false}
-          placeholder="Search organisations and people…    ⌘K"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0); }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 120)}
-          onKeyDown={onKey}
-          className="w-full bg-transparent border border-line-light dark:border-line-dark rounded-editorial px-4 h-10 text-[0.88rem] placeholder:text-dim-light dark:placeholder:text-dim-dark focus:outline-none focus:border-accent"
-        />
-        {open && flat.length > 0 && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark rounded-editorial z-30 shadow-editorial-md max-h-[60vh] overflow-auto">
-            {grouped.map(([type, list]) => (
-              <div key={type}>
-                <div className="pane-label px-4 pt-3 pb-1">{TYPE_LABEL[type] ?? type}</div>
-                {list.map((e) => {
-                  const idx = flat.indexOf(e);
-                  return (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onMouseDown={() => pick(e)}
-                      onMouseEnter={() => setHighlight(idx)}
-                      className={
-                        "w-full text-left px-4 py-2.5 grid grid-cols-[1fr_auto] gap-3 items-center " +
-                        (idx === highlight
-                          ? "bg-paper2-light dark:bg-paper2-dark"
-                          : "")
-                      }
-                    >
-                      <div>
-                        <div className="entity-name text-[0.92rem]">{e.name}</div>
-                        {e.aliases && e.aliases.length > 0 && (
-                          <div className="text-[0.72rem] text-muted-light dark:text-muted-dark truncate">
-                            {e.aliases.slice(0, 3).join(" · ")}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[0.68rem] uppercase tracking-eyebrow text-dim-light dark:text-dim-dark font-mono">
-                        {e.country ?? e.region ?? ""}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="theme-switch"
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        >
-          {theme === "dark" ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3.5" />
-              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z" />
-            </svg>
+      <div className="explorer-tool-row">
+        <div className="explorer-search-context">
+          <span>Explorer database</span>
+          <small>Organisations, people and fronts</small>
+        </div>
+        <div className={query ? "explorer-search has-query" : "explorer-search"}>
+          <input
+            ref={inputRef}
+            type="search"
+            spellCheck={false}
+            aria-label="Search the Explorer database"
+            placeholder="Search organisations and people…"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0); }}
+            onFocus={(event) => {
+              setOpen(true);
+              if (selected && query === (selected.short ?? selected.name)) {
+                event.currentTarget.select();
+              }
+            }}
+            onBlur={() => setTimeout(() => setOpen(false), 120)}
+            onKeyDown={onKey}
+          />
+          {query && (
+            <button
+              type="button"
+              className="explorer-search-clear"
+              aria-label="Clear Explorer search"
+              title="Clear search"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                setQuery("");
+                setHighlight(0);
+                setOpen(false);
+                inputRef.current?.focus();
+              }}
+            >
+              ×
+            </button>
           )}
-          <span>{theme === "dark" ? "Light" : "Dark"}</span>
-        </button>
+          {open && flat.length > 0 && (
+            <div className="explorer-search-results">
+              {grouped.map(([type, list]) => (
+                <div key={type}>
+                  <div className="pane-label px-4 pt-3 pb-1">{TYPE_LABEL[type] ?? type}</div>
+                  {list.map((e) => {
+                    const idx = flat.indexOf(e);
+                    return (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onMouseDown={() => pick(e)}
+                        onMouseEnter={() => setHighlight(idx)}
+                        className={idx === highlight ? "is-highlighted" : ""}
+                      >
+                        <div>
+                          <div className="entity-name text-[0.92rem]">{e.name}</div>
+                          {e.aliases && e.aliases.length > 0 && (
+                            <div className="text-[0.72rem] text-muted-light dark:text-muted-dark truncate">
+                              {e.aliases.slice(0, 3).join(" · ")}
+                            </div>
+                          )}
+                        </div>
+                        <span>{e.country ?? e.region ?? ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {selected && !selected.stub && (
           <button
             type="button"
             onClick={() => toggleAsk()}
-            className={
-              "topbar-action " +
-              (askOpen
-                ? "bg-accent text-white border-accent"
-                : "border-line-light dark:border-line-dark text-accent hover:bg-page-light dark:hover:bg-page-dark")
-            }
+            className={askOpen ? "explorer-ask-action is-active" : "explorer-ask-action"}
             aria-pressed={askOpen}
           >
-            <span className="hidden sm:inline">Ask the database</span>
-            <span className="sm:hidden">Ask AI</span>
+            Ask the database
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setMenuOpen((value) => !value)}
-          className="topbar-action xl:hidden"
-          aria-expanded={menuOpen}
-          aria-controls="explorer-site-menu"
-        >
-          {menuOpen ? "✕" : "Menu"}
-        </button>
       </div>
 
       {menuOpen && (
