@@ -23,11 +23,12 @@ function readJson(path) {
 const pak = readJson(PAK_JSON);
 
 const sourceIndex = pak.sourceIndex || {};
-const allSources = Object.entries(sourceIndex).map(([id, v]) => ({
-  id,
-  title: v.label || id,
-  url: v.url
-}));
+
+function sourceRef(id) {
+  return sourceIndex[id]
+    ? { id, title: sourceIndex[id].label || id, url: sourceIndex[id].url }
+    : { id, title: id };
+}
 
 const RELTYPE_MAP = {
   "splinter": "split-from",
@@ -102,9 +103,7 @@ function entityFromNode(node) {
 
   // Pull legacy sources by id reference
   const sources = (node.sources || [])
-    .map((id) => sourceIndex[id]
-      ? { id, title: sourceIndex[id].label || id, url: sourceIndex[id].url }
-      : { id, title: id })
+    .map(sourceRef)
     .filter(Boolean);
 
   const designations = (node.designations || []).map((d) => {
@@ -153,11 +152,23 @@ for (const e of pak.edges || []) {
   if (source === target) continue;
   const owner = baseById.get(source);
   if (!owner) continue;
+  const relationshipSources = [...new Set(Array.isArray(e.sources) ? e.sources : [])];
+  if (relationshipSources.length > 0) {
+    owner.sources = [
+      ...new Map(
+        [...(owner.sources || []), ...relationshipSources.map(sourceRef)]
+          .map((sourceEntry) => [sourceEntry.id, sourceEntry])
+      ).values()
+    ];
+  }
   owner.relationships = owner.relationships || [];
   owner.relationships.push({
     to: target,
     type: mapRelType(e.type),
-    note: e.label
+    note: e.label,
+    ...(relationshipSources.length > 0
+      ? { sources: relationshipSources }
+      : {})
   });
 }
 

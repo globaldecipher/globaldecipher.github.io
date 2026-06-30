@@ -206,15 +206,20 @@ export default function ResearchAnswer({ text, sources }: Props) {
   const copyText = useMemo(() => {
     const byId = new Map(sources.map((source) => [source.id.toLowerCase(), source]));
     return replaceCitationGroups(normalizedText, (ids) => {
-      const labels = [...new Set(ids.map((id) => citationLabel(byId.get(id))))];
-      return `(${labels.join("; ")})`;
+      const labels = [...new Set(
+        ids
+          .map((id) => byId.get(id))
+          .filter((source): source is SourceRef => Boolean(source))
+          .map((source) => citationLabel(source))
+      )];
+      return labels.length > 0 ? `(${labels.join("; ")})` : "";
     });
   }, [normalizedText, sources]);
   const blocks = useMemo(() => parseBlocks(normalizedText), [normalizedText]);
-  const citedSourceCount = useMemo(
-    () => new Set(extractCitationIds(normalizedText)).size,
-    [normalizedText]
-  );
+  const citedSourceCount = useMemo(() => {
+    const sourceIds = new Set(sources.map((source) => source.id.toLowerCase()));
+    return new Set(extractCitationIds(normalizedText).filter((id) => sourceIds.has(id))).size;
+  }, [normalizedText, sources]);
 
   async function copyAnswer() {
     try {
@@ -244,7 +249,7 @@ export default function ResearchAnswer({ text, sources }: Props) {
       </div>
       <footer className="research-answer-foot">
         <span>{citedSourceCount || "No"} cited source{citedSourceCount === 1 ? "" : "s"}</span>
-        <span>Open a citation to inspect the evidence</span>
+        <span>{citedSourceCount > 0 ? "Open a citation to inspect the evidence" : "Review the profile sources before publication"}</span>
       </footer>
     </article>
   );

@@ -6,7 +6,7 @@ interface Props {
   sources: SourceRef[];
 }
 
-const CITATION_ID_PATTERN = "(?:src-[a-z0-9-]+|\\d+)";
+const CITATION_ID_PATTERN = "(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)+|\\d+)";
 
 type Part =
   | { type: "text"; value: string }
@@ -47,6 +47,12 @@ function tokenise(text: string): Part[] {
 export function citationLabel(src?: SourceRef): string {
   if (!src) return "Source";
   const outlet = src.outlet?.trim();
+  const identity = `${outlet ?? ""} ${src.title ?? ""}`;
+  if (/\bNACTA\b/i.test(identity)) return "NACTA";
+  if (/\bNCTC\b|National Counterterrorism Center/i.test(identity)) return "NCTC";
+  if (/\bUN\b|United Nations|Security Council/i.test(identity)) return "UN";
+  if (/Rewards for Justice/i.test(identity)) return "Rewards for Justice";
+  if (/U\.?S\.? Department of State|State Department/i.test(identity)) return "State Department";
   if (!outlet) return "Source";
 
   const shortened: Record<string, string> = {
@@ -59,26 +65,29 @@ export function citationLabel(src?: SourceRef): string {
 }
 
 export default function CitationText({ text, sources }: Props) {
-  const parts = useMemo(() => tokenise(text), [text]);
   const byId = useMemo(() => {
     const m = new Map<string, SourceRef>();
     for (const s of sources) m.set(s.id.toLowerCase(), s);
     return m;
   }, [sources]);
+  const parts = useMemo(() => tokenise(text), [text]);
   return (
     <span>
-      {parts.map((p, i) =>
-        p.type === "text"
-          ? <span key={i}>{p.value}</span>
-          : <CitationGroup key={i} ids={p.value} sources={p.value.map((id) => byId.get(id)).filter((source): source is SourceRef => Boolean(source))} />
-      )}
+      {parts.map((part, index) => {
+        if (part.type === "text") return <span key={index}>{part.value}</span>;
+        const recognized = part.value
+          .map((id) => byId.get(id))
+          .filter((source): source is SourceRef => Boolean(source));
+        return <CitationGroup key={index} sources={recognized} />;
+      })}
     </span>
   );
 }
 
-function CitationGroup({ ids, sources }: { ids: string[]; sources: SourceRef[] }) {
-  if (ids.length === 1) return <CiteChip id={ids[0]} src={sources[0]} />;
-  return <MultiCiteChip ids={ids} sources={sources} />;
+function CitationGroup({ sources }: { sources: SourceRef[] }) {
+  if (sources.length === 0) return null;
+  if (sources.length === 1) return <CiteChip id={sources[0].id} src={sources[0]} />;
+  return <MultiCiteChip sources={sources} />;
 }
 
 function interactiveWrapperProps(setOpen: (open: boolean) => void) {
@@ -134,10 +143,11 @@ function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
   );
 }
 
-function MultiCiteChip({ ids, sources }: { ids: string[]; sources: SourceRef[] }) {
+function MultiCiteChip({ sources }: { sources: SourceRef[] }) {
   const [open, setOpen] = useState(false);
+  const ids = sources.map((source) => source.id);
   const detailId = `sources-${ids.join("-")}`;
-  const count = ids.length;
+  const count = sources.length;
 
   return (
     <span className="citation-wrap" {...interactiveWrapperProps(setOpen)}>
@@ -179,9 +189,6 @@ function MultiCiteChip({ ids, sources }: { ids: string[]; sources: SourceRef[] }
               </span>
             )
           ))}
-          {sources.length === 0 && (
-            <span className="citation-tooltip-meta">Source details are recorded in the profile evidence.</span>
-          )}
         </span>
       )}
     </span>

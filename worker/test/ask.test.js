@@ -28,6 +28,46 @@ function request() {
   });
 }
 
+function relationshipRequest() {
+  return new Request("https://theglobaldecipher.com/api/ask", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      question: "What is the relationship between the 313 Brigade and Al-Qaeda?",
+      entityId: "313-brigade",
+      context: {
+        entities: [
+          {
+            id: "313-brigade",
+            name: "313 Brigade",
+            relationships: [{
+              to: "org-al-qaeda",
+              type: "ideological-link",
+              note: "Listed in an Al-Qaeda-linked research cluster.",
+              sources: ["nacta-2024"]
+            }],
+            sources: [{
+              id: "nacta-2024",
+              title: "Pakistan NACTA Proscribed Organisations List",
+              outlet: "Pakistan NACTA"
+            }]
+          },
+          {
+            id: "org-al-qaeda",
+            name: "Al-Qaeda",
+            sources: [{
+              id: "un-1267",
+              title: "UN Security Council ISIL and Al-Qaida Sanctions List",
+              outlet: "UN Security Council"
+            }]
+          }
+        ]
+      },
+      history: []
+    })
+  });
+}
+
 function env() {
   return {
     GEMINI_API_KEY: "test-key",
@@ -66,6 +106,54 @@ test("uses Gemini 3.1 Flash-Lite with low thinking when the primary request succ
   assert.match(calls[0].url, /gemini-3\.1-flash-lite/);
   assert.equal(calls[0].body.generationConfig.thinkingConfig.thinkingLevel, "low");
   assert.equal(calls[0].body.generationConfig.maxOutputTokens, 600);
+});
+
+test("gives Gemini a source-only citation contract without exposing entity IDs", async () => {
+  let requestBody;
+  globalThis.fetch = async (_url, init) => {
+    requestBody = JSON.parse(init.body);
+    return geminiResponse(200, {
+      candidates: [{ content: { parts: [{ text: "The relationship is recorded by NACTA [nacta-2024]." }] } }]
+    });
+  };
+
+  const response = await askDatabase(relationshipRequest(), env());
+  const body = await response.json();
+  const prompt = requestBody.system_instruction.parts[0].text;
+
+  assert.equal(response.status, 200);
+  assert.match(body.answer, /\[nacta-2024\]/);
+  assert.match(prompt, /ALLOWED SOURCE IDS: nacta-2024, un-1267/);
+  assert.match(prompt, /"related_entity":"Al-Qaeda"/);
+  assert.doesNotMatch(prompt, /"id":"313-brigade"/);
+  assert.doesNotMatch(prompt, /"to":"org-al-qaeda"/);
+  assert.doesNotMatch(prompt, /End with a one-sentence verification note/);
+});
+
+test("removes internal record IDs and generated verification boilerplate from answers", async () => {
+  globalThis.fetch = async () => geminiResponse(200, {
+    candidates: [{
+      content: {
+        parts: [{
+          text: [
+            "The relationship is recorded in the designation record [313-brigade][org-al-qaeda][nacta-2024].",
+            "",
+            "Verification note: This response is derived exclusively from the provided TGD JSON profile data."
+          ].join("\n")
+        }]
+      }
+    }]
+  });
+
+  const response = await askDatabase(relationshipRequest(), env());
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    body.answer,
+    "The relationship is recorded in the designation record [nacta-2024]."
+  );
+  assert.doesNotMatch(body.answer, /313-brigade|org-al-qaeda|Verification note|JSON/i);
 });
 
 test("falls back immediately on quota errors without retrying the primary model", async () => {
