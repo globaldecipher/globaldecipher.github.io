@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { SourceRef } from "../types";
-import CitationText from "./Citation";
+import CitationText, { citationLabel } from "./Citation";
 
 interface Props {
   text: string;
@@ -200,6 +200,13 @@ function renderBlock(block: Block, index: number, sources: SourceRef[]): ReactNo
 export default function ResearchAnswer({ text, sources }: Props) {
   const [copied, setCopied] = useState(false);
   const normalizedText = useMemo(() => text.replace(/\]\s+([.,;:!?])/g, "]$1"), [text]);
+  const copyText = useMemo(() => {
+    const byId = new Map(sources.map((source) => [source.id.toLowerCase(), source]));
+    return normalizedText.replace(CITATION_RE, (_match, id: string) => {
+      const source = byId.get(id.toLowerCase());
+      return `(${citationLabel(source)})`;
+    });
+  }, [normalizedText, sources]);
   const blocks = useMemo(() => parseBlocks(normalizedText), [normalizedText]);
   const citedSourceCount = useMemo(
     () => new Set([...normalizedText.matchAll(CITATION_RE)].map((match) => match[1].toLowerCase())).size,
@@ -208,7 +215,7 @@ export default function ResearchAnswer({ text, sources }: Props) {
 
   async function copyAnswer() {
     try {
-      await navigator.clipboard.writeText(normalizedText);
+      await navigator.clipboard.writeText(copyText);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {

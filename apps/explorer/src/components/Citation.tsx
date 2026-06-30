@@ -23,6 +23,20 @@ function tokenise(text: string): Part[] {
   return parts;
 }
 
+export function citationLabel(src?: SourceRef): string {
+  if (!src) return "Source";
+  const outlet = src.outlet?.trim();
+  if (!outlet) return "Source";
+
+  const shortened: Record<string, string> = {
+    "U.S. Department of State": "State Department",
+    "Financial Action Task Force": "FATF",
+    "UN Security Council": "UN Security Council",
+    "Government of Pakistan": "Pakistan Government"
+  };
+  return shortened[outlet] ?? outlet;
+}
+
 export default function CitationText({ text, sources }: Props) {
   const parts = useMemo(() => tokenise(text), [text]);
   const byId = useMemo(() => {
@@ -43,33 +57,43 @@ export default function CitationText({ text, sources }: Props) {
 
 function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
   const [open, setOpen] = useState(false);
+  const label = citationLabel(src);
+  const detailId = `source-${id}`;
+  const commonProps = {
+    onMouseEnter: () => setOpen(true),
+    onMouseLeave: () => setOpen(false),
+    onFocus: () => setOpen(true),
+    onBlur: () => setOpen(false),
+    className: "citation-chip",
+    "aria-describedby": src ? detailId : undefined,
+    "aria-label": src ? `Source: ${src.title}` : "Profile source"
+  };
+
   return (
-    <span className="relative inline-block align-baseline">
-      <button
-        type="button"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
-        className="ml-0.5 text-[10px] text-accent border-hair border-accent/40 px-1 rounded-sm align-super hover:bg-accent hover:text-white"
-        aria-describedby={`pop-${id}`}
-      >
-        [{id}]
-      </button>
+    <span className="citation-wrap">
+      {src?.url ? (
+        <a {...commonProps} href={src.url} target="_blank" rel="noopener noreferrer">
+          <span>{label}</span>
+          <span className="citation-chip-arrow" aria-hidden="true">↗</span>
+        </a>
+      ) : (
+        <span {...commonProps} tabIndex={0} role="note">
+          <span>{label}</span>
+        </span>
+      )}
       {open && src && (
         <span
           role="tooltip"
-          id={`pop-${id}`}
-          className="absolute left-0 top-full mt-1 w-72 z-20 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark p-2 text-[12px] leading-snug shadow-editorial"
+          id={detailId}
+          className="citation-tooltip"
         >
-          <span className="block font-medium text-ink-light dark:text-ink-dark">{src.title}</span>
-          <span className="block text-muted-light dark:text-muted-dark mt-1">
+          <span className="citation-tooltip-kicker">Source</span>
+          <span className="citation-tooltip-title">{src.title}</span>
+          <span className="citation-tooltip-meta">
             {[src.outlet, src.author, src.date].filter(Boolean).join(" · ")}
           </span>
           {src.url && (
-            <a href={src.url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-accent underline">
-              {src.url.replace(/^https?:\/\//, "").slice(0, 48)}…
-            </a>
+            <span className="citation-tooltip-action">Open original source ↗</span>
           )}
         </span>
       )}

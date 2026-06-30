@@ -1895,6 +1895,93 @@ svg [role="button"]:focus-visible circle {
   background: var(--red-soft);
   font-family: theme(fontFamily.serif);
 }
+.citation-wrap {
+  position: relative;
+  display: inline-flex;
+  margin: 0 0.12em;
+  vertical-align: 0.08em;
+}
+.citation-chip {
+  display: inline-flex;
+  min-height: 20px;
+  max-width: 100%;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 2px;
+  border: 1px solid color-mix(in srgb, var(--red) 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--red) 5%, transparent);
+  color: var(--red-dark);
+  font-family: theme(fontFamily.sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dark .citation-chip {
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: #ff9aa6;
+}
+.citation-chip:hover,
+.citation-chip:focus-visible {
+  border-color: var(--red);
+  background: var(--red);
+  color: white;
+  outline: none;
+}
+.citation-chip-arrow {
+  font-size: 0.78em;
+  opacity: 0.7;
+}
+.citation-tooltip {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  left: 0;
+  display: grid;
+  width: min(290px, 78vw);
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid theme(colors.line.light);
+  border-top: 2px solid var(--red);
+  background: theme(colors.page.light);
+  color: theme(colors.text.light);
+  box-shadow: 0 12px 34px rgba(13, 27, 42, 0.15);
+  font-family: theme(fontFamily.sans);
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+}
+.dark .citation-tooltip {
+  border-color: theme(colors.line.dark);
+  border-top-color: var(--red);
+  background: theme(colors.page.dark);
+  color: theme(colors.text.dark);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36);
+}
+.citation-tooltip-kicker {
+  color: var(--red);
+  font-family: theme(fontFamily.mono);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.citation-tooltip-title {
+  color: theme(colors.ink.light);
+  font-weight: 700;
+}
+.dark .citation-tooltip-title { color: theme(colors.ink.dark); }
+.citation-tooltip-meta { color: theme(colors.muted.light); }
+.dark .citation-tooltip-meta { color: theme(colors.muted.dark); }
+.citation-tooltip-action {
+  margin-top: 3px;
+  color: var(--red);
+  font-weight: 700;
+}
 .research-evidence-note {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
