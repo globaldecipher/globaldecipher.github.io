@@ -1,7 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { SourceRef } from "../types";
-import CitationText, { citationLabel } from "./Citation";
+import CitationText, {
+  citationLabel,
+  extractCitationIds,
+  replaceCitationGroups
+} from "./Citation";
 
 interface Props {
   text: string;
@@ -17,7 +21,6 @@ type Block =
   | { type: "table"; headers: string[]; rows: string[][] };
 
 const BLOCK_START_RE = /^(#{1,3})\s+|^\s*[-*•]\s+|^\s*\d+[.)]\s+|^\s*>\s+/;
-const CITATION_RE = /\[(src-[a-z0-9-]+|\d+)\]/gi;
 
 function tableCells(line: string): string[] {
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
@@ -202,14 +205,14 @@ export default function ResearchAnswer({ text, sources }: Props) {
   const normalizedText = useMemo(() => text.replace(/\]\s+([.,;:!?])/g, "]$1"), [text]);
   const copyText = useMemo(() => {
     const byId = new Map(sources.map((source) => [source.id.toLowerCase(), source]));
-    return normalizedText.replace(CITATION_RE, (_match, id: string) => {
-      const source = byId.get(id.toLowerCase());
-      return `(${citationLabel(source)})`;
+    return replaceCitationGroups(normalizedText, (ids) => {
+      const labels = [...new Set(ids.map((id) => citationLabel(byId.get(id))))];
+      return `(${labels.join("; ")})`;
     });
   }, [normalizedText, sources]);
   const blocks = useMemo(() => parseBlocks(normalizedText), [normalizedText]);
   const citedSourceCount = useMemo(
-    () => new Set([...normalizedText.matchAll(CITATION_RE)].map((match) => match[1].toLowerCase())).size,
+    () => new Set(extractCitationIds(normalizedText)).size,
     [normalizedText]
   );
 

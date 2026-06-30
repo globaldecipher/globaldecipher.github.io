@@ -6,16 +6,37 @@ interface Props {
   sources: SourceRef[];
 }
 
-const TOKEN_RE = /\[(src-[a-z0-9-]+|\d+)\]/gi;
+const CITATION_ID_PATTERN = "(?:src-[a-z0-9-]+|\\d+)";
 
-interface Part { type: "text" | "cite"; value: string }
+type Part =
+  | { type: "text"; value: string }
+  | { type: "cite"; value: string[] };
+
+function citationGroupRegex(): RegExp {
+  return new RegExp(`\\[\\s*(${CITATION_ID_PATTERN}(?:\\s*,\\s*${CITATION_ID_PATTERN})*)\\s*\\]`, "gi");
+}
+
+function splitCitationIds(group: string): string[] {
+  return [...new Set(group.split(/\s*,\s*/).map((id) => id.toLowerCase()))];
+}
+
+export function extractCitationIds(text: string): string[] {
+  return [...text.matchAll(citationGroupRegex())].flatMap((match) => splitCitationIds(match[1]));
+}
+
+export function replaceCitationGroups(
+  text: string,
+  replacement: (ids: string[]) => string
+): string {
+  return text.replace(citationGroupRegex(), (_match, group: string) => replacement(splitCitationIds(group)));
+}
 
 function tokenise(text: string): Part[] {
   const parts: Part[] = [];
   let last = 0;
-  text.replace(TOKEN_RE, (match, id, offset) => {
+  text.replace(citationGroupRegex(), (match, group: string, offset: number) => {
     if (offset > last) parts.push({ type: "text", value: text.slice(last, offset) });
-    parts.push({ type: "cite", value: String(id) });
+    parts.push({ type: "cite", value: splitCitationIds(group) });
     last = offset + match.length;
     return match;
   });
@@ -41,7 +62,7 @@ export default function CitationText({ text, sources }: Props) {
   const parts = useMemo(() => tokenise(text), [text]);
   const byId = useMemo(() => {
     const m = new Map<string, SourceRef>();
-    for (const s of sources) m.set(s.id, s);
+    for (const s of sources) m.set(s.id.toLowerCase(), s);
     return m;
   }, [sources]);
   return (
@@ -49,10 +70,26 @@ export default function CitationText({ text, sources }: Props) {
       {parts.map((p, i) =>
         p.type === "text"
           ? <span key={i}>{p.value}</span>
-          : <CiteChip key={i} id={p.value} src={byId.get(p.value)} />
+          : <CitationGroup key={i} ids={p.value} sources={p.value.map((id) => byId.get(id)).filter((source): source is SourceRef => Boolean(source))} />
       )}
     </span>
   );
+}
+
+function CitationGroup({ ids, sources }: { ids: string[]; sources: SourceRef[] }) {
+  if (ids.length === 1) return <CiteChip id={ids[0]} src={sources[0]} />;
+  return <MultiCiteChip ids={ids} sources={sources} />;
+}
+
+function interactiveWrapperProps(setOpen: (open: boolean) => void) {
+  return {
+    onMouseEnter: () => setOpen(true),
+    onMouseLeave: () => setOpen(false),
+    onFocus: () => setOpen(true),
+    onBlur: (event: React.FocusEvent<HTMLSpanElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+    }
+  };
 }
 
 function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
@@ -60,17 +97,13 @@ function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
   const label = citationLabel(src);
   const detailId = `source-${id}`;
   const commonProps = {
-    onMouseEnter: () => setOpen(true),
-    onMouseLeave: () => setOpen(false),
-    onFocus: () => setOpen(true),
-    onBlur: () => setOpen(false),
     className: "citation-chip",
     "aria-describedby": src ? detailId : undefined,
     "aria-label": src ? `Source: ${src.title}` : "Profile source"
   };
 
   return (
-    <span className="citation-wrap">
+    <span className="citation-wrap" {...interactiveWrapperProps(setOpen)}>
       {src?.url ? (
         <a {...commonProps} href={src.url} target="_blank" rel="noopener noreferrer">
           <span>{label}</span>
@@ -94,6 +127,60 @@ function CiteChip({ id, src }: { id: string; src?: SourceRef }) {
           </span>
           {src.url && (
             <span className="citation-tooltip-action">Open original source ↗</span>
+          )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function MultiCiteChip({ ids, sources }: { ids: string[]; sources: SourceRef[] }) {
+  const [open, setOpen] = useState(false);
+  const detailId = `sources-${ids.join("-")}`;
+  const count = ids.length;
+
+  return (
+    <span className="citation-wrap" {...interactiveWrapperProps(setOpen)}>
+      <button
+        type="button"
+        className="citation-chip citation-chip-group"
+        aria-expanded={open}
+        aria-controls={detailId}
+        aria-label={`Inspect ${count} cited sources`}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{count} sources</span>
+        <span className="citation-chip-arrow" aria-hidden="true">+</span>
+      </button>
+      {open && (
+        <span id={detailId} className="citation-tooltip citation-tooltip-group" role="group" aria-label="Cited sources">
+          <span className="citation-tooltip-kicker">Cited sources</span>
+          {sources.map((source) => (
+            source.url ? (
+              <a
+                key={source.id}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="citation-source-row"
+              >
+                <span className="citation-tooltip-title">{source.title}</span>
+                <span className="citation-tooltip-meta">
+                  {[source.outlet, source.author, source.date].filter(Boolean).join(" · ")}
+                </span>
+                <span className="citation-tooltip-action">Open source ↗</span>
+              </a>
+            ) : (
+              <span key={source.id} className="citation-source-row">
+                <span className="citation-tooltip-title">{source.title}</span>
+                <span className="citation-tooltip-meta">
+                  {[source.outlet, source.author, source.date].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+            )
+          ))}
+          {sources.length === 0 && (
+            <span className="citation-tooltip-meta">Source details are recorded in the profile evidence.</span>
           )}
         </span>
       )}
