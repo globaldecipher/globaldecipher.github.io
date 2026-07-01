@@ -1,9 +1,9 @@
-# Security-sensitive publishing and infrastructure changes need a second set
-# of trusted eyes before they reach production.
-/.github/ @amirplp @RayanSaeed
-/worker/ @amirplp @RayanSaeed
-/build.mjs @amirplp @RayanSaeed
-/package.json @amirplp @RayanSaeed
-/package-lock.json @amirplp @RayanSaeed
-/apps/explorer/package.json @amirplp @RayanSaeed
-/apps/explorer/package-lock.json @amirplp @RayanSaeed
+# The site owner remains responsible for publishing-sensitive changes.
+# Mentors may review voluntarily but are never required deployment approvers.
+/.github/ @amirplp
+/worker/ @amirplp
+/build.mjs @amirplp
+/package.json @amirplp
+/package-lock.json @amirplp
+/apps/explorer/package.json @amirplp
+/apps/explorer/package-lock.json @amirplp
