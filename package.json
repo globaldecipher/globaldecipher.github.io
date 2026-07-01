@@ -12,5 +12,19 @@
     "install:explorer": "npm --prefix apps/explorer install",
     "setup:paywall": "node scripts/setup-monitoring-paywall.mjs",
     "serve": "python3 -m http.server 4173 --directory site"
+  },
+  "dependencies": {
+    "sanitize-html": "^2.17.5"
+  },
+  "devDependencies": {
+    "@toast-ui/editor": "^3.2.2",
+    "dompurify": "^3.4.11",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "overrides": {
+    "dompurify": "$dompurify"
   }
 }

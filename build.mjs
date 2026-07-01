@@ -1,10 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+import sanitizeHtml from "sanitize-html";
 
 const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "content");
 const STATIC_DIR = path.join(ROOT, "static");
 const OUT_DIR = path.join(ROOT, "site");
+const TRUSTED_INLINE_SCRIPT_HASH = "sha256-Kpwr9vcpJlFefP21kj5wxp1RRGuoz9dcBziMdZGoNmc=";
 
 const SITE = {
   title: "The Global Decipher",
@@ -47,6 +50,24 @@ function copyDir(from, to) {
     const dest = path.join(to, entry.name);
     if (entry.isDirectory()) copyDir(src, dest);
     else fs.copyFileSync(src, dest);
+  }
+}
+
+function copyVendorAssets() {
+  const vendorDir = path.join(OUT_DIR, "assets", "vendor");
+  ensureDir(vendorDir);
+  const files = [
+    ["node_modules/dompurify/dist/purify.min.js", "purify.min.js"],
+    ["node_modules/@toast-ui/editor/dist/toastui-editor.js", "toastui-editor.js"],
+    ["node_modules/@toast-ui/editor/dist/toastui-editor.css", "toastui-editor.css"],
+    ["node_modules/@toast-ui/editor/dist/theme/toastui-editor-dark.css", "toastui-editor-dark.css"],
+    ["node_modules/mammoth/mammoth.browser.min.js", "mammoth.browser.min.js"],
+    ["node_modules/turndown/dist/turndown.js", "turndown.js"],
+    ["node_modules/turndown-plugin-gfm/dist/turndown-plugin-gfm.js", "turndown-plugin-gfm.js"],
+    ["node_modules/jszip/dist/jszip.min.js", "jszip.min.js"]
+  ];
+  for (const [source, destination] of files) {
+    fs.copyFileSync(path.join(ROOT, source), path.join(vendorDir, destination));
   }
 }
 
@@ -127,6 +148,56 @@ function parseFrontMatter(filePath) {
 // Lets you paste raw <iframe>, <div>, <video>, <img> etc. for chart embeds.
 const HTML_LINE_RE = /^<\s*(\/?[a-zA-Z][a-zA-Z0-9-]*)/;
 const VOID_OR_INLINE_HTML_RE = /^<\s*(br|hr|img|input|meta|link|source)\b/i;
+
+function sanitizeRawHtmlBlock(raw) {
+  if (/^<script\b/i.test(raw)) {
+    const scriptPattern = /<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi;
+    const scripts = [...raw.matchAll(scriptPattern)].map((match) => match[0]);
+    if (!scripts.length || raw.replace(scriptPattern, "").trim()) return "";
+    const safeScripts = scripts.map((script) => {
+      const inlineScript = script.match(/^<script>([\s\S]*)<\/script>$/i);
+      if (inlineScript) {
+        const hash = `sha256-${crypto.createHash("sha256").update(inlineScript[1]).digest("base64")}`;
+        return hash === TRUSTED_INLINE_SCRIPT_HASH ? script : "";
+      }
+      const externalScript = script.match(/^<script\s+src="([^"]+)"(?:\s+defer)?><\/script>$/i);
+      if (!externalScript) return "";
+      return /^\/assets\/(?:incident-map|network-graph)\.js(?:\?[-\w=.]+)?$/.test(externalScript[1])
+        ? script
+        : "";
+    });
+    return safeScripts.every(Boolean) ? safeScripts.join("\n") : "";
+  }
+  return sanitizeHtml(raw, {
+    allowedTags: [
+      "section", "div", "p", "h2", "h3", "h4", "span", "strong", "em", "small",
+      "a", "button", "label", "input", "select", "option", "aside", "article",
+      "figure", "figcaption", "img", "video", "source", "iframe", "object", "canvas",
+      "ul", "ol", "li", "dl", "dt", "dd", "table", "thead", "tbody", "tr", "th",
+      "td", "br", "hr"
+    ],
+    allowedAttributes: {
+      "*": ["class", "id", "role", "aria-*", "data-*", "hidden", "tabindex", "title"],
+      a: ["href", "target", "rel"],
+      input: ["type", "placeholder", "value", "name", "checked", "disabled"],
+      select: ["name", "disabled"],
+      option: ["value", "selected"],
+      img: ["src", "alt", "title", "loading", "decoding", "width", "height"],
+      iframe: ["src", "title", "allow", "allowfullscreen", "loading", "referrerpolicy"],
+      object: ["data", "type"],
+      video: ["controls", "src", "poster", "preload"],
+      source: ["src", "type"],
+      canvas: ["width", "height"]
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesByTag: { img: ["http", "https", "data"] },
+    allowedIframeHostnames: ["www.youtube-nocookie.com", "player.vimeo.com"],
+    allowProtocolRelative: false,
+    exclusiveFilter(frame) {
+      return frame.tag === "object" && !String(frame.attribs?.data || "").startsWith("/assets/");
+    }
+  });
+}
 
 function inlineMarkdown(text) {
   let out = escapeHtml(text);
@@ -267,7 +338,7 @@ function markdownToHtml(markdown) {
       }
     }
 
-    // HTML block passthrough — paste iframe / video / div embeds straight in.
+    // Rich embeds are allowlisted and sanitized before entering a generated page.
     if (HTML_LINE_RE.test(trimmed) && !VOID_OR_INLINE_HTML_RE.test(trimmed)) {
       flushAll();
       const block = [trimmed];
@@ -275,7 +346,8 @@ function markdownToHtml(markdown) {
         i++;
         block.push(lines[i]);
       }
-      html.push(`<div class="article-embed">${block.join("\n")}</div>`);
+      const sanitized = sanitizeRawHtmlBlock(block.join("\n"));
+      if (sanitized) html.push(`<div class="article-embed">${sanitized}</div>`);
       continue;
     }
 
@@ -316,7 +388,8 @@ function refreshManagedAssetUrls(value = "") {
 async function readCollection(collection) {
   const headers = CONTENT_DUMP_TOKEN ? { authorization: `Bearer ${CONTENT_DUMP_TOKEN}` } : {};
   const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
-  if (res.status === 401 && collection === "monitoring" && !CONTENT_DUMP_TOKEN && process.env.CI !== "true") {
+  const allowPartialBuild = process.env.ALLOW_PARTIAL_CONTENT_BUILD === "1" || process.env.CI !== "true";
+  if (res.status === 401 && collection === "monitoring" && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
     console.warn("Skipping protected Monitoring content in local build (CONTENT_DUMP_TOKEN is not set).");
     return [];
   }
@@ -603,7 +676,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
-  <script>(function(){try{var theme=localStorage.getItem("tgd-theme");if(theme==="light"||theme==="dark"){document.documentElement.dataset.theme=theme;}}catch(_error){}})();</script>
+  <script src="${assetPrefix}assets/theme-init.js"></script>
   <link rel="stylesheet" href="${assetPrefix}assets/styles.css">
   ${extraHead}
 </head>
@@ -1993,6 +2066,30 @@ function pagesWorker() {
   return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
 const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
 const SESSION_COOKIE = "tgd_monitoring_session";
+const CANONICAL_ORIGIN = "https://theglobaldecipher.com";
+const CSP = "default-src 'self'; base-uri 'self'; object-src 'self'; script-src 'self' '${TRUSTED_INLINE_SCRIPT_HASH}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://tiles.openfreemap.org; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
+
+function secureResponse(response, pathname) {
+  const headers = new Headers(response.headers);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "DENY");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  headers.set("cross-origin-opener-policy", "same-origin");
+  headers.set("x-permitted-cross-domain-policies", "none");
+  headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  if ((headers.get("content-type") || "").includes("text/html")) {
+    headers.set("content-security-policy", CSP);
+  }
+  if (/^\\/(?:admin|monitoring-access)(?:\\/|$)/.test(pathname)) {
+    headers.set("cache-control", "no-store");
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
 
 function cookieValue(request, name) {
   const header = request.headers.get("cookie") || "";
@@ -2027,16 +2124,20 @@ async function hasMonitoringAccess(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.hostname.endsWith(".pages.dev")) {
+      const target = new URL(url.pathname + url.search, CANONICAL_ORIGIN);
+      return secureResponse(Response.redirect(target, 308), url.pathname);
+    }
     const exempt = EXEMPT.some((re) => re.test(url.pathname));
     if (!exempt && env.MAINTENANCE_KV) {
       try {
         const flag = await env.MAINTENANCE_KV.get("maintenance", { cacheTtl: 60 });
         if (flag === "on") {
           const page = await env.ASSETS.fetch(new URL("/maintenance.html", url.origin));
-          return new Response(page.body, {
+          return secureResponse(new Response(page.body, {
             status: 503,
             headers: { "content-type": "text/html; charset=utf-8", "retry-after": "3600", "cache-control": "no-store" }
-          });
+          }), url.pathname);
         }
       } catch (err) {
         // fail open — serve the site
@@ -2044,12 +2145,12 @@ export default {
     }
     if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasMonitoringAccess(request, env))) {
       const page = await env.ASSETS.fetch(new URL("/monitoring-access/index.html", url.origin));
-      return new Response(page.body, {
+      return secureResponse(new Response(page.body, {
         status: 200,
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
-      });
+      }), url.pathname);
     }
-    return env.ASSETS.fetch(request);
+    return secureResponse(await env.ASSETS.fetch(request), url.pathname);
   }
 };
 `;
@@ -2059,6 +2160,7 @@ async function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
   copyDir(STATIC_DIR, path.join(OUT_DIR, "assets"));
+  copyVendorAssets();
 
   const [news, opinion, monitoring, reports, profiles, pages] = await Promise.all([
     readCollection("news"),

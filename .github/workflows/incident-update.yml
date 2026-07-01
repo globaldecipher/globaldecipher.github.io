@@ -36,10 +36,10 @@ jobs:
           esac
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
@@ -51,15 +51,15 @@ jobs:
         id: ingest
         env:
           WORKER_INGEST_URL: ${{ secrets.WORKER_INGEST_URL }}
-          ADMIN_TOKEN: ${{ secrets.TGD_ADMIN_TOKEN }}
+          INGEST_TOKEN: ${{ secrets.TGD_INGEST_TOKEN }}
           PAYLOAD: ${{ steps.make.outputs.incident_payload }}
         run: |
-          if [ -z "$WORKER_INGEST_URL" ] || [ -z "$ADMIN_TOKEN" ]; then
-            echo "::error::WORKER_INGEST_URL and TGD_ADMIN_TOKEN secrets must be set so the form can reach the incident Worker."
+          if [ -z "$WORKER_INGEST_URL" ] || [ -z "$INGEST_TOKEN" ]; then
+            echo "::error::WORKER_INGEST_URL and TGD_INGEST_TOKEN secrets must be set so the form can reach the incident Worker."
             exit 1
           fi
           response="$(curl -sS -w '\n%{http_code}' -X POST "$WORKER_INGEST_URL" \
-            -H "authorization: Bearer $ADMIN_TOKEN" \
+            -H "authorization: Bearer $INGEST_TOKEN" \
             -H "content-type: application/json" \
             --data-binary "@$PAYLOAD")"
           body="$(echo "$response" | head -n -1)"

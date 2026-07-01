@@ -3,29 +3,20 @@
 //   scheduled(): optionally poll X and maintain the historical incident archive.
 //   fetch():
 //     GET    /api/incidents          public — serve the KV feed (the map reads this)
-//     POST   /api/incidents          authed — add/edit incident(s) (merge by id)
-//     DELETE /api/incidents/<id>     authed — remove an incident
+//     POST   /api/ingest/incidents   machine token — issue-form incident ingest
 //     GET    /api/maintenance        public — { on: bool }
-//     POST   /api/maintenance        authed — { on: bool } toggle site maintenance
-//     GET    /api/admin/ping         authed — validate the access key
-//     GET    /api/content?folder=    public — list articles in a collection (D1)
-//     GET    /api/content/file?path= public — read one article { content, sha }
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
-//     GET    /api/deployment         authed — latest GitHub/Cloudflare deployment state
-//     GET    /api/analytics/monthly  authed — monthly incident aggregates
-//     POST   /api/analytics/monthly/generate authed — create report draft + R2 charts
 //     POST   /api/monitoring/checkout public — create Safepay checkout
 //     GET    /api/monitoring/return   public — activate paid Monitoring access
 //     GET    /api/monitoring/me       public — read Monitoring session state
+//     POST   /api/monitoring/logout   public — revoke the current Monitoring session
 //     POST   /api/safepay/webhook     public — Safepay subscription events
-//     PUT    /api/content/file       authed — create/update an article (D1) + trigger Pages rebuild
-//     DELETE /api/content/file       authed — delete an article (D1) + trigger Pages rebuild
-//     POST   /api/media              authed — upload an image, PDF, or DOCX to R2
+//     *      /api/admin/*             admin token — all editor and management operations
 //     GET    /media/<key>            public — serve uploaded research media
 //     GET    /                       health check
 //
 // KV binding: INCIDENTS   D1 binding: CONTENT_DB
-// Secrets: ADMIN_TOKEN, GEMINI_API_KEY, X_BEARER_TOKEN (optional), PAGES_DEPLOY_HOOK (optional)
+// Secrets: ADMIN_TOKEN, INGEST_TOKEN, GEMINI_API_KEY, X_BEARER_TOKEN (optional)
 // Vars: X_USERNAME
 
 import {
@@ -50,9 +41,16 @@ import {
   triggerRebuild,
   latestDeployment
 } from "./content.js";
-import { uploadMedia, readMedia } from "./media.js";
+import { uploadMedia, readMedia, safeMediaHeaders } from "./media.js";
 import { logAudit, listAudit, actorFingerprint } from "./audit.js";
 import { askDatabase } from "./ask.js";
+import {
+  baseSecurityHeaders,
+  clientIdentifier,
+  rateLimit,
+  readJsonLimited,
+  timingSafeSecretEqual
+} from "./security.js";
 import {
   generateMonthlyReportDraft,
   getMonthlyAnalytics,
@@ -66,11 +64,6 @@ import {
   handleMonitoringReturn
 } from "./paywall.js";
 
-const CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "access-control-allow-headers": "authorization, content-type, x-sfpy-signature"
-};
 const INCIDENT_CACHE_VERSION = "archive-v4";
 
 function incidentCacheKey(url) {
@@ -80,26 +73,20 @@ function incidentCacheKey(url) {
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...CORS, ...extraHeaders }
+    headers: baseSecurityHeaders({ "content-type": "application/json; charset=utf-8", ...extraHeaders })
   });
 }
 
-function authed(request, env) {
+async function authed(request, env, secretName = "ADMIN_TOKEN") {
   const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  return Boolean(env.ADMIN_TOKEN) && token === env.ADMIN_TOKEN;
+  return timingSafeSecretEqual(token, env[secretName]);
 }
 
 function bearerToken(request) {
   return (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
 }
 
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
+const readJson = (request) => readJsonLimited(request, 1024 * 1024);
 
 // Light front-matter scrapers for audit-log labelling — cheaper than importing
 // the full markdown parser. They tolerate either bare or quoted YAML values.
@@ -126,16 +113,18 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
-    if (method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+    if (path === "/api/ask" && (method === "POST" || method === "OPTIONS")) {
+      return askDatabase(request, env, ctx);
+    }
+    if (method === "OPTIONS") return new Response(null, { status: 204, headers: baseSecurityHeaders() });
     if (path === "/" || path === "/health") return json({ ok: true, service: "tgd-incidents" });
 
     try {
       if (path.startsWith("/media/") && method === "GET") {
-        const object = await readMedia(env, path.slice("/media/".length));
-        if (!object) return new Response("Not found", { status: 404 });
-        const headers = new Headers();
-        headers.set("content-type", object.httpMetadata?.contentType || "application/octet-stream");
-        headers.set("cache-control", object.httpMetadata?.cacheControl || "public, max-age=31536000, immutable");
+        const mediaKey = path.slice("/media/".length);
+        const object = await readMedia(env, mediaKey);
+        if (!object) return new Response("Not found", { status: 404, headers: baseSecurityHeaders() });
+        const headers = new Headers(safeMediaHeaders(object, mediaKey));
         if (object.httpEtag) headers.set("etag", object.httpEtag);
         return new Response(object.body, { headers });
       }
@@ -161,15 +150,20 @@ export default {
       // ---- Published content dump (public, used by the static-site build) ----
       if (path === "/api/content/dump" && method === "GET") {
         const folder = url.searchParams.get("folder") || "";
-        if (folder === "monitoring" && env.CONTENT_DUMP_TOKEN) {
-          const token = bearerToken(request) || url.searchParams.get("token") || "";
-          if (token !== env.CONTENT_DUMP_TOKEN) return json({ error: "Unauthorized" }, 401);
+        if (folder === "monitoring") {
+          if (!env.CONTENT_DUMP_TOKEN) return json({ error: "Protected content export is unavailable." }, 503);
+          if (!(await timingSafeSecretEqual(bearerToken(request), env.CONTENT_DUMP_TOKEN))) {
+            return json({ error: "Unauthorized" }, 401);
+          }
         }
         return json({ items: await dumpCollection(env, folder) });
       }
 
       // ---- Monitoring Desk paywall (public payment/session endpoints) ----
       if (path === "/api/monitoring/checkout" && method === "POST") {
+        if (!(await rateLimit(env, "PUBLIC_RATE_LIMITER", `checkout:${clientIdentifier(request)}`))) {
+          return json({ error: "Too many checkout attempts. Please wait a minute." }, 429);
+        }
         return handleMonitoringCheckout(request, env);
       }
       if (path === "/api/monitoring/return" && method === "GET") {
@@ -178,53 +172,65 @@ export default {
       if (path === "/api/monitoring/me" && method === "GET") {
         return handleMonitoringMe(request, env);
       }
-      if (path === "/api/monitoring/logout" && method === "GET") {
-        return handleMonitoringLogout();
+      if (path === "/api/monitoring/logout" && method === "POST") {
+        return handleMonitoringLogout(request, env);
       }
       if (path === "/api/safepay/webhook" && method === "POST") {
+        if (!(await rateLimit(env, "WEBHOOK_RATE_LIMITER", `safepay:${clientIdentifier(request)}`))) {
+          return json({ error: "Too many webhook requests." }, 429);
+        }
         return handleSafepayWebhook(request, env);
       }
 
-      // ---- Explorer "Ask the database" (public, rate-limited) ----
-      if (path === "/api/ask" && method === "POST") {
-        return askDatabase(request, env, ctx);
+      // ---- Machine-only incident ingest, isolated from the editor credential ----
+      if (path === "/api/ingest/incidents" && method === "POST") {
+        if (!(await authed(request, env, "INGEST_TOKEN"))) return json({ error: "Unauthorized" }, 401);
+        return handleIncidentWrite(request, env, ctx, url);
       }
 
-      // ---- Everything below requires the access key ----
-      const needsAuth = path.startsWith("/api/");
-      if (needsAuth && !authed(request, env)) return json({ error: "Unauthorized" }, 401);
+      // ---- Everything below is namespaced for Cloudflare Access + admin key ----
+      const adminPath = path === "/api/admin"
+        ? "/"
+        : path.startsWith("/api/admin/")
+          ? path.slice("/api/admin".length)
+          : "";
+      if (!adminPath) return json({ error: "Not found" }, 404);
+      if (!(await authed(request, env))) {
+        const allowed = await rateLimit(env, "ADMIN_RATE_LIMITER", `admin:${clientIdentifier(request)}`);
+        return json({ error: allowed ? "Unauthorized" : "Too many authentication attempts." }, allowed ? 401 : 429);
+      }
 
-      if (path === "/api/admin/ping") return json({ ok: true });
+      if (adminPath === "/ping") return json({ ok: true });
 
-      if (path === "/api/deployment" && method === "GET") {
+      if (adminPath === "/deployment" && method === "GET") {
         return json(await latestDeployment(env));
       }
 
-      if (path === "/api/analytics/monthly" && method === "GET") {
+      if (adminPath === "/analytics/monthly" && method === "GET") {
         const month = url.searchParams.get("month") || "";
         return json(await getMonthlyAnalytics(env, month));
       }
-      if (path === "/api/analytics/monthly/generate" && method === "POST") {
+      if (adminPath === "/analytics/monthly/generate" && method === "POST") {
         const body = await readJson(request);
         const month = String(body?.month || "");
         return json(await generateMonthlyReportDraft(env, month), 201);
       }
 
       // ---- Admin content reads (drafts are never exposed publicly) ----
-      if (path === "/api/content" && method === "GET") {
+      if (adminPath === "/content" && method === "GET") {
         const folder = url.searchParams.get("folder") || "";
         return json({ files: await listContent(env, folder) });
       }
-      if (path === "/api/content/file" && method === "GET") {
+      if (adminPath === "/content/file" && method === "GET") {
         const filePath = url.searchParams.get("path") || "";
         return json(await getFile(env, filePath));
       }
 
-      if (path === "/api/media" && method === "POST") {
+      if (adminPath === "/media" && method === "POST") {
         return json(await uploadMedia(request, env), 201);
       }
 
-      if (path === "/api/maintenance" && method === "POST") {
+      if (adminPath === "/maintenance" && method === "POST") {
         const body = await readJson(request);
         const on = body?.on === true || body?.on === "on" || body?.on === "true";
         await env.INCIDENTS.put(MAINTENANCE_KEY, on ? "on" : "off");
@@ -238,58 +244,28 @@ export default {
         }));
         return json({ ok: true, on });
       }
+      if (adminPath === "/maintenance" && method === "GET") {
+        const flag = await env.INCIDENTS.get(MAINTENANCE_KEY);
+        return json({ on: flag === "on" });
+      }
 
       // ---- Activity / audit log (admin-only read) ----
-      if (path === "/api/audit" && method === "GET") {
+      if (adminPath === "/audit" && method === "GET") {
         const limit = Number(url.searchParams.get("limit") || 200);
         return json({ entries: await listAudit(env, limit) });
       }
 
       // ---- Incidents: add / edit ----
-      if (path === "/api/incidents" && method === "POST") {
-        const payload = await readJson(request);
-        const incoming = Array.isArray(payload) ? payload : Array.isArray(payload?.incidents) ? payload.incidents : [payload];
-        const candidates = incoming.filter(Boolean);
-        if (!candidates.length) return json({ error: "Submit at least one incident." }, 400);
-        const invalid = candidates
-          .map((incident) => ({ id: incident.id || null, errors: validateIncident(incident) }))
-          .filter((entry) => entry.errors.length);
-        if (invalid.length) {
-          return json({
-            error: "Some incident fields need attention before publishing.",
-            incidents: invalid
-          }, 400);
-        }
-        const valid = candidates;
-        const today = pakistanDateFromSeconds();
-        const feed = await loadFeed(env);
-        const knownIds = new Set((feed.incidents || []).map((it) => it.id));
-        const updated = valid.filter((incident) => knownIds.has(incident.id)).length;
-        feed.incidents = mergeIncidents(feed.incidents, valid, today);
-        stampFeed(feed, today);
-        await saveFeed(env, feed);
-        ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
-        const actor = await actorFingerprint(bearerToken(request));
-        for (const it of valid) {
-          ctx.waitUntil(logAudit(env, {
-            action: knownIds.has(it.id) ? "update" : "create",
-            kind: "incident",
-            target: it.id,
-            label: it.title || it.id,
-            actor
-          }));
-        }
-        return json({
-          ok: true,
-          added: valid.length - updated,
-          updated,
-          total: feed.incidents.length
-        });
+      if (adminPath === "/incidents" && method === "GET") {
+        return json(await loadFeed(env));
+      }
+      if (adminPath === "/incidents" && method === "POST") {
+        return handleIncidentWrite(request, env, ctx, url);
       }
 
       // ---- Incidents: delete ----
-      if (path.startsWith("/api/incidents/") && method === "DELETE") {
-        const id = decodeURIComponent(path.slice("/api/incidents/".length));
+      if (adminPath.startsWith("/incidents/") && method === "DELETE") {
+        const id = decodeURIComponent(adminPath.slice("/incidents/".length));
         const today = pakistanDateFromSeconds();
         const feed = await loadFeed(env);
         const existing = (feed.incidents || []).find((it) => it.id === id);
@@ -311,7 +287,7 @@ export default {
       }
 
       // ---- Content writes (D1) — trigger Pages rebuild after a successful change ----
-      if (path === "/api/content/file" && method === "PUT") {
+      if (adminPath === "/content/file" && method === "PUT") {
         const body = await readJson(request);
         if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
         const before = await getFile(env, body.path).catch(() => null);
@@ -336,7 +312,7 @@ export default {
         }));
         return json({ ...result, deployment });
       }
-      if (path === "/api/content/file" && method === "DELETE") {
+      if (adminPath === "/content/file" && method === "DELETE") {
         const body = await readJson(request);
         if (!body?.path) return json({ error: "path is required" }, 400);
         const before = await getFile(env, body.path).catch(() => null);
@@ -356,7 +332,16 @@ export default {
 
       return json({ error: "Not found" }, 404);
     } catch (error) {
-      return json({ error: error.message || "Server error" }, error.status || 500);
+      const status = Number(error?.status) || 500;
+      if (status >= 500) {
+        console.error(JSON.stringify({
+          message: "request failed",
+          method,
+          path,
+          error: error?.message || String(error)
+        }));
+      }
+      return json({ error: status >= 500 ? "Server error" : error.message }, status);
     }
   },
 
@@ -364,6 +349,51 @@ export default {
     ctx.waitUntil(runPollers(env));
   }
 };
+
+async function handleIncidentWrite(request, env, ctx, url) {
+  const payload = await readJson(request);
+  const incoming = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.incidents)
+      ? payload.incidents
+      : [payload];
+  const candidates = incoming.filter(Boolean);
+  if (!candidates.length) return json({ error: "Submit at least one incident." }, 400);
+  const invalid = candidates
+    .map((incident) => ({ id: incident.id || null, errors: validateIncident(incident) }))
+    .filter((entry) => entry.errors.length);
+  if (invalid.length) {
+    return json({
+      error: "Some incident fields need attention before publishing.",
+      incidents: invalid
+    }, 400);
+  }
+
+  const today = pakistanDateFromSeconds();
+  const feed = await loadFeed(env);
+  const knownIds = new Set((feed.incidents || []).map((item) => item.id));
+  const updated = candidates.filter((incident) => knownIds.has(incident.id)).length;
+  feed.incidents = mergeIncidents(feed.incidents, candidates, today);
+  stampFeed(feed, today);
+  await saveFeed(env, feed);
+  ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
+  const actor = await actorFingerprint(bearerToken(request));
+  for (const incident of candidates) {
+    ctx.waitUntil(logAudit(env, {
+      action: knownIds.has(incident.id) ? "update" : "create",
+      kind: "incident",
+      target: incident.id,
+      label: incident.title || incident.id,
+      actor
+    }));
+  }
+  return json({
+    ok: true,
+    added: candidates.length - updated,
+    updated,
+    total: feed.incidents.length
+  });
+}
 
 function stampFeed(feed, today) {
   feed.time_zone = PAKISTAN_TIME_ZONE;

@@ -18,9 +18,9 @@ export default defineConfig({
     target: "es2020",
     rollupOptions: {
       output: {
-        manualChunks: {
-          d3: ["d3"],
-          maplibre: ["maplibre-gl"]
+        manualChunks(id) {
+          if (id.includes("/node_modules/d3") || id.includes("/node_modules/internmap")) return "d3";
+          if (id.includes("/node_modules/maplibre-gl")) return "maplibre";
         }
       }
     }
