@@ -2085,7 +2085,7 @@ function monitoringAccessPage() {
 // for the public site. It also gates only /monitoring/ behind a paid subscriber
 // session; other editorial sections and public tools stay open.
 function pagesWorker() {
-  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/assets\\/vendor\\//, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
 const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
 const SESSION_COOKIE = "tgd_monitoring_session";
 const CANONICAL_ORIGIN = "https://theglobaldecipher.com";
