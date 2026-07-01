@@ -405,8 +405,8 @@ async function readCollection(collection) {
   const headers = CONTENT_DUMP_TOKEN ? { authorization: `Bearer ${CONTENT_DUMP_TOKEN}` } : {};
   const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
   const allowPartialBuild = process.env.ALLOW_PARTIAL_CONTENT_BUILD === "1" || process.env.CI !== "true";
-  if (res.status === 401 && collection === "monitoring" && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
-    console.warn("Skipping protected Monitoring content in local build (CONTENT_DUMP_TOKEN is not set).");
+  if ([401, 403].includes(res.status) && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
+    console.warn(`Skipping protected ${collection} content in partial build (CONTENT_DUMP_TOKEN is not set).`);
     return [];
   }
   if (!res.ok) throw new Error(`Failed to fetch ${collection} from ${CONTENT_API}: HTTP ${res.status}`);
