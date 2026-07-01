@@ -402,7 +402,13 @@ function refreshManagedAssetUrls(value = "") {
 }
 
 async function readCollection(collection) {
-  const headers = CONTENT_DUMP_TOKEN ? { authorization: `Bearer ${CONTENT_DUMP_TOKEN}` } : {};
+  const headers = {
+    accept: "application/json",
+    "user-agent": "TGD-Site-Builder/1.0"
+  };
+  if (collection === "monitoring" && CONTENT_DUMP_TOKEN) {
+    headers.authorization = `Bearer ${CONTENT_DUMP_TOKEN}`;
+  }
   const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
   const allowPartialBuild = process.env.ALLOW_PARTIAL_CONTENT_BUILD === "1" || process.env.CI !== "true";
   if ([401, 403].includes(res.status) && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
