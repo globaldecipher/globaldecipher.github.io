@@ -794,7 +794,6 @@
 
   // ============================ EXTERNAL LIBS (loaded on demand) ============================
   const VENDOR = {
-    dompurifyJs: "/assets/vendor/purify.min.js",
     toastJs: "/assets/vendor/toastui-editor.js",
     toastCss: "/assets/vendor/toastui-editor.css",
     toastDarkCss: "/assets/vendor/toastui-editor-dark.css",
@@ -816,15 +815,15 @@
     }
     const p = new Promise((resolve, reject) => {
       const s = existing || document.createElement("script");
-      if (!existing) {
-        s.src = url; s.async = true; s.dataset.tgdSrc = url;
-        document.head.appendChild(s);
-      }
       s.addEventListener("load", () => { s.dataset.tgdLoaded = "1"; resolve(); }, { once: true });
       s.addEventListener("error", () => {
         _scriptPromises.delete(url);
         reject(new Error("Failed to load " + url));
       }, { once: true });
+      if (!existing) {
+        s.src = url; s.async = true; s.dataset.tgdSrc = url;
+        document.head.appendChild(s);
+      }
     });
     _scriptPromises.set(url, p);
     return p;
@@ -844,13 +843,21 @@
     return api("/media", { method: "POST", formData });
   }
 
-  async function imageFromMammoth(image, index) {
+  async function queueMammothImage(image, index, uploads) {
     const base64 = await image.read("base64");
     const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
     const extension = image.contentType?.split("/").pop() || "png";
     const blob = new Blob([bytes], { type: image.contentType || "image/png" });
-    const uploaded = await uploadMedia(blob, `word-image-${index + 1}.${extension}`);
-    return { src: uploaded.url };
+    const placeholder = `tgd-word-image-${index + 1}`;
+    // Start the upload now, but let Mammoth continue converting the document.
+    // This allows several embedded images to upload in parallel instead of
+    // making a Word import wait for a full network round-trip per image.
+    uploads.push(
+      uploadMedia(blob, `word-image-${index + 1}.${extension}`)
+        .then((uploaded) => ({ placeholder, url: uploaded.url }))
+        .catch((error) => ({ placeholder, error }))
+    );
+    return { src: placeholder };
   }
 
   // Mounts the visual editor. Uploaded media is stored in R2 and saved as a
@@ -861,8 +868,10 @@
     container.classList.toggle("toastui-editor-dark", theme === "dark");
     loadCss(VENDOR.toastCss);
     loadCss(VENDOR.toastDarkCss);
-    await loadScript(VENDOR.dompurifyJs);
     await loadScript(VENDOR.toastJs);
+    if (typeof window.toastui?.Editor !== "function" || typeof window.DOMPurify?.sanitize !== "function") {
+      throw new Error("The visual editor bundle did not initialize.");
+    }
     const editor = new window.toastui.Editor({
       el: container,
       initialValue: initialMarkdown || "",
@@ -1190,19 +1199,33 @@
 
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
-    await loadScript(VENDOR.mammothJs);
-    await loadScript(VENDOR.turndownJs);
+    // Load independent conversion tools together. The GFM plugin is loaded
+    // after Turndown because its browser bundle expects that global to exist.
+    await Promise.all([
+      loadScript(VENDOR.mammothJs),
+      loadScript(VENDOR.turndownJs),
+      loadScript(VENDOR.jszipJs)
+    ]);
     await loadScript(VENDOR.turndownGfmJs);
-    await loadScript(VENDOR.jszipJs);
     const arrayBuffer = await file.arrayBuffer();
     const tablesPromise = extractDocxTables(arrayBuffer);
     let imageIndex = 0;
+    const imageUploads = [];
     const result = await window.mammoth.convertToHtml(
       { arrayBuffer },
       {
-        convertImage: window.mammoth.images.imgElement((image) => imageFromMammoth(image, imageIndex++))
+        convertImage: window.mammoth.images.imgElement((image) => queueMammothImage(image, imageIndex++, imageUploads))
       }
     );
+    const uploadedImages = await Promise.all(imageUploads);
+    const failedImage = uploadedImages.find((image) => image.error);
+    if (failedImage) throw failedImage.error;
+    const imageUrls = new Map(uploadedImages.map((image) => [image.placeholder, image.url]));
+    const importedHtml = new DOMParser().parseFromString(result.value, "text/html");
+    importedHtml.querySelectorAll("img").forEach((image) => {
+      const uploadedUrl = imageUrls.get(image.getAttribute("src") || "");
+      if (uploadedUrl) image.setAttribute("src", uploadedUrl);
+    });
     const td = new window.TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", emDelimiter: "*" });
     if (window.turndownPluginGfm?.gfm) td.use(window.turndownPluginGfm.gfm);
     // Preserve <figure>/<figcaption> as markdown image with caption-as-title
@@ -1218,7 +1241,7 @@
     });
     const importedTables = await tablesPromise;
     const markdown = restoreDocxTables(
-      td.turndown(normalizeImportedTables(result.value)),
+      td.turndown(normalizeImportedTables(importedHtml.body.innerHTML)),
       importedTables
     ).replace(/\n{3,}/g, "\n\n").trim();
     // Best-effort title: first heading in the markdown
@@ -1693,14 +1716,17 @@
     async function handleFile(file) {
       if (!file) return;
       if (!/\.docx$/i.test(file.name)) { toast("Please drop a .docx file.", "err"); return; }
-      status.textContent = "Reading " + file.name + "…";
+      const startedAt = Date.now();
+      status.textContent = "Reading, formatting, and uploading images from " + file.name + "…";
       status.classList.remove("muted");
+      status.classList.remove("err");
       try {
         const result = await importDocx(file);
         const importedParts = [];
         if (result.tables) importedParts.push(`${result.tables} table${result.tables === 1 ? "" : "s"}`);
         if (result.images) importedParts.push(`${result.images} image${result.images === 1 ? "" : "s"}`);
-        status.textContent = `Imported ${file.name}` + (importedParts.length ? ` · ${importedParts.join(", ")}` : "") + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
+        const elapsed = Math.max(0.1, (Date.now() - startedAt) / 1000).toFixed(1);
+        status.textContent = `Imported ${file.name} in ${elapsed}s` + (importedParts.length ? ` · ${importedParts.join(", ")}` : "") + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
         await onImported(result);
       } catch (err) {
         status.textContent = "Import failed: " + err.message;

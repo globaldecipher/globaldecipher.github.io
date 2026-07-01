@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import sanitizeHtml from "sanitize-html";
+import { buildSync } from "esbuild";
 
 const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "content");
@@ -57,8 +58,6 @@ function copyVendorAssets() {
   const vendorDir = path.join(OUT_DIR, "assets", "vendor");
   ensureDir(vendorDir);
   const files = [
-    ["node_modules/dompurify/dist/purify.min.js", "purify.min.js"],
-    ["node_modules/@toast-ui/editor/dist/toastui-editor.js", "toastui-editor.js"],
     ["node_modules/@toast-ui/editor/dist/toastui-editor.css", "toastui-editor.css"],
     ["node_modules/@toast-ui/editor/dist/theme/toastui-editor-dark.css", "toastui-editor-dark.css"],
     ["node_modules/mammoth/mammoth.browser.min.js", "mammoth.browser.min.js"],
@@ -69,6 +68,23 @@ function copyVendorAssets() {
   for (const [source, destination] of files) {
     fs.copyFileSync(path.join(ROOT, source), path.join(vendorDir, destination));
   }
+  // The package's prebuilt `toastui-editor.js` deliberately leaves its
+  // ProseMirror dependencies external. It works in a module-aware build but
+  // not when loaded directly in the admin browser. Bundle the ESM entry and
+  // all of its dependencies into one same-origin, CSP-compatible browser file.
+  buildSync({
+    entryPoints: [path.join(ROOT, "scripts", "vendor-toastui-editor.js")],
+    outfile: path.join(vendorDir, "toastui-editor.js"),
+    bundle: true,
+    minify: true,
+    format: "iife",
+    platform: "browser",
+    target: ["es2020"],
+    legalComments: "inline",
+    define: {
+      "process.env.NODE_ENV": '"production"'
+    }
+  });
 }
 
 function slugify(input) {
@@ -1772,7 +1788,7 @@ function adminPage() {
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260629-fatality-split" defer></script>
+<script src="/assets/admin.js?v=20260701-editor-restore" defer></script>
 </body>
 </html>
 `;
