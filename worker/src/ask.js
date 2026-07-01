@@ -15,6 +15,14 @@
 //   ASK_HOURLY_LIMIT      defaults to 8 requests per visitor
 //   ASK_GLOBAL_DAILY_LIMIT defaults to 400 requests across the site
 
+import {
+  allowedAskOrigin,
+  baseSecurityHeaders,
+  clientIdentifier,
+  rateLimit as enforceRateLimit,
+  readJsonLimited
+} from "./security.js";
+
 const MAX_QUESTION_LEN = 700;
 const MAX_CONTEXT_BYTES = 100_000;
 const MAX_HISTORY_TURNS = 6;
@@ -28,40 +36,17 @@ const DEFAULT_TOTAL_TIMEOUT_MS = 15_000;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
 const FALLBACK_GEMINI_STATUSES = new Set([0, 408, 429, 500, 502, 503, 504]);
 
-function cors(request, env) {
-  const configured = String(env.SITE_URL || "https://theglobaldecipher.com").replace(/\/+$/, "");
-  const origin = request.headers.get("origin");
-  const allowed = !origin || origin === configured || origin === "https://www.theglobaldecipher.com"
-    || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  return {
-    allowed,
-    headers: {
-      "access-control-allow-origin": allowed && origin ? origin : configured,
-      "access-control-allow-methods": "POST, OPTIONS",
-      "access-control-allow-headers": "content-type",
-      "access-control-max-age": "86400",
-      "vary": "Origin"
-    }
-  };
-}
-
 function json(request, env, body, status = 200, extra = {}) {
-  const { headers } = cors(request, env);
+  const { headers } = allowedAskOrigin(request, env);
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...headers, ...extra }
+    headers: baseSecurityHeaders({ "content-type": "application/json; charset=utf-8", ...headers, ...extra })
   });
 }
 
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value || ""), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function clientIp(request) {
-  return request.headers.get("cf-connecting-ip")
-    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || "unknown";
 }
 
 async function consumeRateLimit(env, ip) {
@@ -249,11 +234,15 @@ function shouldUseFallback(result) {
 }
 
 export async function askDatabase(request, env) {
-  const access = cors(request, env);
+  const access = allowedAskOrigin(request, env);
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: access.headers });
   }
   if (!access.allowed) return json(request, env, { error: "This endpoint is available only from TGD Explorer." }, 403);
+  const visitor = clientIdentifier(request);
+  if (!(await enforceRateLimit(env, "PUBLIC_RATE_LIMITER", `ask:${visitor}`))) {
+    return json(request, env, { error: "Too many research-assistant requests. Please wait a minute." }, 429);
+  }
 
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_CONTEXT_BYTES + MAX_HISTORY_CHARS + 5000) {
@@ -262,9 +251,14 @@ export async function askDatabase(request, env) {
 
   let payload;
   try {
-    payload = await request.json();
-  } catch {
-    return json(request, env, { error: "Invalid request." }, 400);
+    payload = await readJsonLimited(request, MAX_CONTEXT_BYTES + MAX_HISTORY_CHARS + 5000);
+  } catch (error) {
+    return json(
+      request,
+      env,
+      { error: error?.status === 413 ? "The selected research context is too large." : "Invalid request." },
+      error?.status === 413 ? 413 : 400
+    );
   }
 
   const question = String(payload?.question || "").trim();
@@ -285,7 +279,7 @@ export async function askDatabase(request, env) {
     return json(request, env, { error: "The research assistant is being configured. The sourced profiles remain available." }, 503);
   }
 
-  const limited = await consumeRateLimit(env, clientIp(request));
+  const limited = await consumeRateLimit(env, visitor);
   if (limited === "visitor") {
     return json(request, env, { error: "You have reached the hourly research-assistant limit. Please try again later." }, 429);
   }

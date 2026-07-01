@@ -1,3 +1,5 @@
+import { baseSecurityHeaders, readJsonLimited, readTextLimited, timingSafeSecretEqual } from "./security.js";
+
 const COOKIE_NAME = "tgd_monitoring_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const PENDING_TTL_SECONDS = 60 * 60 * 24;
@@ -18,19 +20,19 @@ export function monitoringCookieName() {
 function json(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...headers }
+    headers: baseSecurityHeaders({ "content-type": "application/json; charset=utf-8", ...headers })
   });
 }
 
 function html(body, status = 200, headers = {}) {
   return new Response(body, {
     status,
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...headers }
+    headers: baseSecurityHeaders({ "content-type": "text/html; charset=utf-8", ...headers })
   });
 }
 
 function redirect(location, headers = {}) {
-  return new Response(null, { status: 303, headers: { location, ...headers } });
+  return new Response(null, { status: 303, headers: baseSecurityHeaders({ location, ...headers }) });
 }
 
 function cleanEmail(value = "") {
@@ -62,13 +64,6 @@ async function hmacHex(secret, body, hash = "SHA-256") {
   return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)));
 }
 
-function timingSafeEqual(a = "", b = "") {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i += 1) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
-}
-
 function parseCookie(request) {
   const header = request.headers.get("cookie") || "";
   return Object.fromEntries(
@@ -92,7 +87,8 @@ function sessionCookie(token) {
     `Max-Age=${SESSION_TTL_SECONDS}`,
     "HttpOnly",
     "Secure",
-    "SameSite=Lax"
+    "SameSite=Lax",
+    "Priority=High"
   ].join("; ");
 }
 
@@ -102,10 +98,9 @@ function clearSessionCookie() {
 
 async function readFormOrJson(request) {
   const type = request.headers.get("content-type") || "";
-  if (type.includes("application/json")) return request.json().catch(() => ({}));
-  if (type.includes("application/x-www-form-urlencoded") || type.includes("multipart/form-data")) {
-    const form = await request.formData();
-    return Object.fromEntries([...form.entries()].map(([key, value]) => [key, String(value)]));
+  if (type.includes("application/json")) return (await readJsonLimited(request, 64 * 1024)) || {};
+  if (type.includes("application/x-www-form-urlencoded")) {
+    return Object.fromEntries(new URLSearchParams(await readTextLimited(request, 64 * 1024)));
   }
   return {};
 }
@@ -135,8 +130,22 @@ export async function handleMonitoringMe(request, env) {
   return json({ authenticated: Boolean(session), subscriber: session ? publicSubscriber(session.subscriber) : null });
 }
 
-export async function handleMonitoringLogout() {
+export async function handleMonitoringLogout(request, env) {
+  const token = parseCookie(request)[COOKIE_NAME];
+  if (token && env.INCIDENTS) await env.INCIDENTS.delete(keys.session(token));
   return redirect("/monitoring-access/?logged_out=1", { "set-cookie": clearSessionCookie() });
+}
+
+function safeReturnPath(value) {
+  const input = String(value || "/monitoring/");
+  if (!input.startsWith("/") || input.startsWith("//") || input.includes("\\")) return "/monitoring/";
+  try {
+    const parsed = new URL(input, "https://theglobaldecipher.com");
+    if (parsed.origin !== "https://theglobaldecipher.com") return "/monitoring/";
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "/monitoring/";
+  }
 }
 
 export async function handleMonitoringCheckout(request, env) {
@@ -156,9 +165,8 @@ export async function handleMonitoringCheckout(request, env) {
   const returnTo = String(body.return_to || "/monitoring/");
   const pending = {
     product: PRODUCT_KEY,
-    email,
     email_hash: emailHash,
-    return_to: returnTo.startsWith("/") ? returnTo : "/monitoring/",
+    return_to: safeReturnPath(returnTo),
     created_at: new Date().toISOString()
   };
   await env.INCIDENTS.put(keys.pending(accessToken), JSON.stringify(pending), { expirationTtl: PENDING_TTL_SECONDS });
@@ -266,10 +274,10 @@ async function createSession(env, emailHash) {
 
 export async function handleSafepayWebhook(request, env) {
   if (!env.SAFEPAY_WEBHOOK_SECRET) return json({ error: "Webhook secret is not configured." }, 500);
-  const raw = await request.text();
+  const raw = await readTextLimited(request, 1024 * 1024);
   const sent = request.headers.get("x-sfpy-signature") || "";
   const expected = await hmacHex(env.SAFEPAY_WEBHOOK_SECRET, raw, "SHA-512");
-  if (!timingSafeEqual(sent, expected)) return json({ error: "Invalid signature" }, 401);
+  if (!(await timingSafeSecretEqual(sent, expected))) return json({ error: "Invalid signature" }, 401);
 
   let payload;
   try {
@@ -283,7 +291,7 @@ export async function handleSafepayWebhook(request, env) {
   const planId = String(attrs.plan_id || "");
   if (!planId || planId !== String(env.SAFEPAY_PLAN_ID)) return json({ ok: true, ignored: true });
 
-  const eventId = String(payload?.token || "");
+  const eventId = String(payload?.token || "") || await sha256(raw);
   if (eventId && await env.INCIDENTS.get(keys.webhook(eventId))) {
     return json({ ok: true, duplicate: true });
   }
@@ -294,10 +302,16 @@ export async function handleSafepayWebhook(request, env) {
   if (!emailHash || !subscriptionId) return json({ ok: true, ignored: true });
   const eventReceivedAt = new Date().toISOString();
   const eventCreatedAt = safepayTimestamp(payload.created_at) || eventReceivedAt;
+  const existing = await env.INCIDENTS.get(keys.subscriber(emailHash), "json");
+  const existingEventAt = Date.parse(existing?.event_created_at || "");
+  const nextEventAt = Date.parse(eventCreatedAt);
+  if (Number.isFinite(existingEventAt) && Number.isFinite(nextEventAt) && existingEventAt > nextEventAt) {
+    await env.INCIDENTS.put(keys.webhook(eventId), eventReceivedAt, { expirationTtl: 60 * 60 * 24 * 7 });
+    return json({ ok: true, ignored: true, reason: "stale_event" });
+  }
 
   const subscriber = {
     product: PRODUCT_KEY,
-    email,
     email_hash: emailHash,
     subscription_id: subscriptionId,
     plan_id: planId,
@@ -349,7 +363,6 @@ function isSubscriberActive(subscriber) {
 
 function publicSubscriber(subscriber) {
   return {
-    email: subscriber.email || "",
     status: subscriber.status || "",
     renews_at: subscriber.renews_at || "",
     ends_at: subscriber.ends_at || ""

@@ -1,14 +1,16 @@
 name = "tgd-incidents"
 main = "src/index.js"
-compatibility_date = "2025-01-01"
-workers_dev = true
+compatibility_date = "2026-07-01"
+workers_dev = false
+preview_urls = false
 
 # Cron prunes the feed to the archive window and polls X on the quarter hour.
 [triggers]
 crons = ["*/5 * * * *"]
 
 # Non-secret config. Secrets are set with `wrangler secret put`, never committed:
-#   ADMIN_TOKEN    shared admin-panel password (also the issue-form ingest key)
+#   ADMIN_TOKEN    admin-panel API secret
+#   INGEST_TOKEN   separate machine-only incident ingestion secret
 #   GITHUB_TOKEN   fine-grained PAT, Actions: Read and write + Contents: Read
 #   X_BEARER_TOKEN optional, only if X auto-import is wanted
 #   SAFEPAY_SECRET_KEY             creates Monitoring Desk checkouts
@@ -34,6 +36,31 @@ SAFEPAY_API_BASE = "https://sandbox.api.getsafepay.com"
 
 [observability]
 enabled = true
+
+# Account-level, durable rate limits for sensitive and public endpoints.
+[[ratelimits]]
+name = "ADMIN_RATE_LIMITER"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 20
+period = 60
+
+[[ratelimits]]
+name = "PUBLIC_RATE_LIMITER"
+namespace_id = "1002"
+
+[ratelimits.simple]
+limit = 12
+period = 60
+
+[[ratelimits]]
+name = "WEBHOOK_RATE_LIMITER"
+namespace_id = "1003"
+
+[ratelimits.simple]
+limit = 120
+period = 60
 
 # KV namespace that stores the incident feed + Telegram poll state.
 # Replace the placeholder id after running:

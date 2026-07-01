@@ -20,16 +20,25 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install site dependencies
+      shell: bash
+      run: npm ci --no-audit --no-fund
+
+    - name: Install Worker deployment dependencies
+      shell: bash
+      working-directory: worker
+      run: npm ci --no-audit --no-fund
+
     - name: Build static site
       shell: bash
       env:
         CONTENT_DUMP_TOKEN: ${{ inputs.content-dump-token }}
       run: node build.mjs
 
-    - name: Install Explorer (React) deps
+    - name: Install Explorer dependencies
       shell: bash
       working-directory: apps/explorer
-      run: npm install --no-audit --no-fund
+      run: npm ci --no-audit --no-fund
 
     - name: Build Explorer into site/network-graph
       shell: bash
@@ -41,4 +50,4 @@ runs:
       env:
         CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
         CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
-      run: npx --yes wrangler@4 pages deploy site --project-name="${{ inputs.project-name }}" --branch=main
+      run: ./worker/node_modules/.bin/wrangler pages deploy site --project-name="${{ inputs.project-name }}" --branch=main

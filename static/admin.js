@@ -1,12 +1,12 @@
 /* The Global Decipher — admin panel.
-   Talks to the Worker API (same origin via the /api/* route). Auth = one shared
-   access key, sent as a Bearer token and kept in sessionStorage. */
+   Talks to the protected Worker API. The access key stays only in memory and
+   is discarded whenever the page is refreshed or closed. */
 (function () {
   "use strict";
 
-  const API = window.TGD_API_BASE || "/api";
+  const API = window.TGD_API_BASE || "/api/admin";
   const root = document.getElementById("admin-root");
-  let KEY = sessionStorage.getItem("tgd_key") || "";
+  let KEY = "";
 
   // ---- theme ----
   const THEME_KEY = "tgd_theme";
@@ -119,8 +119,7 @@
       if (!key) return;
       KEY = key;
       try {
-        await api("/admin/ping");
-        sessionStorage.setItem("tgd_key", key);
+        await api("/ping");
         renderApp();
       } catch (e) {
         KEY = "";
@@ -142,7 +141,6 @@
   }
 
   function logout() {
-    sessionStorage.removeItem("tgd_key");
     KEY = "";
     renderLogin();
   }
@@ -251,7 +249,7 @@
   async function initMaintenance() {
     setMaintenanceLoading("Checking…");
     let current = false;
-    try { current = Boolean((await api("/maintenance", { auth: false })).on); } catch {}
+    try { current = Boolean((await api("/maintenance")).on); } catch {}
     applyMaintenanceState(current);
     document.getElementById("maint-switch").addEventListener("click", async (e) => {
       const sw = e.currentTarget;
@@ -543,7 +541,7 @@
 
     async function reload() {
       try {
-        const feed = await api("/incidents", { auth: false });
+        const feed = await api("/incidents");
         items = feed.incidents || [];
         renderRows();
       } catch (e) {
@@ -795,17 +793,15 @@
   const clearView = (view) => { const v = document.getElementById("view"); clear(v); return v; };
 
   // ============================ EXTERNAL LIBS (loaded on demand) ============================
-  const CDN = {
-    // Keep the editor JavaScript, stylesheet, and icon sheet on one known-good
-    // version. `latest` can update one asset before the others, leaving the
-    // editor usable but its formatting icons blank.
-    toastJs: "https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js",
-    toastCss: "https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css",
-    toastDarkCss: "https://uicdn.toast.com/editor/3.2.2/theme/toastui-editor-dark.min.css",
-    mammothJs: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
-    turndownJs: "https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js",
-    turndownGfmJs: "https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js",
-    jszipJs: "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+  const VENDOR = {
+    dompurifyJs: "/assets/vendor/purify.min.js",
+    toastJs: "/assets/vendor/toastui-editor.js",
+    toastCss: "/assets/vendor/toastui-editor.css",
+    toastDarkCss: "/assets/vendor/toastui-editor-dark.css",
+    mammothJs: "/assets/vendor/mammoth.browser.min.js",
+    turndownJs: "/assets/vendor/turndown.js",
+    turndownGfmJs: "/assets/vendor/turndown-plugin-gfm.js",
+    jszipJs: "/assets/vendor/jszip.min.js"
   };
   const _scriptPromises = new Map();
   function loadScript(url) {
@@ -863,9 +859,10 @@
     const theme = document.body.getAttribute("data-theme") || "dark";
     // Toast UI's dark stylesheet only activates when this class is present.
     container.classList.toggle("toastui-editor-dark", theme === "dark");
-    loadCss(CDN.toastCss);
-    loadCss(CDN.toastDarkCss);
-    await loadScript(CDN.toastJs);
+    loadCss(VENDOR.toastCss);
+    loadCss(VENDOR.toastDarkCss);
+    await loadScript(VENDOR.dompurifyJs);
+    await loadScript(VENDOR.toastJs);
     const editor = new window.toastui.Editor({
       el: container,
       initialValue: initialMarkdown || "",
@@ -873,6 +870,7 @@
       previewStyle: "tab",
       height: opts.height || "560px",
       usageStatistics: false,
+      customHTMLSanitizer: (html) => window.DOMPurify.sanitize(html),
       theme: theme,
       autofocus: false,
       hideModeSwitch: false,
@@ -1046,12 +1044,12 @@
     // Capture phase so we run before Toast UI / ProseMirror's own paste handlers.
     container.addEventListener("paste", handler, true);
     // Pre-load Turndown so the first paste isn't delayed by a CDN round-trip.
-    loadScript(CDN.turndownJs).then(() => loadScript(CDN.turndownGfmJs)).catch(() => {});
+    loadScript(VENDOR.turndownJs).then(() => loadScript(VENDOR.turndownGfmJs)).catch(() => {});
   }
 
   async function convertAndInsertPastedHtml(editor, rawHtml) {
-    await loadScript(CDN.turndownJs);
-    await loadScript(CDN.turndownGfmJs);
+    await loadScript(VENDOR.turndownJs);
+    await loadScript(VENDOR.turndownGfmJs);
     const markdown = pastedHtmlToMarkdown(rawHtml);
     if (!markdown) return;
 
@@ -1192,10 +1190,10 @@
 
   // ============================ WORD (.docx) IMPORT ============================
   async function importDocx(file) {
-    await loadScript(CDN.mammothJs);
-    await loadScript(CDN.turndownJs);
-    await loadScript(CDN.turndownGfmJs);
-    await loadScript(CDN.jszipJs);
+    await loadScript(VENDOR.mammothJs);
+    await loadScript(VENDOR.turndownJs);
+    await loadScript(VENDOR.turndownGfmJs);
+    await loadScript(VENDOR.jszipJs);
     const arrayBuffer = await file.arrayBuffer();
     const tablesPromise = extractDocxTables(arrayBuffer);
     let imageIndex = 0;
@@ -2085,6 +2083,5 @@
   }
 
   // ---- boot ----
-  if (KEY) api("/admin/ping").then(renderApp).catch(() => renderLogin());
-  else renderLogin();
+  renderLogin();
 })();
