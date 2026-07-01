@@ -29,11 +29,36 @@ runs:
       working-directory: worker
       run: npm ci --no-audit --no-fund
 
-    - name: Build static site
+    - name: Build static site through remote D1
       shell: bash
       env:
-        CONTENT_DUMP_TOKEN: ${{ inputs.content-dump-token }}
-      run: node build.mjs
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: |
+        preview_log="$RUNNER_TEMP/tgd-content-preview.log"
+        ./worker/node_modules/.bin/wrangler dev \
+          --config worker/wrangler.build.toml \
+          --remote \
+          --ip 127.0.0.1 \
+          --port 8787 \
+          --log-level error >"$preview_log" 2>&1 &
+        preview_pid=$!
+        trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+        ready=0
+        for attempt in {1..20}; do
+          if curl --fail --silent http://127.0.0.1:8787/health >/dev/null; then
+            ready=1
+            break
+          fi
+          sleep 1
+        done
+        if [ "$ready" -ne 1 ]; then
+          cat "$preview_log"
+          exit 1
+        fi
+
+        CONTENT_API=http://127.0.0.1:8787/api node build.mjs
 
     - name: Install Explorer dependencies
       shell: bash
