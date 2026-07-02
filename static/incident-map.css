@@ -488,17 +488,23 @@
   transition: opacity 160ms ease;
 }
 
-.tracker-pakistan-map-object {
+.tracker-pakistan-map-inline {
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
+}
+
+.tracker-pakistan-map-inline svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .breakdown-map-frame.has-interactive-map .tracker-pakistan-map-fallback {
   opacity: 0;
 }
 
-.breakdown-map-frame.has-interactive-map .tracker-pakistan-map-object {
+.breakdown-map-frame.has-interactive-map .tracker-pakistan-map-inline {
   opacity: 1;
   pointer-events: auto;
 }

@@ -8,6 +8,7 @@
   const DATA_URL = window.TGD_INCIDENTS_URL || "/api/incidents";
   const ARCHIVE_URL = "/assets/data/incidents.json?v=20260622-archive2";
   const HUBS_URL = "/assets/data/hubs.json";
+  const MAP_URL = "/assets/pakistan-map.svg?v=20260702-map-inline";
   const HUB_INDEX = { organisations: [], regions: [] };
   fetch(HUBS_URL, { cache: "default" })
     .then((res) => res.ok ? res.json() : null)
@@ -110,7 +111,7 @@
     timeline: qs("[data-timeline]"),
     weekly: qs("[data-weekly-analytics]"),
     mapFrame: qs("[data-map]"),
-    mapObject: qs(".tracker-pakistan-map-object"),
+    mapHost: qs("[data-interactive-map]"),
     mapTitle: qs("[data-map-title]"),
     mapCount: qs("[data-map-count]"),
     tooltip: qs("[data-map-tooltip]"),
@@ -650,12 +651,13 @@
     const key = provinceKey(hotspot.dataset.provinceHotspot);
     const path = svgPath(doc, key);
     const frame = hotspot.closest("[data-map]");
-    const viewBox = doc.documentElement?.viewBox?.baseVal;
+    const svg = doc.matches?.("svg") ? doc : doc.querySelector?.("svg");
+    const viewBox = svg?.viewBox?.baseVal;
     if (!path || !frame || !viewBox?.width || !viewBox?.height) return;
     try {
       const box = path.getBBox();
       const [ax, ay] = HOTSPOT_ANCHORS.get(key) || [0.5, 0.5];
-      const objectRect = els.mapObject.getBoundingClientRect();
+      const objectRect = els.mapHost.getBoundingClientRect();
       const frameRect = frame.getBoundingClientRect();
       hotspot.style.left = `${objectRect.left - frameRect.left + objectRect.width * ((box.x + box.width * ax - viewBox.x) / viewBox.width)}px`;
       hotspot.style.top = `${objectRect.top - frameRect.top + objectRect.height * ((box.y + box.height * ay - viewBox.y) / viewBox.height)}px`;
@@ -692,7 +694,7 @@
       hotspot.onmouseleave = hideTooltip;
       hotspot.onclick = () => selectProvince(group?.label || hotspot.dataset.provinceHotspot);
     });
-    const doc = els.mapObject?.contentDocument;
+    const doc = els.mapHost;
     const hasInteractiveMap = Boolean(doc?.querySelector("[data-region]"));
     els.mapFrame?.classList.toggle("has-interactive-map", hasInteractiveMap);
     if (hasInteractiveMap) {
@@ -786,6 +788,23 @@
     state.playback = true;
     render();
     playbackTimer = window.setInterval(stepPlayback, PLAYBACK_MS);
+  }
+
+  async function loadMap() {
+    if (!els.mapHost) return;
+    try {
+      const response = await fetch(MAP_URL, { cache: "default" });
+      if (!response.ok) throw new Error(`Map request failed: ${response.status}`);
+      const parsed = new DOMParser().parseFromString(await response.text(), "image/svg+xml");
+      const svg = parsed.documentElement;
+      if (svg.nodeName.toLowerCase() !== "svg" || !svg.querySelector("[data-region]")) throw new Error("Map SVG is invalid");
+      svg.setAttribute("aria-hidden", "true");
+      svg.removeAttribute("role");
+      els.mapHost.replaceChildren(document.importNode(svg, true));
+      renderMap();
+    } catch (_error) {
+      els.mapFrame?.classList.remove("has-interactive-map");
+    }
   }
 
   async function loadFeed() {
@@ -924,7 +943,6 @@
       render();
     });
   });
-  els.mapObject?.addEventListener("load", () => renderMap());
   window.addEventListener("resize", () => renderMap());
   window.addEventListener("beforeunload", () => stopPlayback(false));
   window.setInterval(loadFeed, 90000);
@@ -938,5 +956,6 @@
     }
   }, 30000);
 
+  loadMap();
   loadFeed();
 })();

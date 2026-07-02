@@ -5,7 +5,7 @@ author: "TGD Monitoring Desk"
 type: "page"
 eyebrow: "Public-source tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
-extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-map-fix">'
+extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-map-inline">'
 ---
 
 <section class="incident-tracker-shell" data-incident-tracker>
@@ -43,8 +43,8 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ma
         <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Daily incident feed</span></div>
       </div>
       <div class="breakdown-map-frame" data-map>
-        <img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-fix" alt="" aria-hidden="true">
-        <object class="tracker-pakistan-map tracker-pakistan-map-object" data="/assets/pakistan-map.svg?v=20260702-map-fix" type="image/svg+xml" aria-label="Interactive provincial map of Pakistan" tabindex="-1"></object>
+        <img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-inline" alt="" aria-hidden="true">
+        <div class="tracker-pakistan-map tracker-pakistan-map-inline" data-interactive-map role="img" aria-label="Interactive provincial map of Pakistan"></div>
         <div class="tracker-marker-layer" data-marker-layer></div>
         <div class="map-tooltip" data-map-tooltip hidden></div>
         <div class="province-hotspot hotspot-kp" data-province-hotspot="Khyber Pakhtunkhwa">0</div>
@@ -246,4 +246,4 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ma
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260702-map-fix" defer></script>
+<script src="/assets/incident-map.js?v=20260702-map-inline" defer></script>

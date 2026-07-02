@@ -397,12 +397,12 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
-    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-map-fix")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-map-fix")
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-map-inline")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-map-inline")
     .replace(
       /<object class="tracker-pakistan-map" data="\/assets\/pakistan-map\.svg(?:\?[^"]*)?" type="image\/svg\+xml" aria-hidden="true" tabindex="-1"><\/object>/g,
-      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-fix" alt="" aria-hidden="true">' +
-        '<object class="tracker-pakistan-map tracker-pakistan-map-object" data="/assets/pakistan-map.svg?v=20260702-map-fix" type="image/svg+xml" aria-label="Interactive provincial map of Pakistan" tabindex="-1"></object>'
+      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-inline" alt="" aria-hidden="true">' +
+        '<div class="tracker-pakistan-map tracker-pakistan-map-inline" data-interactive-map role="img" aria-label="Interactive provincial map of Pakistan"></div>'
     );
 }
 
