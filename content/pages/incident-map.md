@@ -5,7 +5,7 @@ author: "TGD Monitoring Desk"
 type: "page"
 eyebrow: "Public-source tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
-extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-map-inline">'
+extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ajk">'
 ---
 
 <section class="incident-tracker-shell" data-incident-tracker>
@@ -52,6 +52,7 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ma
         <div class="province-hotspot hotspot-sindh" data-province-hotspot="Sindh">0</div>
         <div class="province-hotspot hotspot-punjab" data-province-hotspot="Punjab">0</div>
         <div class="province-hotspot hotspot-gb" data-province-hotspot="Gilgit-Baltistan">0</div>
+        <div class="province-hotspot hotspot-ajk" data-province-hotspot="Azad Jammu and Kashmir">0</div>
         <div class="province-hotspot hotspot-ict" data-province-hotspot="Islamabad">0</div>
         <div class="tracker-map-credit">Boundary: Natural Earth</div>
       </div>
@@ -246,4 +247,4 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ma
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260702-map-inline" defer></script>
+<script src="/assets/incident-map.js?v=20260702-ajk" defer></script>

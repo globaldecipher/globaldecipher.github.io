@@ -72,6 +72,7 @@
     ["punjab", "Punjab"],
     ["sindh", "Sindh"],
     ["gilgit-baltistan", "Gilgit-Baltistan"],
+    ["azad-jammu-and-kashmir", "Azad Jammu and Kashmir"],
     ["islamabad", "Islamabad Capital Territory"]
   ];
   const PROVINCE_LABELS = new Map(PROVINCES);
@@ -81,6 +82,7 @@
     ["punjab", [0.46, 0.54]],
     ["sindh", [0.48, 0.52]],
     ["gilgit-baltistan", [0.51, 0.48]],
+    ["azad-jammu-and-kashmir", [0.5, 0.5]],
     ["islamabad", [0.5, 0.5]]
   ]);
 
@@ -103,6 +105,16 @@
     filters: { province: "", category: "", severity: "", search: "" }
   };
   let playbackTimer = null;
+
+  const mapFrame = root.querySelector("[data-map]");
+  if (mapFrame && !mapFrame.querySelector('[data-province-hotspot="Azad Jammu and Kashmir"]')) {
+    const hotspot = document.createElement("div");
+    hotspot.className = "province-hotspot hotspot-ajk";
+    hotspot.dataset.provinceHotspot = "Azad Jammu and Kashmir";
+    hotspot.textContent = "0";
+    const credit = mapFrame.querySelector(".tracker-map-credit");
+    mapFrame.insertBefore(hotspot, credit || null);
+  }
 
   const els = {
     sourceNote: qs("[data-source-note]"),
@@ -170,6 +182,7 @@
     if (compact.includes("sind")) return "sindh";
     if (compact.includes("punjab")) return "punjab";
     if (compact.includes("gilgit")) return "gilgit-baltistan";
+    if (compact === "ajk" || compact.includes("azadjammu") || compact.includes("azadkashmir")) return "azad-jammu-and-kashmir";
     if (compact.includes("islamabad") || compact.includes("ict")) return "islamabad";
     return compact;
   }
