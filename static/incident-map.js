@@ -109,7 +109,8 @@
     metrics: qs("[data-metrics]"),
     timeline: qs("[data-timeline]"),
     weekly: qs("[data-weekly-analytics]"),
-    mapObject: qs(".tracker-pakistan-map"),
+    mapFrame: qs("[data-map]"),
+    mapObject: qs(".tracker-pakistan-map-object"),
     mapTitle: qs("[data-map-title]"),
     mapCount: qs("[data-map-count]"),
     tooltip: qs("[data-map-tooltip]"),
@@ -692,7 +693,9 @@
       hotspot.onclick = () => selectProvince(group?.label || hotspot.dataset.provinceHotspot);
     });
     const doc = els.mapObject?.contentDocument;
-    if (doc) {
+    const hasInteractiveMap = Boolean(doc?.querySelector("[data-region]"));
+    els.mapFrame?.classList.toggle("has-interactive-map", hasInteractiveMap);
+    if (hasInteractiveMap) {
       doc.querySelectorAll("[data-region]").forEach((path) => {
         const group = map.get(provinceKey(path.dataset.region));
         const searchMatch = Boolean(state.filters.search && group?.count);

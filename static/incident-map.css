@@ -483,6 +483,26 @@
   filter: drop-shadow(0 18px 28px rgba(31, 42, 56, 0.12));
 }
 
+.tracker-pakistan-map-fallback {
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.tracker-pakistan-map-object {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.breakdown-map-frame.has-interactive-map .tracker-pakistan-map-fallback {
+  opacity: 0;
+}
+
+.breakdown-map-frame.has-interactive-map .tracker-pakistan-map-object {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .province-hotspot {
   position: absolute;
   z-index: 6;

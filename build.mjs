@@ -397,8 +397,13 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
-    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260622-archive")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260622-archive4");
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-map-fix")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-map-fix")
+    .replace(
+      /<object class="tracker-pakistan-map" data="\/assets\/pakistan-map\.svg(?:\?[^"]*)?" type="image\/svg\+xml" aria-hidden="true" tabindex="-1"><\/object>/g,
+      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-fix" alt="" aria-hidden="true">' +
+        '<object class="tracker-pakistan-map tracker-pakistan-map-object" data="/assets/pakistan-map.svg?v=20260702-map-fix" type="image/svg+xml" aria-label="Interactive provincial map of Pakistan" tabindex="-1"></object>'
+    );
 }
 
 async function readCollection(collection) {
@@ -2094,14 +2099,18 @@ const CSP = "default-src 'self'; base-uri 'self'; object-src 'self'; script-src 
 function secureResponse(response, pathname) {
   const headers = new Headers(response.headers);
   headers.set("x-content-type-options", "nosniff");
-  headers.set("x-frame-options", "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
   headers.set("cross-origin-opener-policy", "same-origin");
   headers.set("x-permitted-cross-domain-policies", "none");
   headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
   if ((headers.get("content-type") || "").includes("text/html")) {
+    headers.set("x-frame-options", "DENY");
     headers.set("content-security-policy", CSP);
+  } else {
+    // X-Frame-Options is for document responses. Applying it to same-origin
+    // SVG assets prevents the incident map's interactive <object> from loading.
+    headers.delete("x-frame-options");
   }
   if (/^\\/(?:admin|monitoring-access)(?:\\/|$)/.test(pathname)) {
     headers.set("cache-control", "no-store");
