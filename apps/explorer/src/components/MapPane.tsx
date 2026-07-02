@@ -239,6 +239,7 @@ export default function MapPane() {
 
   return (
     <Pane
+      id="explorer-map"
       label="Area of Operations"
       toolbar={
         <div className="flex gap-1">

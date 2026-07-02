@@ -235,6 +235,7 @@ export default function Timeline() {
 
   return (
     <Pane
+      id="explorer-events"
       label="Key events"
       className="key-events-pane"
       toolbar={<span className="key-events-count">{events.length} recorded</span>}

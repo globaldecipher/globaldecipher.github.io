@@ -1,9 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useExplorer } from "../lib/store";
 import type { Entity } from "../types";
+import EntityPicker from "./EntityPicker";
+import {
+  buildEntitySearchIndex,
+  coverageLabel,
+  createEntitySearch,
+  searchEntityIndex,
+  TYPE_LABEL
+} from "../lib/entitySearch";
 
 type CoverageFilter = "all" | "deep" | "basic";
 type TypeFilter = "all" | Entity["type"];
+type StartMode = "find" | "compare" | "path" | "browse";
 
 const FEATURED_IDS = [
   "tehreek-e-taliban-pakistan",
@@ -11,16 +20,22 @@ const FEATURED_IDS = [
   "sanaullah-ghafari"
 ];
 
-const TYPE_LABEL: Record<Entity["type"], string> = {
-  organization: "Organisation",
-  person: "Person",
-  attack: "Attack",
-  financing_entity: "Financing",
-  front: "Front"
-};
+const BROWSE_STATE_KEY = "tgd-explorer-browse-state";
 
-function coverageLabel(ent: Entity) {
-  return ent.stub ? "Basic record" : "Deep profile";
+interface BrowseState {
+  coverage: CoverageFilter;
+  type: TypeFilter;
+  country: string;
+  query: string;
+}
+
+function savedBrowseState(): BrowseState {
+  const fallback: BrowseState = { coverage: "all", type: "all", country: "all", query: "" };
+  try {
+    return { ...fallback, ...JSON.parse(window.sessionStorage.getItem(BROWSE_STATE_KEY) ?? "{}") };
+  } catch {
+    return fallback;
+  }
 }
 
 function previewText(value = "") {
@@ -29,11 +44,21 @@ function previewText(value = "") {
 
 export default function Browse() {
   const entities = useExplorer((s) => s.entities);
+  const byId = useExplorer((s) => s.byId);
+  const recentIds = useExplorer((s) => s.recentIds);
   const select = useExplorer((s) => s.select);
-  const [coverage, setCoverage] = useState<CoverageFilter>("all");
-  const [type, setType] = useState<TypeFilter>("all");
-  const [country, setCountry] = useState("all");
-  const [investigationQuery, setInvestigationQuery] = useState("");
+  const setResearchMode = useExplorer((s) => s.setResearchMode);
+  const setCompareId = useExplorer((s) => s.setCompareId);
+  const setPathTargetId = useExplorer((s) => s.setPathTargetId);
+  const initialState = useMemo(savedBrowseState, []);
+  const [coverage, setCoverage] = useState<CoverageFilter>(initialState.coverage);
+  const [type, setType] = useState<TypeFilter>(initialState.type);
+  const [country, setCountry] = useState(initialState.country);
+  const [investigationQuery, setInvestigationQuery] = useState(initialState.query);
+  const [startMode, setStartMode] = useState<StartMode>("find");
+  const [primaryId, setPrimaryId] = useState<string | null>(null);
+  const [secondaryId, setSecondaryId] = useState<string | null>(null);
+  const investigateRef = useRef<HTMLInputElement | null>(null);
 
   const deepCount = entities.filter((e) => !e.stub).length;
   const sources = new Set(entities.flatMap((e) => (e.sources ?? []).map((s) => s.url || s.id))).size;
@@ -44,28 +69,63 @@ export default function Browse() {
   const featured = FEATURED_IDS
     .map((id) => entities.find((e) => e.id === id))
     .filter(Boolean) as Entity[];
+  const searchIndex = useMemo(() => buildEntitySearchIndex(entities, byId), [byId, entities]);
+  const search = useMemo(() => createEntitySearch(searchIndex), [searchIndex]);
   const investigationMatches = useMemo(() => {
-    const query = investigationQuery.trim().toLowerCase();
-    if (!query) return featured.slice(0, 3);
-    return entities
-      .filter((entity) =>
-        [entity.name, entity.short, ...(entity.aliases ?? [])]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(query))
-      )
-      .sort((a, b) => Number(Boolean(a.stub)) - Number(Boolean(b.stub)) || a.name.localeCompare(b.name))
-      .slice(0, 6);
-  }, [entities, featured, investigationQuery]);
+    if (!investigationQuery.trim()) {
+      return featured.slice(0, 3).map((entity) => ({ entity, reason: "Suggested deep profile" }));
+    }
+    return searchEntityIndex(search, investigationQuery, 8);
+  }, [featured, investigationQuery, search]);
+  const queryMatches = useMemo(
+    () => new Set(searchEntityIndex(search, investigationQuery, entities.length).map(({ entity }) => entity.id)),
+    [entities.length, investigationQuery, search]
+  );
 
   const filtered = useMemo(
     () =>
       entities
+        .filter((e) => investigationQuery.trim().length < 2 || queryMatches.has(e.id))
         .filter((e) => coverage === "all" || (coverage === "deep" ? !e.stub : e.stub))
         .filter((e) => type === "all" || e.type === type)
         .filter((e) => country === "all" || e.country === country)
         .sort((a, b) => Number(Boolean(a.stub)) - Number(Boolean(b.stub)) || a.name.localeCompare(b.name)),
-    [entities, coverage, type, country]
+    [entities, investigationQuery, queryMatches, coverage, type, country]
   );
+  const recent = recentIds.map((id) => byId.get(id)).filter(Boolean).slice(0, 4) as Entity[];
+
+  useEffect(() => {
+    window.sessionStorage.setItem(BROWSE_STATE_KEY, JSON.stringify({
+      coverage,
+      type,
+      country,
+      query: investigationQuery
+    }));
+  }, [country, coverage, investigationQuery, type]);
+
+  function chooseStartMode(mode: StartMode) {
+    setStartMode(mode);
+    setPrimaryId(null);
+    setSecondaryId(null);
+    if (mode === "find") {
+      setTimeout(() => investigateRef.current?.focus(), 0);
+    }
+    if (mode === "browse") {
+      setTimeout(() => document.getElementById("record-directory")?.scrollIntoView({ behavior: "smooth" }), 0);
+    }
+  }
+
+  function openGuidedView() {
+    if (!primaryId || !secondaryId) return;
+    select(primaryId);
+    if (startMode === "compare") {
+      setResearchMode("compare");
+      setCompareId(secondaryId);
+    } else {
+      setResearchMode("path");
+      setPathTargetId(secondaryId);
+    }
+  }
 
   return (
     <main className="explorer-browse flex-1">
@@ -80,10 +140,51 @@ export default function Browse() {
             A working directory of organisations, leaders, fronts and their documented
             connections—built for tracing a name, testing a link and following the evidence.
           </p>
+          <div className="browse-pathways" aria-label="Choose how to explore">
+            {([
+              ["find", "Find an actor", "Search names, aliases and leaders"],
+              ["compare", "Compare two actors", "See differences and shared links"],
+              ["path", "Trace a connection", "Follow a documented route"],
+              ["browse", "Browse the index", `Filter all ${entities.length} records`]
+            ] as const).map(([id, label, note]) => (
+              <button
+                key={id}
+                type="button"
+                className={startMode === id ? "is-active" : ""}
+                onClick={() => chooseStartMode(id)}
+              >
+                <span>{label}</span>
+                <small>{note}</small>
+              </button>
+            ))}
+          </div>
+          {(startMode === "compare" || startMode === "path") && (
+            <div className="browse-pathway-builder">
+              <div>
+                <EntityPicker
+                  label="Starting actor"
+                  value={primaryId}
+                  onChange={setPrimaryId}
+                  excludeId={secondaryId}
+                />
+                <span aria-hidden="true">{startMode === "compare" ? "vs" : "→"}</span>
+                <EntityPicker
+                  label={startMode === "compare" ? "Comparison actor" : "Destination actor"}
+                  value={secondaryId}
+                  onChange={setSecondaryId}
+                  excludeId={primaryId}
+                />
+              </div>
+              <button type="button" disabled={!primaryId || !secondaryId} onClick={openGuidedView}>
+                {startMode === "compare" ? "Open comparison" : "Trace this connection"} →
+              </button>
+            </div>
+          )}
           <div className="browse-investigate">
             <label htmlFor="browse-investigate-input">Investigate an actor</label>
             <div>
               <input
+                ref={investigateRef}
                 id="browse-investigate-input"
                 type="search"
                 value={investigationQuery}
@@ -93,20 +194,32 @@ export default function Browse() {
               <button
                 type="button"
                 disabled={investigationMatches.length === 0}
-                onClick={() => investigationMatches[0] && select(investigationMatches[0].id)}
+                onClick={() => investigationMatches[0] && select(investigationMatches[0].entity.id)}
               >
                 Open dossier →
               </button>
             </div>
             {investigationQuery && (
               <div className="browse-investigate-results" aria-label="Matching actors">
-                {investigationMatches.length ? investigationMatches.map((entity) => (
+                {investigationMatches.length ? investigationMatches.map(({ entity, reason }) => (
                   <button key={entity.id} type="button" onClick={() => select(entity.id)}>
-                    <strong>{entity.short ?? entity.name}</strong>
-                    <span>{[TYPE_LABEL[entity.type], entity.country, coverageLabel(entity)].filter(Boolean).join(" · ")}</span>
+                    <span>
+                      <strong>{entity.short ?? entity.name}</strong>
+                      <small>{reason}</small>
+                    </span>
+                    <em>{[TYPE_LABEL[entity.type], entity.country, coverageLabel(entity)].filter(Boolean).join(" · ")}</em>
                   </button>
                 )) : (
-                  <p>No matching actor. Try an alias or browse the index below.</p>
+                  <div className="browse-no-results">
+                    <strong>No matching record</strong>
+                    <span>Try an alias, leader, country, designation or shorter phrase.</span>
+                    <button type="button" onClick={() => {
+                      setInvestigationQuery("");
+                      chooseStartMode("browse");
+                    }}>
+                      Browse the full index →
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -131,6 +244,17 @@ export default function Browse() {
             Basic records identify a known actor. Sourced dossiers add narrative,
             chronology, relationships and citations. Coverage is stated on every record.
           </p>
+          {recent.length > 0 && (
+            <div className="browse-recent">
+              <span>Recently viewed</span>
+              {recent.map((entity) => (
+                <button key={entity.id} type="button" onClick={() => select(entity.id)}>
+                  <strong>{entity.short ?? entity.name}</strong>
+                  <small>{entity.country ?? entity.region ?? TYPE_LABEL[entity.type]}</small>
+                </button>
+              ))}
+            </div>
+          )}
         </aside>
       </section>
 
@@ -201,7 +325,7 @@ export default function Browse() {
         </div>
 
         <div className="record-list">
-          {filtered.map((ent) => (
+          {filtered.length > 0 ? filtered.map((ent) => (
             <button
               key={ent.id}
               type="button"
@@ -218,7 +342,20 @@ export default function Browse() {
               </span>
               <span aria-hidden="true">Open →</span>
             </button>
-          ))}
+          )) : (
+            <div className="directory-empty">
+              <strong>No records match this combination.</strong>
+              <span>Clear the search or reset the filters to reopen the full directory.</span>
+              <button type="button" onClick={() => {
+                setInvestigationQuery("");
+                setCoverage("all");
+                setType("all");
+                setCountry("all");
+              }}>
+                Reset search and filters
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </main>

@@ -209,6 +209,7 @@ export default function Relationships() {
 
   return (
     <Pane
+      id="explorer-connections"
       label="Connection paths"
       className="relationship-paths-pane"
       toolbar={<span className="relationship-count">{connections.length} documented</span>}
@@ -364,6 +365,18 @@ function ConnectionDetail({
         {connection.relationship.note ??
           "The relationship is recorded in the index; a fuller narrative assessment is still being prepared."}
       </p>
+      <details className="relationship-evidence-explainer">
+        <summary>Why this connection is shown</summary>
+        <p>
+          TGD records this as a <strong>{meta.label.toLowerCase()}</strong>
+          {connection.relationship.from || connection.relationship.to_date
+            ? ` active ${formatPeriod(connection.relationship.from, connection.relationship.to_date).toLowerCase()}`
+            : " with no confirmed date range"}.
+          {sources.length > 0
+            ? ` ${sources.length} direct source ${sources.length === 1 ? "record is" : "records are"} attached to this claim.`
+            : " A direct citation is still pending, so treat it as an indexed relationship requiring further verification."}
+        </p>
+      </details>
 
       <footer className="relationship-detail-footer">
         <div>

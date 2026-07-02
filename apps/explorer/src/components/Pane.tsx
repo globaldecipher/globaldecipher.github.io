@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 
 interface PaneProps {
+  id?: string;
   label: string;
   toolbar?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-export default function Pane({ label, toolbar, children, className = "" }: PaneProps) {
+export default function Pane({ id, label, toolbar, children, className = "" }: PaneProps) {
   return (
     <section
+      id={id}
       className={
         "flex flex-col min-h-0 min-w-0 bg-page-light dark:bg-page-dark border border-line-light dark:border-line-dark rounded-editorial " +
         className

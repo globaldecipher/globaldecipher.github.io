@@ -8,6 +8,7 @@ interface ExplorerState {
   entities: Entity[];
   byId: Map<string, Entity>;
   selectedId: string | null;
+  recentIds: string[];
   relFilter: RelFilter;
   askOpen: boolean;
   askDraft: string;
@@ -26,10 +27,31 @@ interface ExplorerState {
   setPathTargetId: (id: string | null) => void;
 }
 
+const RECENT_KEY = "tgd-explorer-recent";
+
+function loadRecentIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string").slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentIds(ids: string[]) {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(ids));
+  } catch {
+    // Recent navigation remains available for the current session.
+  }
+}
+
 export const useExplorer = create<ExplorerState>((set) => ({
   entities: [],
   byId: new Map(),
   selectedId: null,
+  recentIds: loadRecentIds(),
   relFilter: "all",
   askOpen: false,
   askDraft: "",
@@ -40,17 +62,28 @@ export const useExplorer = create<ExplorerState>((set) => ({
   hydrate: (entities) => {
     const byId = new Map<string, Entity>();
     for (const e of entities) byId.set(e.id, e);
-    set({ entities, byId });
+    set((state) => ({
+      entities,
+      byId,
+      recentIds: state.recentIds.filter((id) => byId.has(id))
+    }));
   },
   select: (id) =>
-    set((state) => ({
-      selectedId: id,
-      askOpen: id && !state.byId.get(id)?.stub ? state.askOpen : false,
-      askDraft: "",
-      researchMode: "overview",
-      compareId: null,
-      pathTargetId: null
-    })),
+    set((state) => {
+      const recentIds = id
+        ? [id, ...state.recentIds.filter((recentId) => recentId !== id)].slice(0, 6)
+        : state.recentIds;
+      if (id) saveRecentIds(recentIds);
+      return {
+        selectedId: id,
+        recentIds,
+        askOpen: id && !state.byId.get(id)?.stub ? state.askOpen : false,
+        askDraft: "",
+        researchMode: "overview",
+        compareId: null,
+        pathTargetId: null
+      };
+    }),
   setRelFilter: (f) => set({ relFilter: f }),
   toggleAsk: (open) => set((s) => ({
     askOpen: typeof open === "boolean" ? open : !s.askOpen,

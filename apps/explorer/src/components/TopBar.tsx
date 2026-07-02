@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Fuse from "fuse.js";
 import { useExplorer } from "../lib/store";
-import type { Entity } from "../types";
-
-const TYPE_LABEL: Record<string, string> = {
-  organization: "Organisation",
-  person: "Person",
-  attack: "Attack",
-  financing_entity: "Financing",
-  front: "Front"
-};
+import {
+  buildEntitySearchIndex,
+  coverageLabel,
+  createEntitySearch,
+  type EntitySearchResult,
+  searchEntityIndex,
+  TYPE_LABEL
+} from "../lib/entitySearch";
 
 export default function TopBar() {
   const entities = useExplorer((s) => s.entities);
   const selectedId = useExplorer((s) => s.selectedId);
   const selected = useExplorer((s) => (s.selectedId ? s.byId.get(s.selectedId) ?? null : null));
+  const byId = useExplorer((s) => s.byId);
   const select = useExplorer((s) => s.select);
   const toggleAsk = useExplorer((s) => s.toggleAsk);
   const askOpen = useExplorer((s) => s.askOpen);
@@ -28,29 +27,20 @@ export default function TopBar() {
   );
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(entities, {
-        keys: ["name", "short", "aliases", "summary"],
-        threshold: 0.32,
-        includeScore: false,
-        minMatchCharLength: 2
-      }),
-    [entities]
-  );
+  const index = useMemo(() => buildEntitySearchIndex(entities, byId), [byId, entities]);
+  const search = useMemo(() => createEntitySearch(index), [index]);
 
   const results = useMemo(() => {
-    if (!query.trim()) return [];
-    return fuse.search(query).slice(0, 20).map((r) => r.item);
-  }, [fuse, query]);
+    return searchEntityIndex(search, query, 20);
+  }, [query, search]);
 
   // Group by entity type, max 5 per group.
   const grouped = useMemo(() => {
-    const buckets: Record<string, Entity[]> = {};
-    for (const e of results) {
-      const k = e.type;
+    const buckets: Record<string, EntitySearchResult[]> = {};
+    for (const result of results) {
+      const k = result.entity.type;
       buckets[k] = buckets[k] || [];
-      if (buckets[k].length < 5) buckets[k].push(e);
+      if (buckets[k].length < 5) buckets[k].push(result);
     }
     return Object.entries(buckets);
   }, [results]);
@@ -81,13 +71,13 @@ export default function TopBar() {
   }, []);
 
   useEffect(() => {
-    setQuery(selected ? selected.short ?? selected.name : "");
+    setQuery("");
     setOpen(false);
   }, [selected?.id]);
 
-  function pick(e: Entity) {
-    select(e.id);
-    setQuery(e.short ?? e.name);
+  function pick(result: EntitySearchResult) {
+    select(result.entity.id);
+    setQuery("");
     setOpen(false);
     inputRef.current?.blur();
   }
@@ -219,8 +209,12 @@ export default function TopBar() {
             ref={inputRef}
             type="search"
             spellCheck={false}
+            role="combobox"
+            aria-expanded={open}
+            aria-autocomplete="list"
+            aria-controls="explorer-search-results"
             aria-label="Search the Explorer database"
-            placeholder="Search organisations and people…"
+            placeholder="Search actors, leaders, places, attacks or connections…"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(0); }}
             onFocus={(event) => {
@@ -249,35 +243,62 @@ export default function TopBar() {
               ×
             </button>
           )}
-          {open && flat.length > 0 && (
-            <div className="explorer-search-results">
+          {open && query.trim().length >= 2 && (
+            <div className="explorer-search-results" id="explorer-search-results" role="listbox">
+              {flat.length > 0 ? (
+                <>
               {grouped.map(([type, list]) => (
                 <div key={type}>
-                  <div className="pane-label px-4 pt-3 pb-1">{TYPE_LABEL[type] ?? type}</div>
-                  {list.map((e) => {
-                    const idx = flat.indexOf(e);
+                  <div className="pane-label px-4 pt-3 pb-1">
+                    {TYPE_LABEL[type as keyof typeof TYPE_LABEL] ?? type}
+                  </div>
+                  {list.map((result) => {
+                    const idx = flat.indexOf(result);
+                    const entity = result.entity;
                     return (
                       <button
-                        key={e.id}
+                        key={entity.id}
                         type="button"
-                        onMouseDown={() => pick(e)}
+                        role="option"
+                        aria-selected={idx === highlight}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          pick(result);
+                        }}
                         onMouseEnter={() => setHighlight(idx)}
                         className={idx === highlight ? "is-highlighted" : ""}
                       >
                         <div>
-                          <div className="entity-name text-[0.92rem]">{e.name}</div>
-                          {e.aliases && e.aliases.length > 0 && (
-                            <div className="text-[0.72rem] text-muted-light dark:text-muted-dark truncate">
-                              {e.aliases.slice(0, 3).join(" · ")}
-                            </div>
-                          )}
+                          <div className="entity-name text-[0.92rem]">{entity.name}</div>
+                          <div className="explorer-search-reason">{result.reason}</div>
                         </div>
-                        <span>{e.country ?? e.region ?? ""}</span>
+                        <span>
+                          <b className={`coverage-dot ${entity.stub ? "is-basic" : "is-deep"}`} />
+                          {[entity.country ?? entity.region, coverageLabel(entity)].filter(Boolean).join(" · ")}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               ))}
+                </>
+              ) : (
+                <div className="explorer-search-empty">
+                  <strong>No record matched “{query.trim()}”</strong>
+                  <span>Try an alias, leader, country, designation or a shorter phrase.</span>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setQuery("");
+                      setOpen(false);
+                      select(null);
+                    }}
+                  >
+                    Browse the full index →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

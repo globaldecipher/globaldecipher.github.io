@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Entity, Relationship, RelationshipType } from "../types";
 import { selectedEntity, useExplorer } from "../lib/store";
+import EntityPicker from "./EntityPicker";
 
 interface GraphEdge {
   from: string;
@@ -178,12 +179,6 @@ export default function InvestigationTools() {
   const [copyStatus, setCopyStatus] = useState("");
 
   const edges = useMemo(() => graphEdges(byId), [byId]);
-  const candidates = useMemo(
-    () => [...byId.values()]
-      .filter((entity) => entity.id !== ent?.id)
-      .sort((a, b) => Number(Boolean(a.stub)) - Number(Boolean(b.stub)) || a.name.localeCompare(b.name)),
-    [byId, ent?.id]
-  );
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -287,17 +282,13 @@ export default function InvestigationTools() {
 
       {mode === "compare" && (
         <div className="investigation-mode">
-          <label>
-            Compare with
-            <select value={compareId ?? ""} onChange={(event) => setCompareId(event.target.value || null)}>
-              <option value="">Choose another actor</option>
-              {candidates.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name}{candidate.stub ? " — basic record" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+          <EntityPicker
+            label="Compare with"
+            value={compareId}
+            onChange={setCompareId}
+            excludeId={ent.id}
+            placeholder="Search an actor to compare"
+          />
           {comparison ? (
             <Comparison
               primary={ent}
@@ -317,15 +308,13 @@ export default function InvestigationTools() {
 
       {mode === "path" && (
         <div className="investigation-mode">
-          <label>
-            Trace a path to
-            <select value={pathTargetId ?? ""} onChange={(event) => setPathTargetId(event.target.value || null)}>
-              <option value="">Choose a destination</option>
-              {candidates.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
-              ))}
-            </select>
-          </label>
+          <EntityPicker
+            label="Trace a path to"
+            value={pathTargetId}
+            onChange={setPathTargetId}
+            excludeId={ent.id}
+            placeholder="Search a destination actor"
+          />
           {pathTarget ? (
             <ConnectionPath
               start={ent}

@@ -10,6 +10,8 @@ import Timeline from "./components/Timeline";
 import AskPanel from "./components/AskPanel";
 import Browse from "./components/Browse";
 import InvestigationTools from "./components/InvestigationTools";
+import ExplorerGuideBar from "./components/ExplorerGuideBar";
+import NextExplorations from "./components/NextExplorations";
 
 const MapPane = lazy(() => import("./components/MapPane"));
 
@@ -147,11 +149,19 @@ export default function App() {
       ) : (
         <>
           <EntityHeader />
+          {desktop && <ExplorerGuideBar />}
           <InvestigationTools />
 
           {!desktop ? (
             <>
               <nav className="mobile-pane-tabs" aria-label="Profile sections">
+                <button
+                  type="button"
+                  className="mobile-results-button"
+                  onClick={() => useExplorer.getState().select(null)}
+                >
+                  ← Results
+                </button>
                 {mobilePanes.map(([id, label]) => (
                   <button
                     key={id}
@@ -183,6 +193,7 @@ export default function App() {
               {panes?.map && <Suspense fallback={<LoadingPane />}><MapPane /></Suspense>}
             </main>
           )}
+          <NextExplorations />
         </>
       )}
       {askOpen && <AskPanel />}

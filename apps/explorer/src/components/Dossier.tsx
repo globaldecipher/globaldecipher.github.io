@@ -31,6 +31,15 @@ export default function Dossier() {
     if (!availableTabs.some((item) => item.id === tab)) setTab("overview");
   }, [availableTabs, tab]);
 
+  useEffect(() => {
+    const onTab = (event: Event) => {
+      const requested = (event as CustomEvent<string>).detail as Tab;
+      if (availableTabs.some((item) => item.id === requested)) setTab(requested);
+    };
+    window.addEventListener("tgd:dossier-tab", onTab);
+    return () => window.removeEventListener("tgd:dossier-tab", onTab);
+  }, [availableTabs]);
+
   if (!ent) {
     return (
       <Pane label="Dossier">
@@ -40,7 +49,7 @@ export default function Dossier() {
   }
 
   return (
-    <Pane label="Profile" className="explorer-dossier">
+    <Pane id="explorer-profile" label="Profile" className="explorer-dossier">
       <div className="dossier-tabs">
         {availableTabs.map((t) => (
           <button
