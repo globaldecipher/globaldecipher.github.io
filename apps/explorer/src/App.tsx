@@ -133,6 +133,7 @@ export default function App() {
   const paneCount = panes
     ? 1 + Number(panes.network) + Number(panes.timeline) + Number(panes.map)
     : 0;
+  const balancedResearchLayout = Boolean(desktop && panes?.network && panes?.map && paneCount > 2);
 
   function renderPane(id: MobilePane) {
     if (id === "profile") return <Dossier />;
@@ -180,8 +181,11 @@ export default function App() {
             </>
           ) : (
             <main
-              className="explorer-desktop-grid grid gap-3 p-3 flex-1 min-h-0 bg-paper2-light dark:bg-paper2-dark"
-              style={{
+              className={
+                "explorer-desktop-grid grid gap-3 p-3 flex-1 min-h-0 bg-paper2-light dark:bg-paper2-dark" +
+                (balancedResearchLayout ? " is-balanced-research" : "")
+              }
+              style={balancedResearchLayout ? undefined : {
                 gridTemplateColumns: paneCount > 1 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 gridTemplateRows: paneCount > 2 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 minHeight: paneCount > 2 ? "clamp(920px, 105dvh, 1120px)" : "640px"
