@@ -397,11 +397,11 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
-    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-ajk")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-ajk")
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-kashmir")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-kashmir")
     .replace(
       /<object class="tracker-pakistan-map" data="\/assets\/pakistan-map\.svg(?:\?[^"]*)?" type="image\/svg\+xml" aria-hidden="true" tabindex="-1"><\/object>/g,
-      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-inline" alt="" aria-hidden="true">' +
+      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-kashmir" alt="" aria-hidden="true">' +
         '<div class="tracker-pakistan-map tracker-pakistan-map-inline" data-interactive-map role="img" aria-label="Interactive provincial map of Pakistan"></div>'
     );
 }
@@ -1342,7 +1342,7 @@ function pageTemplate(page) {
     </div>
   </section>`;
   const managedPageHead = page.slug === "incident-map"
-    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ajk">'
+    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-kashmir">'
     : page.slug === "network-graph"
       ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing"><link rel="stylesheet" href="/assets/world-globe.css?v=20260626-cold2">'
       : page.extra_head || "";

@@ -5,7 +5,7 @@ author: "TGD Monitoring Desk"
 type: "page"
 eyebrow: "Public-source tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
-extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-ajk">'
+extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-kashmir">'
 ---
 
 <section class="incident-tracker-shell" data-incident-tracker>
@@ -43,7 +43,7 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-aj
         <div class="breakdown-status"><span data-map-count>0 incidents</span><span>Daily incident feed</span></div>
       </div>
       <div class="breakdown-map-frame" data-map>
-        <img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-map-inline" alt="" aria-hidden="true">
+        <img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-kashmir" alt="" aria-hidden="true">
         <div class="tracker-pakistan-map tracker-pakistan-map-inline" data-interactive-map role="img" aria-label="Interactive provincial map of Pakistan"></div>
         <div class="tracker-marker-layer" data-marker-layer></div>
         <div class="map-tooltip" data-map-tooltip hidden></div>
@@ -247,4 +247,4 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-aj
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260702-ajk" defer></script>
+<script src="/assets/incident-map.js?v=20260702-kashmir" defer></script>

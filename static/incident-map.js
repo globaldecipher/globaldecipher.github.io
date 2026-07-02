@@ -8,7 +8,7 @@
   const DATA_URL = window.TGD_INCIDENTS_URL || "/api/incidents";
   const ARCHIVE_URL = "/assets/data/incidents.json?v=20260622-archive2";
   const HUBS_URL = "/assets/data/hubs.json";
-  const MAP_URL = "/assets/pakistan-map.svg?v=20260702-map-inline";
+  const MAP_URL = "/assets/pakistan-map.svg?v=20260702-kashmir";
   const HUB_INDEX = { organisations: [], regions: [] };
   fetch(HUBS_URL, { cache: "default" })
     .then((res) => res.ok ? res.json() : null)
