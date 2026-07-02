@@ -174,7 +174,7 @@ export default function App() {
               style={{
                 gridTemplateColumns: paneCount > 1 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 gridTemplateRows: paneCount > 2 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
-                minHeight: "640px"
+                minHeight: paneCount > 2 ? "clamp(920px, 105dvh, 1120px)" : "640px"
               }}
             >
               <Dossier />
