@@ -3369,35 +3369,30 @@ a.citation-source-row:focus-visible {
 }
 
 @media (min-width: 1024px) {
-  .explorer-desktop-grid.is-balanced-research {
+  .explorer-desktop-grid.is-connection-research {
     grid-template-areas:
       "profile connections"
-      "map connections"
-      "map events";
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+      "events connections";
+    grid-template-columns: minmax(420px, 0.9fr) minmax(560px, 1.1fr);
     grid-template-rows:
-      minmax(520px, 1fr)
-      minmax(520px, 1fr)
-      minmax(560px, 1.08fr);
-    min-height: clamp(1680px, 180dvh, 1900px);
+      minmax(520px, 0.9fr)
+      minmax(680px, 1.1fr);
+    min-height: clamp(1240px, 140dvh, 1500px);
     align-items: stretch;
     gap: 16px;
     padding: 16px 20px 40px;
   }
-  .explorer-desktop-grid.is-balanced-research #explorer-profile {
+  .explorer-desktop-grid.is-connection-research #explorer-profile {
     grid-area: profile;
   }
-  .explorer-desktop-grid.is-balanced-research #explorer-connections {
+  .explorer-desktop-grid.is-connection-research #explorer-connections {
     grid-area: connections;
     width: 100%;
   }
-  .explorer-desktop-grid.is-balanced-research #explorer-events {
+  .explorer-desktop-grid.is-connection-research #explorer-events {
     grid-area: events;
   }
-  .explorer-desktop-grid.is-balanced-research #explorer-map {
-    grid-area: map;
-  }
-  .explorer-desktop-grid.is-balanced-research + .next-explorations {
+  .explorer-desktop-grid.is-connection-research + .next-explorations {
     width: calc(100% - 40px);
     max-width: 1320px;
     margin: 8px auto 40px;

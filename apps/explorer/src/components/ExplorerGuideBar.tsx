@@ -4,8 +4,7 @@ import { selectedEntity, useExplorer } from "../lib/store";
 const SECTION_IDS = [
   ["explorer-profile", "Overview"],
   ["explorer-connections", "Connections"],
-  ["explorer-events", "Events"],
-  ["explorer-map", "Map"]
+  ["explorer-events", "Events"]
 ] as const;
 
 export default function ExplorerGuideBar() {
@@ -32,9 +31,6 @@ export default function ExplorerGuideBar() {
       }
       if (id === "explorer-events") {
         return (ent.events ?? []).length > 0 || (ent.attacks ?? []).length > 0;
-      }
-      if (id === "explorer-map") {
-        return (ent.aor ?? []).length > 0 || (ent.attacks ?? []).some((attack) => attack.lat && attack.lng) || Boolean(ent.headquarters);
       }
       return true;
     });

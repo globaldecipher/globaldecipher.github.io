@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { EntityDataset } from "./types";
 import { selectedEntity, useExplorer } from "./lib/store";
 import { initRouter } from "./lib/router";
@@ -13,17 +13,7 @@ import InvestigationTools from "./components/InvestigationTools";
 import ExplorerGuideBar from "./components/ExplorerGuideBar";
 import NextExplorations from "./components/NextExplorations";
 
-const MapPane = lazy(() => import("./components/MapPane"));
-
-type MobilePane = "profile" | "network" | "timeline" | "map";
-
-function LoadingPane() {
-  return (
-    <div className="grid h-full place-items-center border border-line-light bg-page-light text-meta text-muted-light dark:border-line-dark dark:bg-page-dark dark:text-muted-dark rounded-editorial">
-      Loading map…
-    </div>
-  );
-}
+type MobilePane = "profile" | "network" | "timeline";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -115,31 +105,25 @@ export default function App() {
     ? {
         profile: true,
         network: (ent.relationships ?? []).length > 0 || inboundRelationships,
-        timeline: (ent.events ?? []).length > 0 || (ent.attacks ?? []).length > 0,
-        map:
-          (ent.aor ?? []).some((point) => point.lat != null && point.lng != null) ||
-          (ent.attacks ?? []).some((attack) => attack.lat != null && attack.lng != null) ||
-          Boolean(ent.headquarters?.lat != null && ent.headquarters?.lng != null)
+        timeline: (ent.events ?? []).length > 0 || (ent.attacks ?? []).length > 0
       }
     : null;
   const mobilePanes = panes
     ? ([
         ["profile", "Profile"],
         panes.network ? ["network", "Connections"] : null,
-        panes.timeline ? ["timeline", "Events"] : null,
-        panes.map ? ["map", "Map"] : null
+        panes.timeline ? ["timeline", "Events"] : null
       ].filter(Boolean) as [MobilePane, string][])
     : [];
   const paneCount = panes
-    ? 1 + Number(panes.network) + Number(panes.timeline) + Number(panes.map)
+    ? 1 + Number(panes.network) + Number(panes.timeline)
     : 0;
-  const balancedResearchLayout = Boolean(desktop && panes?.network && panes?.map && paneCount > 2);
+  const connectionResearchLayout = Boolean(desktop && panes?.network && panes?.timeline);
 
   function renderPane(id: MobilePane) {
     if (id === "profile") return <Dossier />;
     if (id === "network") return <Relationships />;
-    if (id === "timeline") return <Timeline />;
-    return <Suspense fallback={<LoadingPane />}><MapPane /></Suspense>;
+    return <Timeline />;
   }
 
   return (
@@ -183,9 +167,9 @@ export default function App() {
             <main
               className={
                 "explorer-desktop-grid grid gap-3 p-3 flex-1 min-h-0 bg-paper2-light dark:bg-paper2-dark" +
-                (balancedResearchLayout ? " is-balanced-research" : "")
+                (connectionResearchLayout ? " is-connection-research" : "")
               }
-              style={balancedResearchLayout ? undefined : {
+              style={connectionResearchLayout ? undefined : {
                 gridTemplateColumns: paneCount > 1 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 gridTemplateRows: paneCount > 2 ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
                 minHeight: paneCount > 2 ? "clamp(920px, 105dvh, 1120px)" : "640px"
@@ -194,7 +178,6 @@ export default function App() {
               <Dossier />
               {panes?.network && <Relationships />}
               {panes?.timeline && <Timeline />}
-              {panes?.map && <Suspense fallback={<LoadingPane />}><MapPane /></Suspense>}
             </main>
           )}
           <NextExplorations />
