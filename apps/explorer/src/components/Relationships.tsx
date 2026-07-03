@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Pane from "./Pane";
 import { relFilterAllows, useExplorer } from "../lib/store";
 import type { Entity, Relationship, RelationshipType, SourceRef } from "../types";
@@ -293,15 +293,23 @@ export default function Relationships() {
               })}
             </nav>
 
-            <ConnectionDetail
-              connection={selected}
-              subject={ent}
-              canOpen={byId.has(selected.related.id)}
-              onOpen={() => select(selected.related.id)}
-              onAsk={() => openAsk(
-                `Explain the documented ${RELATION_META[selected.relationship.type].label.toLowerCase()} between ${ent.name} and ${selected.related.name}. Use the relationship note, dates and available profile sources, and clearly identify any evidence gaps.`
-              )}
-            />
+            <div className="relationship-detail-stack">
+              <ConnectionDetail
+                connection={selected}
+                subject={ent}
+                canOpen={byId.has(selected.related.id)}
+                onOpen={() => select(selected.related.id)}
+                onAsk={() => openAsk(
+                  `Explain the documented ${RELATION_META[selected.relationship.type].label.toLowerCase()} between ${ent.name} and ${selected.related.name}. Use the relationship note, dates and available profile sources, and clearly identify any evidence gaps.`
+                )}
+              />
+              <NetworkNeighborhood
+                subject={ent}
+                connections={visibleConnections}
+                selectedKey={selected.key}
+                onSelect={setSelectedKey}
+              />
+            </div>
           </div>
         ) : (
           <div className="relationship-empty">
@@ -311,6 +319,118 @@ export default function Relationships() {
         )}
       </div>
     </Pane>
+  );
+}
+
+function NetworkNeighborhood({
+  subject,
+  connections,
+  selectedKey,
+  onSelect
+}: {
+  subject: Entity;
+  connections: Connection[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const plotted = connections.slice(0, 12);
+  const cited = plotted.filter((connection) => collectSources(connection, subject).length > 0).length;
+  const left = plotted.filter((_, index) => index % 2 === 0);
+  const right = plotted.filter((_, index) => index % 2 === 1);
+  const positioned = plotted.map((connection, index) => {
+    const side = index % 2 === 0 ? left : right;
+    const sideIndex = side.findIndex((candidate) => candidate.key === connection.key);
+    return {
+      connection,
+      side: index % 2 === 0 ? "left" : "right",
+      x: index % 2 === 0 ? 17 : 83,
+      y: ((sideIndex + 1) / (side.length + 1)) * 100
+    };
+  });
+
+  return (
+    <section className="network-neighborhood network-orbit" aria-labelledby="network-neighborhood-title">
+      <header>
+        <div>
+          <span>Network orbit</span>
+          <h3 id="network-neighborhood-title">Relationship neighbourhood</h3>
+          <p>Select an actor around the orbit to bring its relationship record into focus.</p>
+        </div>
+        <p className="network-orbit-summary">
+          <strong>{plotted.length}</strong> actors
+          <span aria-hidden="true">·</span>
+          <strong>{cited}</strong> source-linked
+        </p>
+      </header>
+      <div className="network-orbit-canvas">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <ellipse className="network-orbit-ring is-outer" cx="50" cy="50" rx="27" ry="36" />
+          <ellipse className="network-orbit-ring is-inner" cx="50" cy="50" rx="17" ry="23" />
+          {positioned.map(({ connection, x, y }) => (
+            <line
+              key={connection.key}
+              x1="50"
+              y1="50"
+              x2={x}
+              y2={y}
+              className={connection.key === selectedKey ? "is-active" : ""}
+              style={{ color: RELATION_META[connection.relationship.type].color }}
+            />
+          ))}
+        </svg>
+        <div className="network-orbit-subject">
+          <span>Subject</span>
+          <strong>{subject.short ?? subject.name}</strong>
+          <small>{connections.length} links</small>
+        </div>
+        {positioned.map(({ connection, side, x, y }) => {
+          const meta = RELATION_META[connection.relationship.type];
+          const sourceCount = collectSources(connection, subject).length;
+          const active = connection.key === selectedKey;
+          return (
+            <button
+              key={connection.key}
+              type="button"
+              className={[
+                "network-orbit-actor",
+                `is-${side}`,
+                active ? "is-active" : "",
+                sourceCount > 0 ? "has-evidence" : "is-pending"
+              ].filter(Boolean).join(" ")}
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                "--relationship-color": meta.color
+              } as CSSProperties}
+              onClick={() => onSelect(connection.key)}
+              aria-pressed={active}
+              aria-label={`${connection.related.name}, ${meta.label}, ${sourceCount ? `${sourceCount} direct sources` : "citation pending"}`}
+            >
+              <i aria-hidden="true" />
+              <span>{meta.label}</span>
+              <strong>{connection.related.name}</strong>
+              <small>
+                {formatPeriod(connection.relationship.from, connection.relationship.to_date)}
+                <b aria-hidden="true"> · </b>
+                {sourceCount ? "Source linked" : "Citation pending"}
+              </small>
+            </button>
+          );
+        })}
+      </div>
+      <footer className="network-orbit-footer">
+        <p>
+          Spatial placement helps comparison; it does not imply operational coordination.
+        </p>
+        <span><i /> Source-linked</span>
+        <span><i /> Citation pending</span>
+      </footer>
+      {connections.length > plotted.length && (
+        <p className="network-neighborhood-overflow">
+          Showing the first {plotted.length} of {connections.length} relationships in this visual view.
+        </p>
+      )}
+    </section>
   );
 }
 
