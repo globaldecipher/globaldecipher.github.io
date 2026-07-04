@@ -2,7 +2,7 @@
   "name": "tgd-incidents-worker",
   "version": "1.0.0",
   "private": true,
-  "description": "TGD Cloudflare Worker: D1 editorial API, KV incident feed, R2 media, analytics, and scheduled report drafts.",
+  "description": "TGD Cloudflare Worker: official X-to-Map agent, D1 editorial API, KV map feed, R2 exports, and analytics.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "wrangler": "^4.106.0"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
   }
 }

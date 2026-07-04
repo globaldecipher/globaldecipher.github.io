@@ -46,3 +46,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_kind ON audit_log(kind);
+
+-- The X-to-Map Agent schema is maintained by migrations/0003_x_to_map_agent.sql.
+-- For an existing managed database, use `wrangler d1 migrations apply`.
+-- This base schema already includes migrations 0001 and 0002, so a brand-new
+-- isolated local database should load this file and then execute only 0003.

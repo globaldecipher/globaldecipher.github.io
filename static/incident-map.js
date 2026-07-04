@@ -958,7 +958,7 @@
   });
   window.addEventListener("resize", () => renderMap());
   window.addEventListener("beforeunload", () => stopPlayback(false));
-  window.setInterval(loadFeed, 90000);
+  window.setInterval(loadFeed, 60000);
   window.setInterval(() => {
     const next = pkToday();
     if (next !== state.today) {

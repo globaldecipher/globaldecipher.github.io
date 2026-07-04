@@ -397,11 +397,11 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
-    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260702-kashmir")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260702-kashmir")
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260704-agent-refresh")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260704-agent-refresh")
     .replace(
       /<object class="tracker-pakistan-map" data="\/assets\/pakistan-map\.svg(?:\?[^"]*)?" type="image\/svg\+xml" aria-hidden="true" tabindex="-1"><\/object>/g,
-      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260702-kashmir" alt="" aria-hidden="true">' +
+      '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260704-agent-refresh" alt="" aria-hidden="true">' +
         '<div class="tracker-pakistan-map tracker-pakistan-map-inline" data-interactive-map role="img" aria-label="Interactive provincial map of Pakistan"></div>'
     );
 }
@@ -1342,7 +1342,7 @@ function pageTemplate(page) {
     </div>
   </section>`;
   const managedPageHead = page.slug === "incident-map"
-    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260702-kashmir">'
+    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260704-agent-refresh">'
     : page.slug === "network-graph"
       ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing"><link rel="stylesheet" href="/assets/world-globe.css?v=20260626-cold2">'
       : page.extra_head || "";
@@ -1795,11 +1795,11 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260626-table-heal">
+<link rel="stylesheet" href="/assets/admin.css?v=20260704-x-map-agent">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260701-editor-restore" defer></script>
+<script src="/assets/admin.js?v=20260704-x-map-agent" defer></script>
 </body>
 </html>
 `;

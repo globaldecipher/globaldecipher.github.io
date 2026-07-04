@@ -1,9 +1,11 @@
 // The Global Decipher — incident-feed + admin API Worker.
 //
-//   scheduled(): optionally poll X and maintain the historical incident archive.
+//   scheduled(): poll the official TGD X account and build monthly data exports.
 //   fetch():
-//     GET    /api/incidents          public — serve the KV feed (the map reads this)
+//     GET    /api/incidents          public — serve published map incidents
+//     GET    /api/incidents/updates  public — recently published/updated incidents
 //     POST   /api/ingest/incidents   machine token — issue-form incident ingest
+//     GET    /api/agent/x/callback   state-protected X OAuth callback
 //     GET    /api/maintenance        public — { on: bool }
 //     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
 //     POST   /api/monitoring/checkout public — create Safepay checkout
@@ -16,8 +18,8 @@
 //     GET    /                       health check
 //
 // KV binding: INCIDENTS   D1 binding: CONTENT_DB
-// Secrets: ADMIN_TOKEN, INGEST_TOKEN, GEMINI_API_KEY, X_BEARER_TOKEN (optional)
-// Vars: X_USERNAME
+// Agent secrets: X_CLIENT_ID, X_CLIENT_SECRET, X_TOKEN_ENCRYPTION_KEY,
+//                GEMINI_API_KEY
 
 import {
   loadFeed,
@@ -31,7 +33,6 @@ import {
   MAINTENANCE_KEY,
   validateIncident
 } from "./feed.js";
-import { pollX } from "./x.js";
 import {
   listContent,
   getFile,
@@ -53,8 +54,7 @@ import {
 } from "./security.js";
 import {
   generateMonthlyReportDraft,
-  getMonthlyAnalytics,
-  maybeGeneratePreviousMonthDraft
+  getMonthlyAnalytics
 } from "./analytics.js";
 import {
   handleSafepayWebhook,
@@ -63,6 +63,16 @@ import {
   handleMonitoringMe,
   handleMonitoringReturn
 } from "./paywall.js";
+import {
+  handleAgentAdmin,
+  handleAgentPublicRequest,
+  publicIncidentFeed,
+  publicIncidentUpdates,
+  removePublishedAgentIncident,
+  runAgentMonthlyAutomation,
+  runXToMapAgent,
+  updatePublishedAgentIncidents
+} from "./x-to-map-agent.js";
 
 const INCIDENT_CACHE_VERSION = "archive-v4";
 
@@ -120,6 +130,9 @@ export default {
     if (path === "/" || path === "/health") return json({ ok: true, service: "tgd-incidents" });
 
     try {
+      const publicAgentResponse = await handleAgentPublicRequest(request, env);
+      if (publicAgentResponse) return publicAgentResponse;
+
       if (path.startsWith("/media/") && method === "GET") {
         const mediaKey = path.slice("/media/".length);
         const object = await readMedia(env, mediaKey);
@@ -131,14 +144,10 @@ export default {
 
       // ---- Incident feed (public read) ----
       if ((path === "/api/incidents" || path === "/incidents") && method === "GET") {
-        const cache = caches.default;
-        const cacheKey = incidentCacheKey(url);
-        const hit = await cache.match(cacheKey);
-        if (hit) return hit;
-        const feed = await loadFeed(env);
-        const res = json(feed, 200, { "cache-control": "public, max-age=60" });
-        ctx.waitUntil(cache.put(cacheKey, res.clone()));
-        return res;
+        return publicIncidentFeed(request, env);
+      }
+      if (path === "/api/incidents/updates" && method === "GET") {
+        return publicIncidentUpdates(request, env);
       }
 
       // ---- Maintenance flag (public read) ----
@@ -201,6 +210,9 @@ export default {
       }
 
       if (adminPath === "/ping") return json({ ok: true });
+
+      const agentAdminResponse = await handleAgentAdmin(request, env, ctx, adminPath);
+      if (agentAdminResponse) return agentAdminResponse;
 
       if (adminPath === "/deployment" && method === "GET") {
         return json(await latestDeployment(env));
@@ -267,12 +279,16 @@ export default {
       if (adminPath.startsWith("/incidents/") && method === "DELETE") {
         const id = decodeURIComponent(adminPath.slice("/incidents/".length));
         const today = pakistanDateFromSeconds();
-        const feed = await loadFeed(env);
+        let feed = await loadFeed(env);
         const existing = (feed.incidents || []).find((it) => it.id === id);
-        const removed = deleteIncidentById(feed, id);
-        if (removed) {
+        const removedFromD1 = await removePublishedAgentIncident(env, id);
+        if (removedFromD1) feed = await loadFeed(env);
+        const removedFromKv = removedFromD1 ? true : deleteIncidentById(feed, id);
+        if (removedFromKv && !removedFromD1) {
           stampFeed(feed, today);
           await saveFeed(env, feed);
+        }
+        if (removedFromKv) {
           ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
           const actor = await actorFingerprint(bearerToken(request));
           ctx.waitUntil(logAudit(env, {
@@ -283,7 +299,7 @@ export default {
             actor
           }));
         }
-        return json({ ok: removed, removed, total: feed.incidents.length });
+        return json({ ok: removedFromKv, removed: removedFromKv, total: feed.incidents.length });
       }
 
       // ---- Content writes (D1) — trigger Pages rebuild after a successful change ----
@@ -346,7 +362,7 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runPollers(env));
+    ctx.waitUntil(runScheduledTasks(env));
   }
 };
 
@@ -370,12 +386,16 @@ async function handleIncidentWrite(request, env, ctx, url) {
   }
 
   const today = pakistanDateFromSeconds();
-  const feed = await loadFeed(env);
+  let feed = await loadFeed(env);
   const knownIds = new Set((feed.incidents || []).map((item) => item.id));
-  const updated = candidates.filter((incident) => knownIds.has(incident.id)).length;
-  feed.incidents = mergeIncidents(feed.incidents, candidates, today);
-  stampFeed(feed, today);
-  await saveFeed(env, feed);
+  const agentIds = await updatePublishedAgentIncidents(env, candidates);
+  const curated = candidates.filter((incident) => !agentIds.has(incident.id));
+  if (agentIds.size) feed = await loadFeed(env);
+  if (curated.length) {
+    feed.incidents = mergeIncidents(feed.incidents, curated, today);
+    stampFeed(feed, today);
+    await saveFeed(env, feed);
+  }
   ctx.waitUntil(caches.default.delete(incidentCacheKey(url)));
   const actor = await actorFingerprint(bearerToken(request));
   for (const incident of candidates) {
@@ -389,8 +409,8 @@ async function handleIncidentWrite(request, env, ctx, url) {
   }
   return json({
     ok: true,
-    added: candidates.length - updated,
-    updated,
+    added: curated.filter((incident) => !knownIds.has(incident.id)).length,
+    updated: curated.filter((incident) => knownIds.has(incident.id)).length + agentIds.size,
     total: feed.incidents.length
   });
 }
@@ -403,47 +423,22 @@ function stampFeed(feed, today) {
   feed.last_updated = new Date().toISOString();
 }
 
-async function runPollers(env) {
-  const today = pakistanDateFromSeconds();
-  const feed = await loadFeed(env);
-  const existing = Array.isArray(feed.incidents) ? feed.incidents : [];
-
-  let xAdded = [];
-  if (env.X_BEARER_TOKEN && new Date().getUTCMinutes() % 15 === 0) {
-    try {
-      xAdded = await pollX(env, existing);
-    } catch (error) {
-      console.error("X poll failed:", error.message);
-    }
-  }
-
-  const before = existing.length;
-  const merged = mergeIncidents(existing, xAdded, today);
-  const changed =
-    xAdded.length > 0 ||
-    merged.length !== before ||
-    feed.current_day !== today ||
-    feed.archive_start !== archiveStartDate(today);
-
-  if (changed) {
-    feed.incidents = merged;
-    stampFeed(feed, today);
-    await saveFeed(env, feed);
-  }
+async function runScheduledTasks(env) {
   try {
-    const monthly = await maybeGeneratePreviousMonthDraft(env, today);
-    if (monthly.created) {
-      console.log(JSON.stringify({
-        message: "monthly report draft generated",
-        month: monthly.analytics?.month,
-        path: monthly.path
-      }));
-    }
+    const result = await runXToMapAgent(env);
+    console.log(JSON.stringify({ message: "X-to-Map scheduled run", ...result }));
   } catch (error) {
     console.error(JSON.stringify({
-      message: "monthly report automation failed",
+      message: "X-to-Map scheduled run failed",
       error: error.message
     }));
   }
-  console.log(`X +${xAdded.length}; feed now ${merged.length} (was ${before}).`);
+  try {
+    await runAgentMonthlyAutomation(env);
+  } catch (error) {
+    console.error(JSON.stringify({
+      message: "monthly data package automation failed",
+      error: error.message
+    }));
+  }
 }

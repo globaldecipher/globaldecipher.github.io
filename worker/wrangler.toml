@@ -1,24 +1,31 @@
 name = "tgd-incidents"
 main = "src/index.js"
-compatibility_date = "2026-07-01"
+compatibility_date = "2026-07-04"
+compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 preview_urls = false
 
-# Cron prunes the feed to the archive window and polls X on the quarter hour.
+# Official X owned-read polling. Empty checks skip Gemini and incident writes;
+# only the small operational lock/check counters are updated.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 # Non-secret config. Secrets are set with `wrangler secret put`, never committed:
 #   ADMIN_TOKEN    admin-panel API secret
 #   INGEST_TOKEN   separate machine-only incident ingestion secret
 #   GITHUB_TOKEN   fine-grained PAT, Actions: Read and write + Contents: Read
-#   X_BEARER_TOKEN optional, only if X auto-import is wanted
 #   SAFEPAY_SECRET_KEY             creates Monitoring Desk checkouts
 #   SAFEPAY_WEBHOOK_SECRET         verifies Safepay webhooks
 #   CONTENT_DUMP_TOKEN             protects Monitoring content during builds
 #   GEMINI_API_KEY                 powers the Explorer research assistant
+#   X_CLIENT_ID                    official X OAuth application client ID
+#   X_CLIENT_SECRET                official X OAuth confidential client secret
+#   X_TOKEN_ENCRYPTION_KEY         32-byte base64url/hex AES key for stored tokens
 [vars]
 X_USERNAME = "Global_Decipher"
+X_OAUTH_REDIRECT_URI = "https://theglobaldecipher.com/api/agent/x/callback"
+INCIDENT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+MONTHLY_CHARTS_ENABLED = "true"
 GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
 GITHUB_BRANCH = "main"
 SITE_URL = "https://theglobaldecipher.com"
@@ -62,23 +69,23 @@ namespace_id = "1003"
 limit = 120
 period = 60
 
-# KV namespace that stores the incident feed + Telegram poll state.
+# KV remains the public-map compatibility feed. Cursor, OAuth, locks, posts,
+# review state, and incidents live in D1.
 # Replace the placeholder id after running:
 #   wrangler kv namespace create INCIDENTS
 [[kv_namespaces]]
 binding = "INCIDENTS"
 id = "e57a43705200465a985ccf86ae4d4a0f"
 
-# D1 database for articles, profiles, and pages.
-# Replaces the old GitHub-backed content store.
+# D1 database for content plus the X-to-Map agent tables in migration 0003.
 [[d1_databases]]
 binding = "CONTENT_DB"
 database_name = "tgd-content"
 database_id = "f73c5100-c9fd-41b3-9e20-d6f1986ad5b4"
 migrations_dir = "migrations"
 
-# Report files, charts, diagrams, and article images. The bucket will be
-# created and connected only after the local preview is approved.
+# Research media plus versioned agent CSV/XLSX/chart packages under
+# agent-exports/<YYYY-MM>/.
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "tgd-media"

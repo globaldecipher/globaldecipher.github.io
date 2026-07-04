@@ -111,7 +111,7 @@
   }
 
   // ============================ LOGIN ============================
-  function renderLogin(msg) {
+  function renderLogin(msg, kind = "error") {
     clear(root);
     const input = el("input", { type: "password", placeholder: "Access key", class: "field", autofocus: true });
     const submit = async () => {
@@ -134,7 +134,7 @@
         el("p", { class: "login-sub" }, "Sign in with the shared access key to manage incidents and content."),
         input,
         el("button", { class: "btn primary", onclick: submit }, "Enter"),
-        msg ? el("p", { class: "err" }, msg) : null
+        msg ? el("p", { class: kind === "error" ? "err" : "muted" }, msg) : null
       )
     ));
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
@@ -146,7 +146,7 @@
   }
 
   // ============================ APP SHELL ============================
-  let activeTab = "incidents";
+  let activeTab = "agent";
   function renderApp() {
     clear(root);
     const sw = el("button", {
@@ -164,6 +164,9 @@
     const header = el("header", { class: "topbar" },
       el("div", { class: "brand" }, "TGD ADMIN"),
       el("nav", { class: "tabs" },
+        tabBtn("agent", "Agent Control"),
+        tabBtn("review", "Review Queue"),
+        tabBtn("rules", "Learning & Rules"),
         tabBtn("incidents", "Incidents"),
         tabBtn("content", "Articles & Profiles"),
         tabBtn("activity", "Activity")
@@ -217,7 +220,10 @@
   function showTab(id) {
     const view = document.getElementById("view");
     clear(view);
-    if (id === "incidents") renderIncidents(view);
+    if (id === "agent") renderAgentControl(view);
+    else if (id === "review") renderReviewQueue(view);
+    else if (id === "rules") renderAgentRules(view);
+    else if (id === "incidents") renderIncidents(view);
     else if (id === "activity") renderActivity(view);
     else renderContent(view);
   }
@@ -346,6 +352,507 @@
 
     const wrap = el("div", { class: "fld" + (opts.wide ? " wide" : "") }, ...children);
     return { wrap, input };
+  }
+
+  // ============================ X-TO-MAP AGENT ============================
+  const fmtWhen = (value) => value ? new Date(value).toLocaleString() : "Not yet";
+  const metricValue = (value) => value == null || value === "" ? "—" : String(value);
+
+  function agentMetric(label, value, note, tone = "") {
+    return el("article", { class: "agent-metric" + (tone ? " " + tone : "") },
+      el("span", {}, label),
+      el("strong", {}, metricValue(value)),
+      note ? el("small", {}, note) : null
+    );
+  }
+
+  function statusPill(on, onLabel = "ON", offLabel = "OFF") {
+    return el("span", { class: "agent-state " + (on ? "is-on" : "is-off") }, on ? onLabel : offLabel);
+  }
+
+  async function renderAgentControl(view) {
+    view.append(pageHead(
+      "TGD Agent Control Centre",
+      "Official X → Gemini → safety checks → D1 → incident map. Nothing here posts back to X."
+    ));
+    const mount = el("div", { class: "agent-loading" }, "Loading agent status…");
+    view.append(mount);
+
+    async function downloadExport(key) {
+      try {
+        const response = await fetch(API + "/agent/exports/download?key=" + encodeURIComponent(key), {
+          headers: { authorization: "Bearer " + KEY }
+        });
+        if (!response.ok) throw new Error("Download failed.");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = el("a", { href: url, download: key.split("/").pop() });
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (error) {
+        toast(error.message, "err");
+      }
+    }
+
+    async function refresh() {
+      clear(mount);
+      mount.append(el("p", { class: "muted" }, "Refreshing…"));
+      try {
+        const [status, exportsData] = await Promise.all([
+          api("/agent/status"),
+          api("/agent/exports")
+        ]);
+        clear(mount);
+        const toggle = el("button", {
+          class: "btn " + (status.enabled ? "danger" : "primary"),
+          onclick: async () => {
+            toggle.disabled = true;
+            try {
+              await api(status.enabled ? "/agent/pause" : "/agent/resume", { method: "POST" });
+              toast(status.enabled ? "Agent paused. Cron remains installed but performs no X reads." : "Agent resumed.");
+              await refresh();
+            } catch (error) {
+              toast(error.message, "err");
+              toggle.disabled = false;
+            }
+          }
+        }, status.enabled ? "Pause agent" : "Resume agent");
+        const connect = el("button", {
+          class: "btn",
+          onclick: async () => {
+            try {
+              const result = await api("/agent/x/connect", { method: "POST" });
+              window.location.href = result.authorization_url;
+            } catch (error) {
+              toast(error.message, "err");
+            }
+          }
+        }, status.x_connected ? "Reconnect X account" : "Connect @Global_Decipher");
+        const run = el("button", {
+          class: "btn",
+          onclick: async () => {
+            run.disabled = true;
+            run.textContent = "Checking X…";
+            try {
+              const result = await api("/agent/run", { method: "POST" });
+              toast(result.x_posts_returned ? `${result.x_posts_returned} new post(s) processed.` : "No new TGD posts. Gemini was not called.");
+              await refresh();
+            } catch (error) {
+              toast(error.message, "err");
+            } finally {
+              run.disabled = false;
+              run.textContent = "Run one safe check now";
+            }
+          }
+        }, "Run one safe check now");
+
+        mount.append(
+          el("section", { class: "agent-hero card" },
+            el("div", {},
+              el("span", { class: "eyebrow-label" }, "LIVE AUTOMATION"),
+              el("h2", {}, "X-to-Map Agent ", statusPill(status.enabled)),
+              el("p", { class: "section-sub" },
+                status.x_connected
+                  ? `Connected to @${status.x_username}. Cursor and OAuth tokens are stored server-side.`
+                  : "X is not connected. The agent cannot read anything until you authorize @Global_Decipher."
+              )
+            ),
+            el("div", { class: "page-head-actions" }, connect, run, toggle)
+          ),
+          el("div", { class: "agent-metrics" },
+            agentMetric("Last successful X check", fmtWhen(status.last_successful_x_check)),
+            agentMetric("Last X post detected", status.last_x_post_detected || "None"),
+            agentMetric("Last map update", fmtWhen(status.last_map_update)),
+            agentMetric("Published today", status.incidents_published_today ?? 0),
+            agentMetric("Waiting for review", status.waiting_for_review ?? 0, "Withheld from public map", status.waiting_for_review ? "warn" : ""),
+            agentMetric("Possible duplicates", status.possible_duplicates ?? 0, "Never auto-published", status.possible_duplicates ? "warn" : ""),
+            agentMetric("Failed jobs", status.failed_jobs ?? 0, "Raw posts are preserved", status.failed_jobs ? "danger" : ""),
+            agentMetric("X posts read this month", status.x_posts_read_this_month ?? 0, status.x_cost_warning ? "Cost warning threshold reached" : "Owned reads only"),
+            agentMetric("Estimated X cost", "$" + Number(status.estimated_x_cost_usd || 0).toFixed(3), "$0.001 per returned owned post"),
+            agentMetric("Gemini calls", status.gemini_calls_this_month ?? 0, "Empty X checks do not call Gemini"),
+            agentMetric("Cron runs", status.cron_runs_this_month ?? 0),
+            agentMetric("Errors / retries", status.errors_this_month ?? 0)
+          )
+        );
+
+        if (status.last_error) {
+          mount.append(el("div", { class: "agent-alert danger" },
+            el("strong", {}, "Latest error"),
+            el("span", {}, status.last_error)
+          ));
+        }
+        if (status.x_cost_warning) {
+          mount.append(el("div", { class: "agent-alert warn" },
+            el("strong", {}, status.x_cost_warning === "alert" ? "500-post cost alert" : "350-post cost warning"),
+            el("span", {}, "The dashboard is counting returned posts—not empty checks. Review X usage before buying more credits.")
+          ));
+        }
+
+        const monthInput = el("input", { class: "field inline", type: "month", value: previousMonthKey() });
+        const generate = el("button", {
+          class: "btn primary",
+          onclick: async () => {
+            if (!monthInput.value) return;
+            generate.disabled = true;
+            generate.textContent = "Generating…";
+            try {
+              const result = await api("/agent/exports/generate", { method: "POST", body: { month: monthInput.value } });
+              toast(`Created ${monthInput.value} package v${result.version} with ${result.incident_count} incidents.`);
+              await refresh();
+            } catch (error) {
+              toast(error.message, "err");
+            } finally {
+              generate.disabled = false;
+              generate.textContent = "Generate monthly package";
+            }
+          }
+        }, "Generate monthly package");
+        const exportsList = el("div", { class: "agent-export-list" });
+        const exports = exportsData.exports || [];
+        if (!exports.length) exportsList.append(el("p", { class: "muted" }, "No monthly data packages yet."));
+        exports.slice(0, 18).forEach((item) => {
+          exportsList.append(el("div", { class: "agent-export-row" },
+            el("div", {},
+              el("strong", {}, `${item.report_month} · version ${item.version}`),
+              el("small", {}, `Generated ${fmtWhen(item.generated_at)} · ${item.status}`)
+            ),
+            el("div", { class: "row-actions" },
+              el("button", { class: "btn small", onclick: () => downloadExport(item.csv_object_key) }, "CSV"),
+              el("button", { class: "btn small", onclick: () => downloadExport(item.xlsx_object_key) }, "Excel")
+            )
+          ));
+        });
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" },
+            el("h3", {}, "Monthly data packages"),
+            el("p", { class: "section-sub" }, "Published incidents only. Every regeneration creates a new version; existing files are never overwritten.")
+          ),
+          el("div", { class: "agent-export-controls" }, monthInput, generate),
+          exportsList
+        ));
+
+        const logs = el("div", { class: "agent-log-list" });
+        (status.logs || []).forEach((entry) => {
+          logs.append(el("div", { class: "agent-log-row " + entry.level },
+            el("time", {}, fmtWhen(entry.created_at)),
+            el("strong", {}, entry.event),
+            el("span", {}, entry.message)
+          ));
+        });
+        if (!status.logs?.length) logs.append(el("p", { class: "muted" }, "No agent activity yet."));
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" }, el("h3", {}, "Recent agent log")),
+          logs
+        ));
+      } catch (error) {
+        clear(mount);
+        mount.append(el("div", { class: "agent-alert danger" },
+          el("strong", {}, "Agent database is not ready"),
+          el("span", {}, error.message + " Apply migration 0003 locally before testing.")
+        ));
+      }
+    }
+    await refresh();
+  }
+
+  async function renderReviewQueue(view) {
+    view.append(pageHead(
+      "Review Queue",
+      "Uncertain, corrected, duplicate, or unmappable cases stay private until you decide."
+    ));
+    const mount = el("div", {}, el("p", { class: "muted" }, "Loading review items…"));
+    view.append(mount);
+
+    async function openItem(item) {
+      clear(view);
+      const fields = {};
+      const add = (key, label, options = {}) => {
+        const made = makeField(label, options, item[key]);
+        fields[key] = made.input;
+        return made.wrap;
+      };
+      const save = async (action, extra = {}) => {
+        const incident = {};
+        for (const [key, input] of Object.entries(fields)) {
+          if (input.type === "number") incident[key] = input.value === "" ? null : Number(input.value);
+          else incident[key] = input.value.trim() || null;
+        }
+        const correction = document.getElementById("review-correction-note");
+        const useExample = document.getElementById("review-use-example");
+        try {
+          await api("/agent/review/" + encodeURIComponent(item.id), {
+            method: "POST",
+            body: {
+              action,
+              incident,
+              correction_note: correction.value.trim(),
+              use_as_future_example: useExample.checked,
+              ...extra
+            }
+          });
+          toast(action === "publish" ? "Incident published to the map." : "Review decision saved.");
+          activeTab = "review";
+          renderApp();
+        } catch (error) {
+          toast(error.message, "err");
+        }
+      };
+      view.append(
+        pageHead(
+          "Review incident",
+          item.review_reason || "This item did not pass every automatic safety gate.",
+          el("button", { class: "btn ghost", onclick: () => { activeTab = "review"; renderApp(); } }, "← Review Queue")
+        ),
+        el("section", { class: "card review-source" },
+          el("div", { class: "section-head" }, el("h3", {}, "Original TGD post")),
+          el("p", {}, item.x_post_text || item.source_text),
+          el("div", { class: "row-meta" },
+            el("span", {}, item.classification || "Unclassified"),
+            el("span", { class: "dot" }),
+            el("span", {}, item.classification_confidence || "No confidence"),
+            el("a", { href: item.source_url, target: "_blank", rel: "noopener noreferrer" }, "Open on X ↗")
+          )
+        ),
+        el("div", { class: "form" },
+          section("Incident facts", "Edit every field before publishing.",
+            add("incident_date", "Incident date", { type: "date", optional: true }),
+            add("incident_date_source", "Date source", { select: ["explicit_in_post", "inferred_from_post_date", "unknown"] }),
+            add("incident_type", "Incident type", { required: true }),
+            add("category_name", "Category", { required: true }),
+            add("summary", "Summary", { type: "textarea", rows: 4, wide: true, required: true }),
+            add("killed", "Killed", { type: "number", min: 0, optional: true }),
+            add("injured", "Injured", { type: "number", min: 0, optional: true }),
+            add("actor_or_group", "Actor / group", { optional: true })
+          ),
+          section("Location", "Coordinates are required to publish. Keep them approximate when the post only names a district.",
+            add("country", "Country", { required: true }),
+            add("province", "Province", { required: true }),
+            add("district", "District", { required: true }),
+            add("locality", "Locality", { optional: true }),
+            add("location_label", "Location label", { optional: true }),
+            add("latitude", "Latitude", { type: "number", step: "any", required: true }),
+            add("longitude", "Longitude", { type: "number", step: "any", required: true })
+          ),
+          section("Correction note", "Save what was wrong and optionally let the approved correction guide future Gemini decisions.",
+            el("div", { class: "fld wide" },
+              el("label", { class: "fld-label", for: "review-correction-note" }, "Owner correction / reason"),
+              el("textarea", { class: "field", rows: 3, id: "review-correction-note", placeholder: "Why did this need correction?" })
+            ),
+            el("label", { class: "fld chk wide", for: "review-use-example" },
+              el("input", { type: "checkbox", id: "review-use-example" }),
+              el("div", { class: "chk-body" },
+                el("span", { class: "fld-label" }, "Use this as a future example"),
+                el("span", { class: "fld-hint" }, "Only checked corrections are included in future Gemini prompts.")
+              )
+            )
+          )
+        ),
+        el("div", { class: "review-actions" },
+          el("button", { class: "btn", onclick: () => save("save") }, "Save edits"),
+          el("button", { class: "btn primary", onclick: () => save("publish") }, "Publish"),
+          el("button", { class: "btn", onclick: () => save("retry") }, "Retry Gemini"),
+          el("button", {
+            class: "btn",
+            onclick: () => {
+              const target = prompt("Incident ID this duplicates:");
+              if (target) save("duplicate", { duplicate_of: target.trim() });
+            }
+          }, "Mark duplicate"),
+          el("button", {
+            class: "btn",
+            onclick: () => {
+              const target = prompt("Incident ID to merge this source into:");
+              if (target) save("merge", { merge_into: target.trim() });
+            }
+          }, "Merge as update"),
+          el("button", { class: "btn danger", onclick: () => confirm("Reject this incident?") && save("reject") }, "Reject")
+        )
+      );
+    }
+
+    try {
+      const data = await api("/agent/review");
+      clear(mount);
+      const items = data.items || [];
+      if (!items.length) {
+        mount.append(el("div", { class: "list-empty" }, "Review queue is clear."));
+        return;
+      }
+      items.forEach((item) => {
+        mount.append(el("div", { class: "row" },
+          el("div", { class: "row-main" },
+            el("div", { class: "row-title" }, item.summary || item.incident_type || "Unclear incident"),
+            el("div", { class: "row-meta" },
+              statusPill(item.status === "needs_review", item.status, item.status),
+              el("span", {}, [item.district, item.province].filter(Boolean).join(", ") || "Location unclear"),
+              el("span", { class: "dot" }),
+              el("span", {}, item.review_reason || "Safety review required")
+            )
+          ),
+          el("div", { class: "row-actions" },
+            el("a", { class: "btn small", href: item.source_url, target: "_blank", rel: "noopener noreferrer" }, "X post"),
+            el("button", { class: "btn small primary", onclick: () => openItem(item) }, "Review")
+          )
+        ));
+      });
+    } catch (error) {
+      clear(mount);
+      mount.append(el("p", { class: "err" }, error.message));
+    }
+  }
+
+  async function renderAgentRules(view) {
+    view.append(pageHead(
+      "Agent Learning & Rules",
+      "You control permanent behaviour. The agent never changes these rules or teaches itself."
+    ));
+    const mount = el("div", {}, el("p", { class: "muted" }, "Loading rules…"));
+    view.append(mount);
+
+    async function load() {
+      try {
+        const data = await api("/agent/rules");
+        clear(mount);
+        const title = el("input", { class: "field", placeholder: "Short rule title" });
+        const type = el("select", { class: "field" },
+          ...["always_review", "ignore", "classification_example", "extraction_example", "province_review", "global_instruction"]
+            .map((value) => el("option", { value }, value.replace(/_/g, " ")))
+        );
+        const province = el("input", { class: "field", placeholder: "Province (optional)" });
+        const ruleText = el("textarea", {
+          class: "field",
+          rows: 4,
+          placeholder: "Write one instruction. For always-review or ignore rules, use exact words or phrases separated by commas."
+        });
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" },
+            el("h3", {}, "Add owner-approved rule"),
+            el("p", { class: "section-sub" }, "Rules take effect on future posts only; they never rewrite code or old incidents.")
+          ),
+          el("div", { class: "rule-form" }, title, type, province, ruleText),
+          el("button", {
+            class: "btn primary",
+            onclick: async () => {
+              try {
+                await api("/agent/rules", {
+                  method: "POST",
+                  body: { title: title.value, rule_type: type.value, province: province.value, rule_text: ruleText.value }
+                });
+                toast("Rule added.");
+                await load();
+              } catch (error) {
+                toast(error.message, "err");
+              }
+            }
+          }, "Add rule")
+        ));
+        const ruleList = el("div", { class: "agent-rule-list" });
+        (data.rules || []).forEach((rule) => {
+          ruleList.append(el("article", { class: "agent-rule" + (rule.active ? "" : " is-off") },
+            el("div", {},
+              el("strong", {}, rule.title),
+              el("small", {}, [rule.rule_type, rule.province].filter(Boolean).join(" · ")),
+              el("p", {}, rule.rule_text)
+            ),
+            el("div", { class: "row-actions" },
+              el("button", {
+                class: "btn small",
+                onclick: async () => {
+                  await api("/agent/rules/" + rule.id, {
+                    method: "PUT",
+                    body: { ...rule, active: !rule.active }
+                  });
+                  await load();
+                }
+              }, rule.active ? "Turn off" : "Turn on"),
+              el("button", {
+                class: "btn small danger",
+                onclick: async () => {
+                  if (!confirm("Delete this rule?")) return;
+                  await api("/agent/rules/" + rule.id, { method: "DELETE" });
+                  await load();
+                }
+              }, "Delete")
+            )
+          ));
+        });
+        if (!data.rules?.length) ruleList.append(el("p", { class: "muted" }, "No custom rules yet. The conservative built-in TGD instructions are active."));
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" }, el("h3", {}, "Custom rules")),
+          ruleList
+        ));
+
+        const categoryName = el("input", { class: "field", placeholder: "New category name" });
+        const categoryGroup = el("input", { class: "field", placeholder: "Group (optional)" });
+        const categoryList = el("div", { class: "agent-category-list" });
+        const categoryRows = Array.isArray(data.categories) && data.categories.length
+          ? data.categories
+          : CATEGORIES.map((category_name) => ({ category_name, active: 1 }));
+        categoryRows.forEach((category) => {
+          categoryList.append(el("button", {
+            type: "button",
+            class: "chip" + (category.active ? "" : " chip-muted"),
+            title: category.id ? (category.active ? "Turn category off" : "Turn category on") : "",
+            disabled: !category.id,
+            onclick: category.id ? async () => {
+              try {
+                await api("/agent/categories/" + category.id, {
+                  method: "PUT",
+                  body: { ...category, active: !category.active }
+                });
+                await load();
+              } catch (error) {
+                toast(error.message, "err");
+              }
+            } : null
+          }, category.category_name));
+        });
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" },
+            el("h3", {}, "Category manager"),
+            el("p", { class: "section-sub" }, "Gemini is restricted to active labels. Select a category to turn it on or off; unknown labels become “Security incident.”")
+          ),
+          categoryList,
+          el("div", { class: "agent-export-controls" }, categoryName, categoryGroup,
+            el("button", {
+              class: "btn",
+              onclick: async () => {
+                try {
+                  await api("/agent/categories", {
+                    method: "POST",
+                    body: { category_name: categoryName.value, category_group: categoryGroup.value }
+                  });
+                  toast("Category added.");
+                  await load();
+                } catch (error) {
+                  toast(error.message, "err");
+                }
+              }
+            }, "Add category")
+          )
+        ));
+
+        const approved = (data.correction_examples || []).filter((example) => example.approved_for_future_prompt);
+        mount.append(el("section", { class: "card" },
+          el("div", { class: "section-head" },
+            el("h3", {}, "Approved correction examples"),
+            el("p", { class: "section-sub" }, `${approved.length} approved example(s) can guide future Gemini decisions.`)
+          ),
+          approved.length
+            ? el("div", { class: "agent-rule-list" }, ...approved.map((example) => el("article", { class: "agent-rule" },
+                el("strong", {}, "X post " + example.original_x_post_id),
+                el("p", {}, example.owner_reason || "Owner-approved correction")
+              )))
+            : el("p", { class: "muted" }, "No correction has been approved for future prompts.")
+        ));
+      } catch (error) {
+        clear(mount);
+        mount.append(el("p", { class: "err" }, error.message));
+      }
+    }
+    await load();
   }
 
   // ============================ INCIDENTS ============================
@@ -2109,5 +2616,16 @@
   }
 
   // ---- boot ----
-  renderLogin();
+  const callback = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const callbackState = callback.get("agent");
+  const callbackMessage = callback.get("message");
+  if (callbackState) history.replaceState(null, "", window.location.pathname + window.location.search);
+  renderLogin(
+    callbackState === "x-connected"
+      ? "X account connected. Sign in to confirm the agent status."
+      : callbackState === "x-error"
+        ? callbackMessage || "X connection failed."
+        : "",
+    callbackState === "x-connected" ? "info" : "error"
+  );
 })();
