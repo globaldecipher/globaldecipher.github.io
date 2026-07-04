@@ -14,7 +14,8 @@ import {
   releaseAgentLock,
   renewAgentLock,
   resolveSafeLocation,
-  validateGeminiOutput
+  validateGeminiOutput,
+  validateXApiRequestPath
 } from "../src/x-to-map-agent.js";
 import {
   benchmarkMonthlyArtifacts,
@@ -91,6 +92,37 @@ test("moves the cursor to the greatest string X ID without number conversion", (
     "2073403718540972192",
     "2073403718540972191"
   ]), "2073403718540972192");
+});
+
+test("X API allowlist permits only the TGD timeline shape and users/me", () => {
+  assert.equal(validateXApiRequestPath("/users/me").kind, "me");
+  assert.deepEqual(
+    validateXApiRequestPath(
+      "/users/123456/tweets?since_id=123455&max_results=100&exclude=retweets&tweet.fields=id,text,created_at,author_id,conversation_id,referenced_tweets"
+    ),
+    {
+      kind: "timeline",
+      userId: "123456",
+      url: "https://api.x.com/2/users/123456/tweets?since_id=123455&max_results=100&exclude=retweets&tweet.fields=id,text,created_at,author_id,conversation_id,referenced_tweets"
+    }
+  );
+});
+
+test("X API allowlist blocks search, user lookups, social graph, media fields, and expansions", () => {
+  const blocked = [
+    "/tweets/search/recent?query=Pakistan",
+    "/users/123456",
+    "/users/123456/mentions",
+    "/users/123456/followers",
+    "/users/123456/following",
+    "/tweets/123456",
+    "/users/123456/tweets?max_results=5&expansions=attachments.media_keys",
+    "/users/123456/tweets?max_results=5&tweet.fields=id,attachments",
+    "/users/me?user.fields=id,username"
+  ];
+  for (const path of blocked) {
+    assert.throws(() => validateXApiRequestPath(path), /Blocked|does not permit/);
+  }
 });
 
 test("accepts one high-confidence Pakistan incident", () => {

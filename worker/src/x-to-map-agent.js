@@ -19,6 +19,21 @@ const X_API = "https://api.x.com/2";
 const X_AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
 const X_TOKEN_URL = "https://api.x.com/2/oauth2/token";
 const EXPECTED_USERNAME = "Global_Decipher";
+const X_TIMELINE_FIELDS = [
+  "id",
+  "text",
+  "created_at",
+  "author_id",
+  "conversation_id",
+  "referenced_tweets"
+];
+const X_TIMELINE_QUERY_KEYS = new Set([
+  "since_id",
+  "max_results",
+  "exclude",
+  "tweet.fields",
+  "pagination_token"
+]);
 const GEMINI_TIMEOUT_MS = 15_000;
 const X_TIMEOUT_MS = 10_000;
 const MAX_UPSTREAM_BYTES = 1024 * 1024;
@@ -387,9 +402,64 @@ async function currentAccessToken(env, forceRefresh = false) {
   return refreshed.access_token;
 }
 
+export function validateXApiRequestPath(path) {
+  const requestPath = clean(path, 2048);
+  let url;
+  try {
+    url = new URL(`${X_API}${requestPath}`);
+  } catch {
+    throw new AgentError("Blocked an invalid X API request.", 500);
+  }
+  if (url.origin !== "https://api.x.com") {
+    throw new AgentError("Blocked an X API request outside the approved host.", 500);
+  }
+  if (url.pathname === "/2/users/me") {
+    if ([...url.searchParams].length) {
+      throw new AgentError("GET /2/users/me does not permit extra query parameters.", 500);
+    }
+    return { kind: "me", userId: null, url: url.toString() };
+  }
+  const timeline = url.pathname.match(/^\/2\/users\/(\d{1,20})\/tweets$/);
+  if (!timeline) {
+    throw new AgentError("Blocked an X API endpoint outside the TGD-owned timeline allowlist.", 500);
+  }
+  for (const key of url.searchParams.keys()) {
+    if (!X_TIMELINE_QUERY_KEYS.has(key) || url.searchParams.getAll(key).length !== 1) {
+      throw new AgentError(`Blocked unapproved X timeline parameter: ${key}.`, 500);
+    }
+  }
+  if (url.searchParams.has("exclude") && url.searchParams.get("exclude") !== "retweets") {
+    throw new AgentError("Only retweet exclusion is approved for the X timeline.", 500);
+  }
+  if (url.searchParams.has("since_id") && !/^\d{1,20}$/.test(url.searchParams.get("since_id"))) {
+    throw new AgentError("Blocked an invalid X timeline cursor.", 500);
+  }
+  if (url.searchParams.has("max_results")) {
+    const maximum = Number(url.searchParams.get("max_results"));
+    if (!Number.isInteger(maximum) || maximum < 5 || maximum > 100) {
+      throw new AgentError("Blocked an invalid X timeline result limit.", 500);
+    }
+  }
+  const fields = (url.searchParams.get("tweet.fields") || "")
+    .split(",")
+    .map((field) => field.trim())
+    .filter(Boolean);
+  if (fields.some((field) => !X_TIMELINE_FIELDS.includes(field))) {
+    throw new AgentError("Blocked unapproved X timeline fields or expansions.", 500);
+  }
+  return { kind: "timeline", userId: timeline[1], url: url.toString() };
+}
+
 async function xApiRequest(env, path, retryAuth = true) {
+  const approved = validateXApiRequestPath(path);
+  if (approved.kind === "timeline") {
+    const connectedUserId = await stateGet(env, "x_user_id", "");
+    if (!connectedUserId || approved.userId !== connectedUserId) {
+      throw new AgentError("Blocked an X timeline request for an account other than the connected TGD account.", 500);
+    }
+  }
   const token = await currentAccessToken(env);
-  const response = await fetchWithTimeout(`${X_API}${path}`, {
+  const response = await fetchWithTimeout(approved.url, {
     headers: { authorization: `Bearer ${token}`, accept: "application/json" }
   }, X_TIMEOUT_MS, "X API");
   if (response.status === 401 && retryAuth) {
@@ -527,20 +597,7 @@ async function fetchNewXPosts(env) {
   const cursor = await stateGet(env, "last_tweet_id");
   if (!userId) throw new AgentError("The X account is not connected.", 409);
   if (!cursor) throw new AgentError("The live X cursor has not been initialized.", 409);
-  const fields = [
-    "id",
-    "text",
-    "created_at",
-    "author_id",
-    "conversation_id",
-    "in_reply_to_user_id",
-    "referenced_tweets",
-    "entities",
-    "attachments",
-    "geo",
-    "lang",
-    "edit_history_tweet_ids"
-  ].join(",");
+  const fields = X_TIMELINE_FIELDS.join(",");
   const params = new URLSearchParams({
     since_id: cursor,
     max_results: "100",
