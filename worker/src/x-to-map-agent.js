@@ -2,6 +2,7 @@ import {
   DISTRICTS,
   loadFeed,
   mergeIncidents,
+  pakistanDateFromIso,
   pakistanDateFromSeconds,
   saveFeed,
   severityFor,
@@ -529,7 +530,9 @@ export async function completeXOAuth(request, env) {
   await stateSet(env, "x_user_id", userId);
   await stateSet(env, "x_username", username);
 
-  // Seed the cursor from only the latest few posts. Nothing is imported.
+  // Seed the live cursor, then queue a bounded same-day import. This prevents
+  // posts made earlier in the Pakistan calendar day from disappearing during
+  // a first connection or reconnection.
   const latest = await xApiRequest(
     env,
     `/users/${encodeURIComponent(userId)}/tweets?max_results=5&exclude=retweets&tweet.fields=id,created_at`
@@ -537,11 +540,14 @@ export async function completeXOAuth(request, env) {
   const cursor = highestXId((latest.data || []).map((post) => post.id));
   if (cursor) await stateSet(env, "last_tweet_id", cursor);
   await stateSet(env, "last_x_post_detected", cursor || "");
-  await logAgent(env, "x_connected", `Connected @${username}; live cursor seeded without importing old posts.`, {
+  const backfillDate = pakistanDateFromSeconds();
+  await stateSet(env, "x_backfill_date", backfillDate);
+  await logAgent(env, "x_connected", `Connected @${username}; ${backfillDate} Pakistan-day backfill queued.`, {
     user_id: userId,
-    cursor
+    cursor,
+    backfill_date: backfillDate
   });
-  return { username, user_id: userId, cursor };
+  return { username, user_id: userId, cursor, backfill_date: backfillDate };
 }
 
 export function normalizeXPost(post) {
@@ -564,7 +570,7 @@ export function normalizeXPost(post) {
   };
 }
 
-async function storeXPostsAndCursor(env, posts) {
+async function storeXPosts(env, posts, options = {}) {
   if (!posts.length) return null;
   const statements = posts.map((post) => env.CONTENT_DB.prepare(`
     INSERT INTO x_posts(
@@ -583,11 +589,13 @@ async function storeXPostsAndCursor(env, posts) {
     post.post_url
   ));
   const cursor = highestXId(posts.map((post) => post.x_post_id));
-  statements.push(env.CONTENT_DB.prepare(`
-    INSERT INTO sync_state(key, value, updated_at)
-    VALUES ('last_tweet_id', ?, datetime('now'))
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
-  `).bind(cursor));
+  if (options.updateCursor !== false) {
+    statements.push(env.CONTENT_DB.prepare(`
+      INSERT INTO sync_state(key, value, updated_at)
+      VALUES ('last_tweet_id', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).bind(cursor));
+  }
   await env.CONTENT_DB.batch(statements);
   return cursor;
 }
@@ -621,10 +629,49 @@ async function fetchNewXPosts(env) {
     .filter((post) => post && (!post.author_id || post.author_id === userId))
     .sort((left, right) => compareXIds(left.x_post_id, right.x_post_id));
   if (!posts.length) return { posts: [], cursor };
-  const newCursor = await storeXPostsAndCursor(env, posts);
+  const newCursor = await storeXPosts(env, posts);
   await metricIncrement(env, "x_posts_read", posts.length);
   await stateSet(env, "last_x_post_detected", newCursor);
   return { posts, cursor: newCursor };
+}
+
+async function fetchXPostsForPakistanDate(env, requestedDate) {
+  const date = realIsoDate(requestedDate);
+  const today = pakistanDateFromSeconds();
+  if (!date || date > today) throw new AgentError("Backfill date must be a real Pakistan date that is not in the future.", 400);
+  const userId = await stateGet(env, "x_user_id");
+  if (!userId) throw new AgentError("The X account is not connected.", 409);
+  const params = new URLSearchParams({
+    max_results: "5",
+    exclude: "retweets",
+    "tweet.fields": X_TIMELINE_FIELDS.join(",")
+  });
+  const matching = [];
+  let returnedCount = 0;
+  let nextToken = "";
+  for (let page = 0; page < 10; page += 1) {
+    if (nextToken) params.set("pagination_token", nextToken);
+    const response = await xApiRequest(
+      env,
+      `/users/${encodeURIComponent(userId)}/tweets?${params.toString()}`
+    );
+    const posts = (response.data || [])
+      .map(normalizeXPost)
+      .filter((post) => post && (!post.author_id || post.author_id === userId));
+    returnedCount += posts.length;
+    matching.push(...posts.filter((post) => pakistanDateFromIso(post.created_at) === date));
+    nextToken = clean(response?.meta?.next_token, 200);
+    const reachedOlderPosts = posts.some((post) => {
+      const postDate = pakistanDateFromIso(post.created_at);
+      return postDate && postDate < date;
+    });
+    if (!nextToken || reachedOlderPosts) break;
+  }
+  const posts = [...new Map(matching.map((post) => [post.x_post_id, post])).values()]
+    .sort((left, right) => compareXIds(left.x_post_id, right.x_post_id));
+  await storeXPosts(env, posts, { updateCursor: false });
+  if (returnedCount) await metricIncrement(env, "x_posts_read", returnedCount);
+  return { date, posts, x_posts_returned: returnedCount };
 }
 
 function builtInExamples() {
@@ -700,13 +747,14 @@ function geminiPrompt(posts, context) {
     "If no allowed category is exact, use Security incident.",
     "A source_tweet_id must be one of the supplied post IDs.",
     "Create incidents only for posts whose processing_status is not processed. Processed posts are thread context only.",
-    "For an incident inferred to occur on the post date, set incident_date_source to inferred_from_post_date.",
+    "For an incident inferred to occur on the post date, use pakistan_post_date and set incident_date_source to inferred_from_post_date.",
     "For a full thread, create separate incident objects only when the thread clearly describes distinct events.",
     "",
     "Posts (oldest to newest):",
     JSON.stringify(posts.map((post) => ({
       id: post.x_post_id,
       created_at: post.created_at,
+      pakistan_post_date: pakistanDateFromIso(post.created_at),
       conversation_id: post.conversation_id,
       parent_post_id: post.parent_post_id,
       processing_status: post.processing_status,
@@ -822,6 +870,13 @@ export function realIsoDate(value) {
   const date = new Date(`${normalized}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) return null;
   return normalized;
+}
+
+export function effectiveIncidentDate(decision, postDate) {
+  if (decision?.incident_date_source === "inferred_from_post_date") {
+    return realIsoDate(postDate);
+  }
+  return realIsoDate(decision?.incident_date);
 }
 
 function normalizedProvince(value) {
@@ -952,7 +1007,7 @@ async function duplicateCandidate(env, incident, location, fingerprint, excludeI
       AND province = ?
       AND district = ?
       AND (? IS NULL OR id != ?)
-      AND COALESCE(incident_date, substr(tweet_created_at, 1, 10)) >= date('now', '-14 day')
+      AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) >= date('now', '+5 hours', '-14 day')
     ORDER BY updated_at DESC
     LIMIT 40
   `).bind(location.province, location.district, excludeId, excludeId).all();
@@ -975,11 +1030,13 @@ function categoryName(category, allowed) {
 
 async function insertIncident(env, post, decision, extraction, allowedCategories, rules = [], existingId = null) {
   const location = resolveSafeLocation(decision);
-  const postDate = realIsoDate(clean(post.created_at, 40).slice(0, 10));
-  const fingerprint = location ? await incidentFingerprint(decision, location) : await sha256(
+  const postDate = realIsoDate(pakistanDateFromIso(post.created_at));
+  const incidentDate = effectiveIncidentDate(decision, postDate);
+  const datedDecision = { ...decision, incident_date: incidentDate };
+  const fingerprint = location ? await incidentFingerprint(datedDecision, location) : await sha256(
     `${decision.source_tweet_id}|${decision.summary || ""}|${crypto.randomUUID()}`
   );
-  const duplicate = location ? await duplicateCandidate(env, decision, location, fingerprint, existingId) : null;
+  const duplicate = location ? await duplicateCandidate(env, datedDecision, location, fingerprint, existingId) : null;
   const ownerRules = evaluateOwnerRules(rules, post, decision);
   const safety = publicationSafety(extraction, decision, location, duplicate, {
     postDate,
@@ -1006,8 +1063,6 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
     duplicate ? `Possible duplicate of ${duplicate.id}.` : null,
     ...ownerRules.reasons
   ].filter(Boolean);
-  const incidentDate = decision.incident_date
-    || (decision.incident_date_source === "inferred_from_post_date" ? postDate : null);
   const id = existingId || crypto.randomUUID();
   const category = categoryName(decision.category, allowedCategories);
   await env.CONTENT_DB.batch([
@@ -1090,12 +1145,13 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
 
 export function publicationSafety(extraction, decision, location, duplicate = null, options = {}) {
   const classificationAllowed = AUTO_PUBLISH_CLASSES.has(extraction.post_classification);
-  const explicitDate = decision.incident_date ? realIsoDate(decision.incident_date) : null;
   const postDate = options.postDate ? realIsoDate(options.postDate) : null;
+  const inferredFromPost = decision.incident_date_source === "inferred_from_post_date";
+  const explicitDate = inferredFromPost ? null : realIsoDate(decision.incident_date);
   const dateValid = Boolean(
     !decision.incident_date_invalid
-    && ((explicitDate && (!postDate || explicitDate <= postDate))
-    || (!decision.incident_date && decision.incident_date_source === "inferred_from_post_date" && postDate)
+    && ((inferredFromPost && (postDate || (!options.postDate && realIsoDate(decision.incident_date))))
+    || (explicitDate && (!postDate || explicitDate <= postDate))
     || (!options.postDate && explicitDate))
   );
   const hasMinimumFacts = Boolean(
@@ -1233,7 +1289,7 @@ function publicIncident(row) {
   const injuries = row.injured == null ? null : Number(row.injured);
   return {
     id: row.id,
-    date: row.incident_date || clean(row.tweet_created_at, 40).slice(0, 10),
+    date: row.incident_date || pakistanDateFromIso(row.tweet_created_at),
     date_source: row.incident_date_source,
     reported_at: row.tweet_created_at,
     time_label: row.incident_date ? "Incident date" : "TGD post date",
@@ -1298,7 +1354,7 @@ export async function updatePublishedAgentIncidents(env, candidates) {
     const errors = validateIncident(incident);
     if (errors.length) throw new AgentError(errors.join(" "), 400);
     const incidentDate = realIsoDate(incident.date);
-    const reportedDate = realIsoDate(clean(existing.tweet_created_at, 40).slice(0, 10));
+    const reportedDate = realIsoDate(pakistanDateFromIso(existing.tweet_created_at));
     if (!incidentDate || (reportedDate && incidentDate > reportedDate)) {
       throw new AgentError("Incident date must be real and cannot be later than the TGD post date.", 400);
     }
@@ -1420,6 +1476,36 @@ export async function releaseAgentLock(env, lease) {
   return Number(result.meta?.changes || 0) === 1;
 }
 
+async function repairInferredPostDates(env) {
+  const result = await env.CONTENT_DB.prepare(`
+    SELECT id, incident_date, tweet_created_at, province, district, locality,
+           incident_type, summary
+    FROM incidents
+    WHERE incident_date_source = 'inferred_from_post_date'
+  `).all();
+  const updates = [];
+  for (const row of result.results || []) {
+    const incidentDate = realIsoDate(pakistanDateFromIso(row.tweet_created_at));
+    if (!incidentDate || row.incident_date === incidentDate) continue;
+    const fingerprint = await incidentFingerprint({
+      incident_date: incidentDate,
+      locality: row.locality,
+      incident_type: row.incident_type,
+      summary: row.summary
+    }, {
+      province: row.province,
+      district: row.district
+    });
+    updates.push(env.CONTENT_DB.prepare(`
+      UPDATE incidents
+      SET incident_date = ?, fingerprint = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).bind(incidentDate, fingerprint, row.id));
+  }
+  if (updates.length) await env.CONTENT_DB.batch(updates);
+  return updates.length;
+}
+
 export async function runXToMapAgent(env, options = {}) {
   if (!env.CONTENT_DB || !env.INCIDENTS) throw new AgentError("Agent storage bindings are not configured.", 503);
   if (!options.force && await stateGet(env, "agent_enabled", "false") !== "true") {
@@ -1432,15 +1518,30 @@ export async function runXToMapAgent(env, options = {}) {
   try {
     const fetched = await fetchNewXPosts(env);
     await renewAgentLock(env, lease);
+    const backfillDate = await stateGet(env, "x_backfill_date", "");
+    let backfill = { date: null, posts: [], x_posts_returned: 0 };
+    if (backfillDate) {
+      backfill = await fetchXPostsForPakistanDate(env, backfillDate);
+      await stateDelete(env, "x_backfill_date");
+      await logAgent(env, "x_backfill_complete", `Owned posts for ${backfill.date} Pakistan time were imported.`, {
+        matched_posts: backfill.posts.length,
+        x_posts_returned: backfill.x_posts_returned
+      });
+      await renewAgentLock(env, lease);
+    }
+    const repairedDates = await repairInferredPostDates(env);
     await stateSet(env, "last_successful_x_check", new Date().toISOString());
     const processed = await processPendingPosts(env, () => renewAgentLock(env, lease));
-    if (processed.published > 0) await syncPublishedFeed(env);
+    if (processed.published > 0 || repairedDates > 0) await syncPublishedFeed(env);
     await stateDelete(env, "last_error");
     const result = {
       ok: true,
       started_at: startedAt,
       completed_at: new Date().toISOString(),
-      x_posts_returned: fetched.posts.length,
+      x_posts_returned: fetched.posts.length + backfill.x_posts_returned,
+      backfill_date: backfill.date,
+      backfill_posts_matched: backfill.posts.length,
+      repaired_inferred_dates: repairedDates,
       cursor: fetched.cursor,
       ...processed
     };
@@ -1528,7 +1629,7 @@ async function agentStatus(env) {
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'needs_review'").first(),
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM x_posts WHERE processing_status IN ('failed', 'pending_retry')").first(),
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'possible_duplicate'").first(),
-    env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'published' AND date(published_at) = date('now')").first(),
+    env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'published' AND date(published_at, '+5 hours') = date('now', '+5 hours')").first(),
     env.CONTENT_DB.prepare("SELECT * FROM monthly_exports ORDER BY generated_at DESC LIMIT 1").first(),
     env.CONTENT_DB.prepare("SELECT expires_at, scope, updated_at FROM x_oauth_tokens WHERE id = 1").first(),
     env.CONTENT_DB.prepare("SELECT * FROM agent_logs ORDER BY id DESC LIMIT 25").all(),
@@ -1610,7 +1711,7 @@ async function updateReviewItem(env, id, body) {
       throw new AgentError("The current incident map accepts Pakistan incidents only.", 400);
     }
     const incidentDate = realIsoDate(merged.incident_date);
-    const postDate = realIsoDate(clean(existing.tweet_created_at, 40).slice(0, 10));
+    const postDate = realIsoDate(pakistanDateFromIso(existing.tweet_created_at));
     if (!incidentDate || (postDate && incidentDate > postDate)) {
       throw new AgentError("Incident date must be real and cannot be later than the TGD post date.", 400);
     }
@@ -1831,8 +1932,8 @@ export async function handleAgentAdmin(request, env, ctx, adminPath) {
     const rows = await env.CONTENT_DB.prepare(`
       SELECT * FROM incidents
       WHERE status = 'published'
-        AND COALESCE(incident_date, substr(tweet_created_at, 1, 10)) >= ?
-        AND COALESCE(incident_date, substr(tweet_created_at, 1, 10)) < ?
+        AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) >= ?
+        AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) < ?
     `).bind(start, end).all();
     return json(monthlySummary(rows.results || []));
   }

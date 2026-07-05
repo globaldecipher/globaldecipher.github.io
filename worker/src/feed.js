@@ -190,10 +190,15 @@ function datePartsInPakistan(date) {
   return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
 }
 
-export function pakistanDateFromSeconds(seconds = Math.floor(Date.now() / 1000)) {
-  const date = new Date(Number(seconds) * 1000);
+export function pakistanDateFromIso(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
   const parts = datePartsInPakistan(date);
   return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+export function pakistanDateFromSeconds(seconds = Math.floor(Date.now() / 1000)) {
+  return pakistanDateFromIso(new Date(Number(seconds) * 1000));
 }
 
 export function isoFromSeconds(seconds) {

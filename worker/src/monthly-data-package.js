@@ -1,4 +1,5 @@
 import { strToU8, zipSync } from "fflate";
+import { pakistanDateFromIso } from "./feed.js";
 
 const TIME_ZONE = "Asia/Karachi";
 const SOURCE_LABEL = "Source: The Global Decipher incident database";
@@ -54,7 +55,7 @@ function countBy(rows, key, fallback = "Unspecified") {
 function dailyTrend(rows) {
   const grouped = new Map();
   for (const row of rows) {
-    const day = text(row.incident_date || row.tweet_created_at).slice(0, 10);
+    const day = row.incident_date || pakistanDateFromIso(row.tweet_created_at);
     grouped.set(day, (grouped.get(day) || 0) + 1);
   }
   return [...grouped].sort(([left], [right]) => left.localeCompare(right))
@@ -175,7 +176,7 @@ export function buildMonthlyWorkbook(rows, month) {
     ...rows.map((row) => [
       row.incident_date || "Unknown — use TGD post date",
       row.incident_date_source || "unknown",
-      text(row.tweet_created_at).slice(0, 10),
+      pakistanDateFromIso(row.tweet_created_at),
       row.province,
       row.district,
       row.locality,
@@ -227,7 +228,7 @@ export function buildMonthlyCsv(rows) {
     lines.push([
       row.incident_date || "",
       row.incident_date_source || "unknown",
-      text(row.tweet_created_at).slice(0, 10),
+      pakistanDateFromIso(row.tweet_created_at),
       row.province,
       row.district,
       row.locality,
@@ -333,9 +334,9 @@ export async function generateMonthlyDataPackage(env, month, options = {}) {
     SELECT *
     FROM incidents
     WHERE status = 'published'
-      AND COALESCE(incident_date, substr(tweet_created_at, 1, 10)) >= ?
-      AND COALESCE(incident_date, substr(tweet_created_at, 1, 10)) < ?
-    ORDER BY COALESCE(incident_date, substr(tweet_created_at, 1, 10)), tweet_created_at, id
+      AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) >= ?
+      AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) < ?
+    ORDER BY COALESCE(incident_date, date(tweet_created_at, '+5 hours')), tweet_created_at, id
   `).bind(bounds.start, bounds.end).all();
   const rows = result.results || [];
   const versionRow = await env.CONTENT_DB.prepare(

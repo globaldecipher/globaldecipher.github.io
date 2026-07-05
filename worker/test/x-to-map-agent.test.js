@@ -5,6 +5,7 @@ import {
   acquireAgentLock,
   conversationReady,
   decryptToken,
+  effectiveIncidentDate,
   encryptToken,
   evaluateOwnerRules,
   highestXId,
@@ -17,6 +18,7 @@ import {
   validateGeminiOutput,
   validateXApiRequestPath
 } from "../src/x-to-map-agent.js";
+import { pakistanDateFromIso } from "../src/feed.js";
 import {
   benchmarkMonthlyArtifacts,
   buildMonthlyCharts,
@@ -94,6 +96,23 @@ test("moves the cursor to the greatest string X ID without number conversion", (
   ]), "2073403718540972192");
 });
 
+test("converts X UTC timestamps to the correct Pakistan calendar date", () => {
+  assert.equal(pakistanDateFromIso("2026-07-04T23:09:16.000Z"), "2026-07-05");
+  assert.equal(pakistanDateFromIso("2026-07-04T18:59:59.000Z"), "2026-07-04");
+  assert.equal(pakistanDateFromIso("not-a-date"), "");
+});
+
+test("an inferred incident always uses the Pakistan-local post date", () => {
+  assert.equal(effectiveIncidentDate({
+    incident_date: "2026-07-04",
+    incident_date_source: "inferred_from_post_date"
+  }, "2026-07-05"), "2026-07-05");
+  assert.equal(effectiveIncidentDate({
+    incident_date: "2026-07-03",
+    incident_date_source: "explicit_in_post"
+  }, "2026-07-05"), "2026-07-03");
+});
+
 test("X API allowlist permits only the TGD timeline shape and users/me", () => {
   assert.equal(validateXApiRequestPath("/users/me").kind, "me");
   assert.deepEqual(
@@ -165,14 +184,30 @@ test("rejects impossible calendar dates before publication", () => {
   }).publish, false);
 });
 
-test("withholds an incident date later than its source post", () => {
-  const parsed = validateGeminiOutput(extraction({ incident_date: "2026-07-05" }), posts);
+test("withholds an explicitly stated incident date later than its source post", () => {
+  const parsed = validateGeminiOutput(extraction({
+    incident_date: "2026-07-05",
+    incident_date_source: "explicit_in_post"
+  }), posts);
   const location = resolveSafeLocation(parsed.incidents[0]);
   const safety = publicationSafety(parsed, parsed.incidents[0], location, null, {
     postDate: "2026-07-04"
   });
   assert.equal(safety.dateValid, false);
   assert.equal(safety.publish, false);
+});
+
+test("accepts an inferred Pakistan date even when Gemini echoed the UTC date", () => {
+  const parsed = validateGeminiOutput(extraction({
+    incident_date: "2026-07-04",
+    incident_date_source: "inferred_from_post_date"
+  }), posts);
+  const location = resolveSafeLocation(parsed.incidents[0]);
+  const safety = publicationSafety(parsed, parsed.incidents[0], location, null, {
+    postDate: "2026-07-05"
+  });
+  assert.equal(safety.dateValid, true);
+  assert.equal(safety.publish, true);
 });
 
 test("owner review rules deterministically block automatic publication", () => {
