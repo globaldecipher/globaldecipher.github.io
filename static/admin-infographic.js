@@ -3,22 +3,42 @@
 
   const WIDTH = 1080;
   const HEIGHT = 1350;
-  const MAP = { x: 235, y: 238, width: 610, height: 900 };
+  const MAP = { x: 205, y: 224, width: 670, height: 982 };
   const MAP_BOUNDS = { west: 60.5, east: 78.1, north: 37.5, south: 23.4 };
-  const CARD_AREA = { top: 228, bottom: 1228, gap: 14 };
+  const CARD_AREA = { top: 232, bottom: 1218, gap: 16 };
   const CARD_COLUMNS = {
-    left: { x: 18, width: 354 },
-    right: { x: 708, width: 354 }
+    left: { x: 18, width: 344 },
+    right: { x: 718, width: 344 }
   };
-  const PROVINCE_SHORT = {
-    "Khyber Pakhtunkhwa": "KP",
-    "Balochistan": "BALOCHISTAN",
-    "Sindh": "SINDH",
-    "Punjab": "PUNJAB",
-    "Gilgit-Baltistan": "GB",
-    "Islamabad": "ICT",
-    "Azad Kashmir": "AJK",
-    "Azad Jammu and Kashmir": "AJK"
+  const PROVINCE_META = {
+    "khyber-pakhtunkhwa": {
+      name: "Khyber Pakhtunkhwa", short: "KP", color: "#6d3684",
+      latitude: 34.15, longitude: 71.75, side: "right", mapLabel: "Khyber Pakhtunkhwa"
+    },
+    balochistan: {
+      name: "Balochistan", short: "BALOCHISTAN", color: "#c38a22",
+      latitude: 28.35, longitude: 65.45, side: "left", mapLabel: "Balochistan"
+    },
+    punjab: {
+      name: "Punjab", short: "PUNJAB", color: "#a3222b",
+      latitude: 31.35, longitude: 72.85, side: "right", mapLabel: "Punjab"
+    },
+    sindh: {
+      name: "Sindh", short: "SINDH", color: "#247378",
+      latitude: 26.45, longitude: 68.55, side: "left", mapLabel: "Sindh"
+    },
+    "gilgit-baltistan": {
+      name: "Gilgit-Baltistan", short: "GB", color: "#314d71",
+      latitude: 35.75, longitude: 74.55, side: "right", mapLabel: "Gilgit-Baltistan"
+    },
+    islamabad: {
+      name: "Islamabad", short: "ICT", color: "#605348",
+      latitude: 33.69, longitude: 73.06, side: "right", mapLabel: "Islamabad"
+    },
+    "azad-jammu-and-kashmir": {
+      name: "Azad Jammu and Kashmir", short: "AJK", color: "#49705a",
+      latitude: 33.55, longitude: 73.85, side: "right", mapLabel: "Azad Kashmir"
+    }
   };
 
   function xml(value) {
@@ -34,11 +54,19 @@
     return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
   }
 
-  function locationKey(incident) {
-    const district = compact(incident?.district).toLowerCase();
-    const province = compact(incident?.province).toLowerCase();
-    const fallback = compact(incident?.location_label || incident?.locality).toLowerCase();
-    return `${province}|${district || fallback}`;
+  function provinceKey(value) {
+    const normalized = compact(value)
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    if (["kp", "kpk", "khyber-pakhtunkhwa"].includes(normalized)) return "khyber-pakhtunkhwa";
+    if (["gb", "gilgit-baltistan", "northern-areas"].includes(normalized)) return "gilgit-baltistan";
+    if (["ict", "islamabad-capital-territory", "f-c-t"].includes(normalized)) return "islamabad";
+    if (["ajk", "azad-kashmir", "azad-jammu-and-kashmir"].includes(normalized)) {
+      return "azad-jammu-and-kashmir";
+    }
+    return normalized || "pakistan";
   }
 
   function categoryStyle(category) {
@@ -101,61 +129,61 @@
     return numbers.length ? numbers.reduce((sum, value) => sum + value, 0) / numbers.length : null;
   }
 
-  function headingLinesFor(group, province, maximumCharacters = 27) {
-    const districtWords = compact(group.district).toUpperCase().split(" ").filter(Boolean);
-    const full = `(${group.number}) ${districtWords.join(" ")} — ${province}`;
-    if (full.length <= maximumCharacters || districtWords.length < 2) {
-      return wrapWords(full, maximumCharacters, 2);
-    }
-    let best = null;
-    for (let index = 1; index < districtWords.length; index += 1) {
-      const lines = [
-        `(${group.number}) ${districtWords.slice(0, index).join(" ")}`,
-        `${districtWords.slice(index).join(" ")} — ${province}`
-      ];
-      const score = Math.max(lines[0].length, lines[1].length)
-        + Math.abs(lines[0].length - lines[1].length) * 0.15;
-      if (!best || score < best.score) best = { lines, score };
-    }
-    return best.lines;
+  function provinceHeadingLines(group) {
+    const province = group.short && group.short !== group.province.toUpperCase()
+      ? `${group.province.toUpperCase()} (${group.short})`
+      : group.province.toUpperCase();
+    const incidentWord = group.incidents.length === 1 ? "INCIDENT" : "INCIDENTS";
+    return [
+      province,
+      `${incidentWord} ${group.incidents.map((incident) => incident.number).join(", ")}`
+    ];
   }
 
-  function groupIncidents(incidents) {
+  function groupProvinces(incidents) {
     const groups = [];
     const byKey = new Map();
-    for (const incident of incidents || []) {
-      const key = locationKey(incident) || `incident-${groups.length}`;
+    (incidents || []).forEach((sourceIncident, index) => {
+      const incident = { ...sourceIncident, number: index + 1 };
+      const key = provinceKey(incident.province);
+      const meta = PROVINCE_META[key];
       let group = byKey.get(key);
       if (!group) {
         group = {
-          district: compact(incident.district) || "Pakistan",
-          province: compact(incident.province),
+          key,
+          province: meta?.name || compact(incident.province) || "Pakistan",
+          short: meta?.short || compact(incident.province).toUpperCase() || "PAKISTAN",
           incidents: [],
-          categories: [],
           latitudes: [],
-          longitudes: []
+          longitudes: [],
+          style: {
+            color: meta?.color || "#59656f",
+            code: meta?.short || "PK"
+          },
+          side: meta?.side || ""
         };
         groups.push(group);
         byKey.set(key, group);
       }
       group.incidents.push(incident);
-      group.categories.push(incident.category || incident.incident_type);
       group.latitudes.push(incident.latitude);
       group.longitudes.push(incident.longitude);
-    }
-    return groups.map((group) => ({
-      ...group,
-      latitude: average(group.latitudes),
-      longitude: average(group.longitudes),
-      style: categoryStyle(group.categories[0])
-    }))
-      .sort((a, b) => {
-        const latitudeDifference = (Number(b.latitude) || -90) - (Number(a.latitude) || -90);
-        if (latitudeDifference) return latitudeDifference;
-        return a.district.localeCompare(b.district);
-      })
-      .map((group, index) => ({ ...group, number: index + 1 }));
+    });
+    return groups.map((group) => {
+      const meta = PROVINCE_META[group.key];
+      return {
+        ...group,
+        latitude: meta?.latitude ?? average(group.latitudes),
+        longitude: meta?.longitude ?? average(group.longitudes)
+      };
+    }).sort((a, b) => {
+      const latitudeDifference = (Number(b.latitude) || -90) - (Number(a.latitude) || -90);
+      if (latitudeDifference) return latitudeDifference;
+      return a.province.localeCompare(b.province);
+    });
   }
+
+  const groupIncidents = groupProvinces;
 
   function projectMarker(latitude, longitude) {
     const lat = Math.min(MAP_BOUNDS.north, Math.max(MAP_BOUNDS.south, Number(latitude) || 30.3753));
@@ -176,45 +204,46 @@
   }
 
   function statBlock(x, label, value, color) {
-    return `<g transform="translate(${x} 158)">
-      <circle cx="0" cy="0" r="21" fill="${color}"/>
-      <circle cx="0" cy="0" r="8" fill="#fff" opacity=".92"/>
-      <text x="34" y="8" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800" fill="#15181d">${xml(label)}: ${xml(value)}</text>
+    return `<g transform="translate(${x} 177)">
+      <circle cx="0" cy="0" r="24" fill="${color}"/>
+      <circle cx="0" cy="0" r="8" fill="#fff" opacity=".94"/>
+      <text x="38" y="-5" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#4d555d">${xml(label)}</text>
+      <text x="38" y="23" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="850" fill="#15181d">${xml(value)}</text>
     </g>`;
   }
 
   function cardMetrics(group, maximumHeight) {
-    const compactMode = maximumHeight < 185;
-    const headingSize = compactMode ? 18 : 20;
-    const bodySize = compactMode ? 15 : 17;
-    const labelSize = compactMode ? 13 : 14;
-    const headingLineHeight = headingSize + 4;
+    const incidentCount = Math.max(1, group.incidents.length);
+    const perIncidentRoom = Math.max(54, (maximumHeight - 78) / incidentCount);
+    const compactMode = incidentCount >= 6 || perIncidentRoom < 86;
+    const headingSize = compactMode ? 16 : 18;
+    const bodySize = compactMode ? 14 : 15;
+    const labelSize = compactMode ? 14 : 15;
+    const headingLineHeight = headingSize + 5;
     const bodyLineHeight = bodySize + 5;
     const labelLineHeight = labelSize + 4;
-    const province = PROVINCE_SHORT[group.province] || group.province.toUpperCase() || "PAKISTAN";
-    const headingLines = headingLinesFor(group, province, compactMode ? 31 : 27);
-    const itemLineBudget = compactMode
-      ? Math.max(1, Math.floor((maximumHeight - 58 - headingLines.length * headingLineHeight) / Math.max(1, group.incidents.length) / bodyLineHeight))
-      : maximumHeight >= 235
-        ? group.incidents.length > 1 ? 3 : 4
-        : maximumHeight >= 195
-          ? group.incidents.length > 1 ? 2 : 3
-          : 2;
-    const items = [];
-    group.incidents.forEach((incident, itemIndex) => {
-      const prefix = group.incidents.length > 1 ? `${String.fromCharCode(65 + itemIndex)}) ` : "";
-      const location = compact(incident.location_label || incident.locality || incident.category || incident.incident_type);
-      const labelLines = wrapWords(`${prefix}${location.toUpperCase()}`, compactMode ? 37 : 33, compactMode ? 1 : 2);
-      const summaryLines = wrapWords(shortSummary(incident.summary, 135), compactMode ? 40 : 36, Math.max(1, itemLineBudget));
-      items.push({ labelLines, summaryLines });
+    const labelLineBudget = perIncidentRoom >= 72 ? 2 : 1;
+    const summaryLineBudget = perIncidentRoom >= 112 ? 2 : 1;
+    const headingLines = provinceHeadingLines(group);
+    const items = group.incidents.map((incident) => {
+      const district = compact(incident.district) || "Pakistan";
+      const location = compact(incident.location_label || incident.locality);
+      const locationAddsDetail = location && location.toLowerCase() !== district.toLowerCase();
+      const label = locationAddsDetail ? `${district} — ${location}` : district;
+      const labelLines = wrapWords(label.toUpperCase(), compactMode ? 31 : 28, labelLineBudget);
+      const summaryLines = wrapWords(
+        shortSummary(incident.summary || incident.category || incident.incident_type, 150),
+        compactMode ? 37 : 34,
+        summaryLineBudget
+      );
+      const height = 13
+        + labelLines.length * labelLineHeight
+        + (summaryLines.length ? 4 + summaryLines.length * bodyLineHeight : 0)
+        + 11;
+      return { incident, labelLines, summaryLines, height };
     });
-    const desiredHeight = 38
-      + headingLines.length * headingLineHeight
-      + items.reduce((total, item) => total
-        + item.labelLines.length * labelLineHeight
-        + item.summaryLines.length * bodyLineHeight
-        + 8, 0)
-      + 12;
+    const headerHeight = 77;
+    const desiredHeight = headerHeight + items.reduce((total, item) => total + item.height, 0) + 5;
     return {
       headingLines,
       items,
@@ -224,29 +253,31 @@
       bodyLineHeight,
       labelSize,
       labelLineHeight,
-      height: Math.min(maximumHeight, Math.max(compactMode ? 142 : 164, desiredHeight))
+      headerHeight,
+      height: Math.min(maximumHeight, Math.max(150, desiredHeight))
     };
   }
 
-  function assignSide(group, index, sideCounts) {
+  function assignSide(group, sideWeights) {
+    if (group.side) return group.side;
     if (Number.isFinite(Number(group.longitude))) {
       return Number(group.longitude) < 69.8 ? "left" : "right";
     }
-    return sideCounts.left <= sideCounts.right ? "left" : "right";
+    return sideWeights.left <= sideWeights.right ? "left" : "right";
   }
 
   function layoutSide(groups, side) {
     if (!groups.length) return [];
     const availableHeight = CARD_AREA.bottom - CARD_AREA.top;
-    const maximumHeight = Math.min(
-      270,
-      Math.floor((availableHeight - CARD_AREA.gap * Math.max(0, groups.length - 1)) / groups.length)
-    );
+    const cardSpace = availableHeight - CARD_AREA.gap * Math.max(0, groups.length - 1);
+    const weights = groups.map((group) => 88 + group.incidents.length * 72);
+    const totalWeight = weights.reduce((total, value) => total + value, 0);
     const column = CARD_COLUMNS[side];
     const cards = groups
-      .map((group) => {
+      .map((group, index) => {
         const marker = projectMarker(group.latitude, group.longitude);
-        const metrics = cardMetrics(group, maximumHeight);
+        const allocation = Math.max(150, Math.floor(cardSpace * (weights[index] / totalWeight)));
+        const metrics = cardMetrics(group, allocation);
         return {
           group,
           marker,
@@ -277,17 +308,17 @@
   }
 
   function layoutGroups(groups) {
-    const sideCounts = { left: 0, right: 0 };
+    const sideWeights = { left: 0, right: 0 };
     const bySide = { left: [], right: [] };
-    groups.forEach((group, index) => {
-      const side = assignSide(group, index, sideCounts);
+    groups.forEach((group) => {
+      const side = assignSide(group, sideWeights);
       bySide[side].push(group);
-      sideCounts[side] += 1;
+      sideWeights[side] += group.incidents.length;
     });
     return [
       ...layoutSide(bySide.left, "left"),
       ...layoutSide(bySide.right, "right")
-    ].sort((a, b) => a.group.number - b.group.number);
+    ].sort((a, b) => a.marker.y - b.marker.y);
   }
 
   function cardFor(card) {
@@ -296,38 +327,47 @@
     const cardEdgeX = side === "left" ? x + width : x;
     const elbowX = side === "left" ? MAP.x - 12 : MAP.x + MAP.width + 12;
     const lineY = Math.max(y + 35, Math.min(y + height - 35, marker.y));
-    const clipId = `card-clip-${group.number}`;
-    let cursorY = y + 31;
-    const heading = textLines(metrics.headingLines, x + 24, cursorY, {
+    const clipId = `card-clip-${group.key}`;
+    const badgeY = y + 36;
+    const heading = textLines(metrics.headingLines, x + 66, y + 30, {
       size: metrics.headingSize,
       lineHeight: metrics.headingLineHeight,
       weight: 850,
-      fill: "#1f252b"
+      fill: group.style.color
     });
-    cursorY += metrics.headingLines.length * metrics.headingLineHeight + 10;
-    const itemText = metrics.items.map((item) => {
-      const label = textLines(item.labelLines, x + 24, cursorY, {
+    let cursorY = y + metrics.headerHeight;
+    const itemText = metrics.items.map((item, itemIndex) => {
+      const itemTop = cursorY;
+      const badgeCenterY = itemTop + 21;
+      const label = textLines(item.labelLines, x + 55, itemTop + 18, {
         size: metrics.labelSize,
         lineHeight: metrics.labelLineHeight,
         weight: 800,
-        fill: group.style.color
+        fill: "#1d2730"
       });
-      cursorY += item.labelLines.length * metrics.labelLineHeight + 3;
-      const summary = textLines(item.summaryLines, x + 24, cursorY, {
+      const summaryY = itemTop + 18 + item.labelLines.length * metrics.labelLineHeight + 4;
+      const summary = textLines(item.summaryLines, x + 55, summaryY, {
         size: metrics.bodySize,
         lineHeight: metrics.bodyLineHeight,
         weight: 500,
-        fill: "#2f353b"
+        fill: "#46515a"
       });
-      cursorY += item.summaryLines.length * metrics.bodyLineHeight + 8;
-      return `${label}${summary}`;
+      cursorY += item.height;
+      const separator = itemIndex < metrics.items.length - 1
+        ? `<line x1="${x + 22}" y1="${cursorY}" x2="${x + width - 22}" y2="${cursorY}" stroke="#dfe2e2" stroke-width="1"/>`
+        : "";
+      return `<circle cx="${x + 29}" cy="${badgeCenterY}" r="16" fill="${group.style.color}"/>
+        <text x="${x + 29}" y="${badgeCenterY + 6}" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="850" fill="#fff" text-anchor="middle">${item.incident.number}</text>
+        ${label}${summary}${separator}`;
     }).join("");
     return `<g>
-        <polyline points="${cardEdgeX},${lineY} ${elbowX},${lineY} ${marker.x},${marker.y}" fill="none" stroke="${group.style.color}" stroke-width="3" stroke-linejoin="round" opacity=".86"/>
-        <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="18" fill="#fffefb" stroke="${group.style.color}" stroke-width="3" filter="url(#shadow)"/>
+        <polyline points="${cardEdgeX},${lineY} ${elbowX},${lineY} ${marker.x},${marker.y}" fill="none" stroke="${group.style.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>
+        <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="18" fill="#fffefb" stroke="#d5d7d4" stroke-width="1.5" filter="url(#shadow)"/>
+        <path d="M ${x + 18} ${y + 2} H ${x + width - 18}" stroke="${group.style.color}" stroke-width="5" stroke-linecap="round"/>
         <clipPath id="${clipId}"><rect x="${x + 3}" y="${y + 3}" width="${width - 6}" height="${height - 6}" rx="15"/></clipPath>
-        <circle cx="${x}" cy="${y + 24}" r="22" fill="${group.style.color}"/>
-        <text x="${x}" y="${y + 30}" font-family="Arial, Helvetica, sans-serif" font-size="${group.style.code.length > 2 ? 10 : 13}" font-weight="800" fill="#fff" text-anchor="middle">${xml(group.style.code)}</text>
+        <circle cx="${x + 31}" cy="${badgeY}" r="23" fill="${group.style.color}"/>
+        <text x="${x + 31}" y="${badgeY + 7}" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="850" fill="#fff" text-anchor="middle">${group.incidents.length}</text>
+        <line x1="${x + 20}" y1="${y + metrics.headerHeight - 1}" x2="${x + width - 20}" y2="${y + metrics.headerHeight - 1}" stroke="${group.style.color}" stroke-width="1.5" opacity=".55"/>
         <g clip-path="url(#${clipId})">
         ${heading}
         ${itemText}
@@ -340,13 +380,33 @@
     return match ? match[1] : "";
   }
 
+  function mapProvinceLabels() {
+    return Object.values(PROVINCE_META)
+      .filter((meta) => meta.short !== "ICT")
+      .map((meta) => {
+        const point = projectMarker(meta.latitude, meta.longitude);
+        const lines = meta.short === "KP"
+          ? ["Khyber", "Pakhtunkhwa"]
+          : meta.short === "GB"
+            ? ["Gilgit-", "Baltistan"]
+            : [meta.mapLabel];
+        return textLines(lines, point.x, point.y - 30, {
+          size: meta.short === "AJK" ? 13 : 15,
+          lineHeight: 16,
+          weight: 750,
+          fill: "#3d474f",
+          anchor: "middle"
+        });
+      }).join("");
+  }
+
   function buildInfographicSvg(data, assets = {}) {
     const displayedIncidents = (data.incidents || []).slice(0, 10);
-    const groups = groupIncidents(displayedIncidents);
+    const groups = groupProvinces(displayedIncidents);
     const cards = layoutGroups(groups);
-    const markers = cards.map(({ marker, group }) => `<g>
-      <circle cx="${marker.x}" cy="${marker.y}" r="21" fill="${group.style.color}" stroke="#fff" stroke-width="4" filter="url(#shadow)"/>
-      <text x="${marker.x}" y="${marker.y + 8}" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" fill="#fff" text-anchor="middle">${group.number}</text>
+    const markers = cards.map(({ marker, group }) => `<g class="province-marker" data-province="${xml(group.province)}">
+      <circle cx="${marker.x}" cy="${marker.y}" r="23" fill="${group.style.color}" stroke="#fff" stroke-width="5" filter="url(#shadow)"/>
+      <circle cx="${marker.x}" cy="${marker.y}" r="7" fill="#fff" opacity=".94"/>
     </g>`).join("");
     const logo = assets.logoDataUrl
       ? `<image href="${xml(assets.logoDataUrl)}" x="792" y="28" width="250" height="82" preserveAspectRatio="xMidYMid meet"/>`
@@ -360,6 +420,9 @@
         <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#26303a" flood-opacity=".18"/>
         </filter>
+        <filter id="softShadow" x="-20%" y="-40%" width="140%" height="180%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#26303a" flood-opacity=".12"/>
+        </filter>
         <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#faf8f1"/>
           <stop offset="1" stop-color="#f2f5f5"/>
@@ -371,10 +434,14 @@
       <text x="42" y="117" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="500" fill="#4b5158">${xml(formatDate(data.date))}</text>
       ${logo}
       <line x1="42" y1="132" x2="1038" y2="132" stroke="#d8d2c5" stroke-width="2"/>
-      ${statBlock(52, "Incidents", data.total_incidents || 0, "#232a32")}
-      ${statBlock(302, "Killed", data.killed || 0, "#8d1721")}
-      ${statBlock(524, "Injured", data.injured || 0, "#6c356f")}
-      ${statBlock(762, "Arrested", data.arrested || 0, "#a17328")}
+      <rect x="28" y="142" width="1024" height="72" rx="16" fill="#fffefb" stroke="#ddd8ce" stroke-width="1.5" filter="url(#softShadow)"/>
+      <line x1="282" y1="153" x2="282" y2="203" stroke="#ddd8ce"/>
+      <line x1="540" y1="153" x2="540" y2="203" stroke="#ddd8ce"/>
+      <line x1="798" y1="153" x2="798" y2="203" stroke="#ddd8ce"/>
+      ${statBlock(64, "Incidents", data.total_incidents || 0, "#142c49")}
+      ${statBlock(322, "Killed", data.killed || 0, "#b20e18")}
+      ${statBlock(580, "Injured", data.injured || 0, "#6d3684")}
+      ${statBlock(838, "Arrested", data.arrested || 0, "#c38a22")}
       <rect x="${MAP.x - 4}" y="${MAP.y - 4}" width="${MAP.width + 8}" height="${MAP.height + 8}" rx="34" fill="#f6f4ed" opacity=".72"/>
       <svg x="${MAP.x}" y="${MAP.y}" width="${MAP.width}" height="${MAP.height}" viewBox="0 0 112 100" preserveAspectRatio="none">
         <style>
@@ -385,6 +452,7 @@
         </style>
         ${assets.mapInner || ""}
       </svg>
+      ${mapProvinceLabels()}
       ${cards.map(cardFor).join("")}
       ${markers}
       ${groups.length ? "" : `<text x="540" y="650" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" fill="#626a72" text-anchor="middle">No published incidents recorded</text>`}
@@ -455,9 +523,11 @@
     formatDate,
     generateInfographicPng,
     groupIncidents,
-    headingLinesFor,
+    groupProvinces,
     layoutGroups,
+    mapProvinceLabels,
     projectMarker,
+    provinceHeadingLines,
     stripOuterSvg,
     wrapWords
   };

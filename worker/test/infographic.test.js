@@ -5,7 +5,7 @@ await import("../../static/admin-infographic.js");
 
 const renderer = globalThis.TGDInfographic;
 
-test("infographic groups incidents from the same district into one numbered A/B card", () => {
+test("infographic groups every incident in a province into one numbered province card", () => {
   const groups = renderer.groupIncidents([
     {
       district: "Swat",
@@ -28,6 +28,11 @@ test("infographic groups incidents from the same district into one numbered A/B 
   ]);
   assert.equal(groups.length, 1);
   assert.equal(groups[0].incidents.length, 2);
+  assert.deepEqual(groups[0].incidents.map((incident) => incident.number), [1, 2]);
+  assert.deepEqual(renderer.provinceHeadingLines(groups[0]), [
+    "KHYBER PAKHTUNKHWA (KP)",
+    "INCIDENTS 1, 2"
+  ]);
   const svg = renderer.buildInfographicSvg({
     date: "2026-07-05",
     total_incidents: 2,
@@ -36,12 +41,14 @@ test("infographic groups incidents from the same district into one numbered A/B 
     arrested: 0,
     incidents: groups[0].incidents
   }, { mapInner: "", logoDataUrl: "" });
-  assert.match(svg, /A\) SHAKAR DARA, MATTA, SWAT/);
-  assert.match(svg, /B\) MATTA, SWAT/);
-  assert.doesNotMatch(svg, /\(2\) SWAT/);
+  assert.match(svg, /KHYBER PAKHTUNKHWA \(KP\)/);
+  assert.match(svg, /INCIDENTS 1, 2/);
+  assert.match(svg, /SHAKAR DARA, MATTA,/);
+  assert.match(svg, /MATTA, SWAT/);
+  assert.doesNotMatch(svg, /A\)|B\)/);
 });
 
-test("infographic numbering and card placement follow geography", () => {
+test("infographic uses one fixed province marker and card per province", () => {
   const groups = renderer.groupIncidents([
     {
       district: "Kech",
@@ -68,21 +75,22 @@ test("infographic numbering and card placement follow geography", () => {
       summary: "Western incident."
     }
   ]);
-  assert.deepEqual(groups.map((group) => group.district), [
-    "Swat",
-    "Lower South Waziristan",
-    "Kech"
+  assert.deepEqual(groups.map((group) => group.province), [
+    "Khyber Pakhtunkhwa",
+    "Balochistan"
   ]);
+  assert.deepEqual(groups[0].incidents.map((incident) => incident.number), [2, 3]);
+  assert.deepEqual(groups[1].incidents.map((incident) => incident.number), [1]);
   const cards = renderer.layoutGroups(groups);
-  assert.equal(cards.find((card) => card.group.district === "Swat").side, "right");
-  assert.equal(cards.find((card) => card.group.district === "Kech").side, "left");
+  assert.equal(cards.find((card) => card.group.province === "Khyber Pakhtunkhwa").side, "right");
+  assert.equal(cards.find((card) => card.group.province === "Balochistan").side, "left");
   assert.ok(
-    cards.find((card) => card.group.district === "Swat").marker.y
-      < cards.find((card) => card.group.district === "Kech").marker.y
+    cards.find((card) => card.group.province === "Khyber Pakhtunkhwa").marker.y
+      < cards.find((card) => card.group.province === "Balochistan").marker.y
   );
   assert.deepEqual(
-    renderer.headingLinesFor(groups[1], "KP"),
-    ["(2) LOWER SOUTH", "WAZIRISTAN — KP"]
+    renderer.provinceHeadingLines(groups[0]),
+    ["KHYBER PAKHTUNKHWA (KP)", "INCIDENTS 2, 3"]
   );
 });
 
@@ -108,10 +116,14 @@ test("infographic SVG is a single Instagram-size branded canvas", () => {
   });
   assert.match(svg, /width="1080" height="1350"/);
   assert.match(svg, /Security &amp; Terrorism Incidents/);
-  assert.match(svg, /Incidents: 2/);
+  assert.match(svg, />Incidents<\/text>/);
+  assert.match(svg, />2<\/text>/);
   assert.match(svg, /theglobaldecipher\.com/);
   assert.match(svg, /\.province \{ fill: #dedfdb !important; stroke: #65717a !important;/);
-  assert.match(svg, /clipPath id="card-clip-1"/);
+  assert.match(svg, /clipPath id="card-clip-khyber-pakhtunkhwa"/);
+  assert.match(svg, /class="province-marker" data-province="Khyber Pakhtunkhwa"/);
+  assert.match(svg, /Khyber/);
+  assert.match(svg, /Pakhtunkhwa/);
   assert.doesNotMatch(svg, /page 2/i);
 });
 
