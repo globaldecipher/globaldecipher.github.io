@@ -5,26 +5,24 @@ author: "TGD Monitoring Desk"
 type: "page"
 eyebrow: "Public-source tracker"
 summary: "A public-source incident tracker for security events monitored by The Global Decipher."
-extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260704-agent-refresh">'
+extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260705-daily-first">'
 ---
 
 <section class="incident-tracker-shell" data-incident-tracker>
   <div class="incident-dashboard-head">
     <div>
-      <p class="tracker-kicker">TGD PUBLIC-SOURCE MONITORING</p>
+      <p class="tracker-kicker">Daily security record</p>
       <h2>PAKISTAN INCIDENT MAP</h2>
       <p class="tracker-note" data-source-note>Loading tracker feed.</p>
     </div>
     <div class="tracker-live-stack">
       <div class="tracker-refresh"><span class="tracker-pulse"></span><span data-last-updated>Checking archive</span></div>
-      <label class="tracker-date-control">Selected date<input data-filter="date" type="date" aria-label="Select archive date"></label>
+      <label class="tracker-date-control">Choose a date<input data-filter="date" type="date" aria-label="Choose a date to view"></label>
     </div>
   </div>
   <div class="tracker-metrics" data-metrics></div>
-  <div class="tracker-timeline" data-timeline aria-label="Timeline shortcuts"></div>
   <div class="tracker-view-tabs" aria-label="Tracker views">
     <button class="is-active" type="button" data-view-tab="daily">Daily map</button>
-    <button type="button" data-view-tab="weekly">Weekly analysis</button>
     <button type="button" data-view-tab="log">Incident log</button>
   </div>
   <div class="tracker-controls" aria-label="Incident filters">
@@ -59,7 +57,6 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260704-ag
     </div>
     <aside class="detail-panel" data-detail-panel aria-label="Selected incident details"></aside>
   </section>
-  <section class="tracker-analytics" data-weekly-analytics data-view-panel="weekly" aria-label="Weekly incident graphs"></section>
   <div class="tracker-grid">
     <aside class="tracker-log-panel" data-view-panel="log" aria-label="Incident log">
       <div class="tracker-log-head"><span>Incident log</span><strong data-result-count>0 shown</strong></div>
@@ -247,4 +244,4 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260704-ag
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260704-agent-refresh" defer></script>
+<script src="/assets/incident-map.js?v=20260705-daily-first" defer></script>

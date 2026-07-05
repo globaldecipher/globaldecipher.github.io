@@ -386,6 +386,7 @@
   }
 
   function renderTimeline() {
+    if (!els.timeline) return;
     const dates = Array.from(new Set(state.archive.map((incident) => incident.date))).sort().slice(-31);
     const buttons = [
       [state.playback ? "Pause timeline" : "Play timeline", "playback", "playback"],
@@ -426,6 +427,7 @@
   }
 
   function renderWeekly() {
+    if (!els.weekly) return;
     const weekMap = new Map();
     state.archive.forEach((incident) => {
       const label = weekLabel(incident);
@@ -749,7 +751,7 @@
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
     const topProvince = Array.from(map.values()).sort((a, b) => b.count - a.count)[0];
     const topActorLabel = topLabels(countBy(state.filtered, "actor"), 1)[0] || "None";
-    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number, week bar, or incident card to drill into the feed without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${statRaw("Top province", topProvince?.count ? hubLink(topProvince.label, "region") : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${statRaw("Top actor", topActorLabel === "None" ? "None" : hubLink(topActorLabel, "org"))}${stat("Archive", "Historical record")}</div>`;
+    els.detail.innerHTML = `<div class="detail-panel-head"><span>Daily briefing</span><strong>${esc(rangeLabel())}</strong></div><h3>${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} in focus</h3><p>Click a province number or incident card to inspect the reporting without leaving the map.</p><div class="detail-stats">${stat("Fatalities", count(fatalities))}${stat("Injuries", count(injuries))}${statRaw("Top province", topProvince?.count ? hubLink(topProvince.label, "region") : "None")}${stat("Top district", topLabels(countBy(state.filtered, "district"), 1)[0] || "None")}${statRaw("Top actor", topActorLabel === "None" ? "None" : hubLink(topActorLabel, "org"))}${stat("Record", "Daily archive")}</div>`;
   }
   function renderList() {
     els.resultCount.textContent = `${count(state.filtered.length)} shown`;
@@ -779,7 +781,7 @@
     renderDetail();
     renderList();
     renderTabs();
-    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} ${rangeContext()}. Historical records remain available on this map.`;
+    els.sourceNote.textContent = `${count(state.filtered.length)} incident${state.filtered.length === 1 ? "" : "s"} recorded ${rangeContext()}.`;
   }
   function stopPlayback(renderControls = true) {
     if (playbackTimer) window.clearInterval(playbackTimer);
@@ -841,8 +843,8 @@
       if (!state.all.length) throw new Error("No incident records are available.");
       state.archive = state.all;
       if (!state.loaded) {
-        state.date = state.archive[0]?.date || state.today;
-        state.mode = "archive";
+        state.date = state.today;
+        state.mode = "date";
       }
       state.loaded = true;
       const latestDate = state.archive[0]?.date;

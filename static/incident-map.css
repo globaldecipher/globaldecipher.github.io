@@ -22,6 +22,24 @@
   --green: #14532d;
 }
 
+.section-hero:has(+ .article-band .incident-tracker-shell) {
+  padding: 34px 0 26px;
+}
+
+.section-hero:has(+ .article-band .incident-tracker-shell) h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+}
+
+.section-hero:has(+ .article-band .incident-tracker-shell) .eyebrow,
+.section-hero:has(+ .article-band .incident-tracker-shell) p:last-child {
+  display: none;
+}
+
+.article-band:has(.incident-tracker-shell) {
+  padding-top: 34px;
+}
+
 .article-body .article-embed:has(.incident-tracker-shell),
 .article-body .article-embed:has(.incident-tracker-shell) + .article-embed {
   margin: 0;
@@ -33,7 +51,7 @@
   border: 0;
   color: var(--ink);
   font-family: var(--sans);
-  font-size: clamp(2.6rem, 6vw, 6.2rem);
+  font-size: clamp(2.35rem, 4.8vw, 4.6rem);
   font-weight: 950;
   line-height: 0.88;
   letter-spacing: 0;
@@ -51,8 +69,8 @@
   grid-template-columns: minmax(0, 1fr) minmax(260px, 330px);
   gap: 28px;
   align-items: end;
-  min-height: 290px;
-  padding: 36px 28px 28px;
+  min-height: 176px;
+  padding: 24px;
   border: 1px solid var(--line);
   background:
     linear-gradient(90deg, rgba(123, 0, 8, 0.08), transparent 48%),
@@ -97,7 +115,7 @@
 
 .tracker-note {
   max-width: 780px;
-  margin: 18px 0 0;
+  margin: 12px 0 0;
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
@@ -115,7 +133,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 48px;
+  min-height: 42px;
   padding: 11px 13px;
   border: 1px solid var(--line);
   background: var(--paper-2);
@@ -174,12 +192,12 @@
 .tracker-metrics {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .tracker-metric {
-  min-height: 104px;
-  padding: 16px;
+  min-height: 88px;
+  padding: 13px 14px;
   border: 1px solid var(--line);
   background: #fff;
 }
@@ -198,19 +216,19 @@
 
 .metric-value {
   display: block;
-  margin-top: 13px;
+  margin-top: 9px;
   color: var(--ink);
   font-family: var(--serif-display);
-  font-size: clamp(2rem, 4.2vw, 3.35rem);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
   font-weight: 950;
   line-height: 0.86;
 }
 
 .metric-note {
   display: block;
-  margin-top: 10px;
+  margin-top: 7px;
   color: var(--text-soft);
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   line-height: 1.35;
 }
 
@@ -356,7 +374,7 @@
 
 .tracker-view-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--line);
   background: #fff;
   font-size: 0.72rem;
@@ -365,7 +383,7 @@
 }
 
 .tracker-view-tabs button {
-  min-height: 48px;
+  min-height: 42px;
   border: 0;
   border-right: 1px solid var(--line);
   background: #fff;
@@ -1567,7 +1585,17 @@
 
   .incident-dashboard-head {
     min-height: auto;
-    padding: 24px 18px;
+    gap: 18px;
+    padding: 22px 18px 18px;
+  }
+
+  .tracker-note {
+    margin-top: 9px;
+    line-height: 1.5;
+  }
+
+  .tracker-live-stack {
+    gap: 9px;
   }
 
   .tracker-metrics,

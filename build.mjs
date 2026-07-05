@@ -397,8 +397,19 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 
 function refreshManagedAssetUrls(value = "") {
   return String(value)
-    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260704-agent-refresh")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260704-agent-refresh")
+    .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260705-daily-first")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260705-daily-first")
+    .replace(
+      '<p class="tracker-kicker">TGD PUBLIC-SOURCE MONITORING</p>',
+      '<p class="tracker-kicker">Daily security record</p>'
+    )
+    .replace(
+      '<label class="tracker-date-control">Selected date<input data-filter="date" type="date" aria-label="Select archive date"></label>',
+      '<label class="tracker-date-control">Choose a date<input data-filter="date" type="date" aria-label="Choose a date to view"></label>'
+    )
+    .replace(/\s*<div class="tracker-timeline" data-timeline aria-label="Timeline shortcuts"><\/div>/g, "")
+    .replace(/\s*<button(?: class="[^"]*")? type="button" data-view-tab="weekly">Weekly analysis<\/button>/g, "")
+    .replace(/\s*<section class="tracker-analytics" data-weekly-analytics data-view-panel="weekly" aria-label="Weekly incident graphs"><\/section>/g, "")
     .replace(
       /<object class="tracker-pakistan-map" data="\/assets\/pakistan-map\.svg(?:\?[^"]*)?" type="image\/svg\+xml" aria-hidden="true" tabindex="-1"><\/object>/g,
       '<img class="tracker-pakistan-map tracker-pakistan-map-fallback" src="/assets/pakistan-map.svg?v=20260704-agent-refresh" alt="" aria-hidden="true">' +
@@ -1333,7 +1344,10 @@ function pageTemplate(page) {
     || /incident-tracker-shell|network-graph-shell|world-globe-shell/.test(page.html);
   const shellClass = isWide ? "" : " static-page-shell";
   const bodyClass = isWide ? "" : " static-page-body";
-  const body = `${sectionHero(page.title, page.eyebrow || "Editorial", page.summary || "")}
+  const pageHero = page.slug === "incident-map"
+    ? sectionHero(page.title, "", "")
+    : sectionHero(page.title, page.eyebrow || "Editorial", page.summary || "");
+  const body = `${pageHero}
   <section class="article-band">
     <div class="container">
       <div class="page-shell${shellClass}">
@@ -1342,7 +1356,7 @@ function pageTemplate(page) {
     </div>
   </section>`;
   const managedPageHead = page.slug === "incident-map"
-    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260704-agent-refresh">'
+    ? '<link rel="stylesheet" href="/assets/incident-map.css?v=20260705-daily-first">'
     : page.slug === "network-graph"
       ? '<link rel="stylesheet" href="/assets/network-graph.css?v=20260622-publishing"><link rel="stylesheet" href="/assets/world-globe.css?v=20260626-cold2">'
       : page.extra_head || "";
