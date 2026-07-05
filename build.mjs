@@ -1809,11 +1809,12 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260704-x-map-agent">
+<link rel="stylesheet" href="/assets/admin.css?v=20260705-telegram-infographic">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin.js?v=20260704-x-map-agent" defer></script>
+<script src="/assets/admin-infographic.js?v=20260705-telegram-infographic" defer></script>
+<script src="/assets/admin.js?v=20260705-telegram-infographic" defer></script>
 </body>
 </html>
 `;

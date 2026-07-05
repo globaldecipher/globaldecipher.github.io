@@ -15,6 +15,12 @@ import {
   maybeGeneratePreviousMonthPackage,
   monthlySummary
 } from "./monthly-data-package.js";
+import {
+  mirrorFetchedPostsToTelegram,
+  sendTelegramTest,
+  setTelegramEnabled,
+  telegramStatus
+} from "./telegram.js";
 
 const X_API = "https://api.x.com/2";
 const X_AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
@@ -63,6 +69,7 @@ const DEFAULT_GLOBAL_INSTRUCTION = [
   "Classify explicitly identified deaths using killed_forces, killed_terrorists, and killed_civilians.",
   "For example, 'eliminating three terrorists' means killed=3, killed_terrorists=3, killed_forces=0, and killed_civilians=0.",
   "If the post does not identify who was killed, set all three classified fatality fields to null.",
+  "Set arrested only when the post explicitly states a number of people arrested or detained.",
   "Monthly assessments, reports, research, infographics, commentary, and promotions never create map incidents.",
   "A quoted UPDATE may refer to an existing incident, but material corrections and motive changes require review.",
   "Return only valid JSON."
@@ -98,6 +105,7 @@ const GEMINI_SCHEMA = {
           killed_terrorists: { type: "integer", nullable: true },
           killed_civilians: { type: "integer", nullable: true },
           injured: { type: "integer", nullable: true },
+          arrested: { type: "integer", nullable: true },
           actor_or_group: { type: "string", nullable: true },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
           requires_review: { type: "boolean" },
@@ -122,6 +130,7 @@ const GEMINI_SCHEMA = {
           "killed_terrorists",
           "killed_civilians",
           "injured",
+          "arrested",
           "actor_or_group",
           "confidence",
           "requires_review",
@@ -863,6 +872,7 @@ export function validateGeminiOutput(value, posts) {
       killed_terrorists: killedTerrorists,
       killed_civilians: killedCivilians,
       injured: nullableCount(incident.injured),
+      arrested: nullableCount(incident.arrested),
       actor_or_group: nullableText(incident.actor_or_group, 180),
       confidence: CONFIDENCE_VALUES.has(incident.confidence) ? incident.confidence : "low",
       requires_review: incident.requires_review === true || casualtyMismatch,
@@ -1094,9 +1104,9 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
         incident_date, incident_date_source, country, province, district, locality,
         location_label, latitude, longitude, location_precision, incident_type,
         category_name, summary, killed, killed_forces, killed_terrorists,
-        killed_civilians, injured, actor_or_group, confidence, status,
+        killed_civilians, injured, arrested, actor_or_group, confidence, status,
         review_reason, duplicate_of, published_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         fingerprint = excluded.fingerprint,
         source_tweet_id = excluded.source_tweet_id,
@@ -1121,6 +1131,7 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
         killed_terrorists = excluded.killed_terrorists,
         killed_civilians = excluded.killed_civilians,
         injured = excluded.injured,
+        arrested = excluded.arrested,
         actor_or_group = excluded.actor_or_group,
         confidence = excluded.confidence,
         status = excluded.status,
@@ -1153,6 +1164,7 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
       decision.killed_terrorists,
       decision.killed_civilians,
       decision.injured,
+      decision.arrested,
       decision.actor_or_group,
       decision.confidence,
       status,
@@ -1343,6 +1355,7 @@ export function publicIncident(row) {
       civilians: row.killed_civilians == null ? null : Number(row.killed_civilians)
     },
     injuries,
+    arrested: row.arrested == null ? null : Number(row.arrested),
     summary: row.summary,
     source: "TGD X",
     source_url: row.source_url,
@@ -1559,6 +1572,20 @@ export async function runXToMapAgent(env, options = {}) {
   await metricIncrement(env, "cron_runs", 1);
   try {
     const fetched = await fetchNewXPosts(env);
+    // Telegram receives the already-fetched X payload immediately. This promise
+    // runs alongside backfill/date repair/Gemini work and never calls X itself.
+    const telegramPromise = mirrorFetchedPostsToTelegram(env, fetched.posts).catch(async (error) => {
+      await metricIncrement(env, "errors", 1);
+      await logAgent(env, "telegram_mirror_failed", error?.message || String(error), {}, "error");
+      return {
+        enabled: true,
+        queued: 0,
+        sent: 0,
+        failed: 1,
+        skipped: 0,
+        error: clean(error?.message || error, 500)
+      };
+    });
     await renewAgentLock(env, lease);
     const backfillDate = await stateGet(env, "x_backfill_date", "");
     let backfill = { date: null, posts: [], x_posts_returned: 0 };
@@ -1574,6 +1601,7 @@ export async function runXToMapAgent(env, options = {}) {
     const repairedDates = await repairInferredPostDates(env);
     await stateSet(env, "last_successful_x_check", new Date().toISOString());
     const processed = await processPendingPosts(env, () => renewAgentLock(env, lease));
+    const telegram = await telegramPromise;
     const resyncRequired = await stateGet(env, "feed_resync_required", "false") === "true";
     if (processed.published > 0 || repairedDates > 0 || resyncRequired) {
       await syncPublishedFeed(env);
@@ -1589,9 +1617,10 @@ export async function runXToMapAgent(env, options = {}) {
       backfill_posts_matched: backfill.posts.length,
       repaired_inferred_dates: repairedDates,
       cursor: fetched.cursor,
-      ...processed
+      ...processed,
+      telegram
     };
-    if (result.x_posts_returned || result.processed_posts || result.published || result.review) {
+    if (result.x_posts_returned || result.processed_posts || result.published || result.review || telegram.sent || telegram.failed) {
       await logAgent(env, "cron_complete", "X-to-Map run completed.", result);
     }
     return result;
@@ -1659,6 +1688,50 @@ export async function handleAgentPublicRequest(request, env) {
   }
 }
 
+export function dailyInfographicSummary(rows, date) {
+  const incidents = (rows || []).map((row) => ({
+    id: row.id,
+    date: row.incident_date,
+    district: row.district,
+    province: row.province,
+    locality: row.locality,
+    location_label: row.location_label,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+    category: row.category_name || row.incident_type || "Security incident",
+    incident_type: row.incident_type,
+    summary: clean(row.summary, 600),
+    killed: Number(row.killed) || 0,
+    injured: Number(row.injured) || 0,
+    arrested: Number(row.arrested) || 0,
+    published_at: row.published_at
+  }));
+  return {
+    date,
+    time_zone: "Asia/Karachi",
+    total_incidents: incidents.length,
+    killed: incidents.reduce((total, incident) => total + incident.killed, 0),
+    injured: incidents.reduce((total, incident) => total + incident.injured, 0),
+    arrested: incidents.reduce((total, incident) => total + incident.arrested, 0),
+    incidents
+  };
+}
+
+async function dailyInfographicData(env, requestedDate = "") {
+  const date = requestedDate ? realIsoDate(requestedDate) : pakistanDateFromSeconds();
+  if (!date) throw new AgentError("Infographic date must use YYYY-MM-DD.", 400);
+  const rows = await env.CONTENT_DB.prepare(`
+    SELECT id, incident_date, district, province, locality, location_label,
+           latitude, longitude, category_name, incident_type, summary,
+           killed, injured, arrested, published_at
+    FROM incidents
+    WHERE status = 'published' AND incident_date = ?
+    ORDER BY COALESCE(published_at, updated_at), id
+    LIMIT 100
+  `).bind(date).all();
+  return dailyInfographicSummary(rows.results || [], date);
+}
+
 async function agentStatus(env) {
   const [
     metrics,
@@ -1669,7 +1742,8 @@ async function agentStatus(env) {
     lastExport,
     oauth,
     logs,
-    settings
+    settings,
+    telegram
   ] = await Promise.all([
     env.CONTENT_DB.prepare("SELECT metric_key, metric_value FROM agent_metrics WHERE metric_month = ?").bind(monthKey()).all(),
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'needs_review'").first(),
@@ -1679,7 +1753,8 @@ async function agentStatus(env) {
     env.CONTENT_DB.prepare("SELECT * FROM monthly_exports ORDER BY generated_at DESC LIMIT 1").first(),
     env.CONTENT_DB.prepare("SELECT expires_at, scope, updated_at FROM x_oauth_tokens WHERE id = 1").first(),
     env.CONTENT_DB.prepare("SELECT * FROM agent_logs ORDER BY id DESC LIMIT 25").all(),
-    env.CONTENT_DB.prepare("SELECT key, value, updated_at FROM sync_state").all()
+    env.CONTENT_DB.prepare("SELECT key, value, updated_at FROM sync_state").all(),
+    telegramStatus(env)
   ]);
   const metricMap = Object.fromEntries((metrics.results || []).map((row) => [row.metric_key, Number(row.metric_value) || 0]));
   const state = Object.fromEntries((settings.results || []).map((row) => [row.key, row.value]));
@@ -1707,7 +1782,8 @@ async function agentStatus(env) {
     exports_this_month: metricMap.exports_generated || 0,
     last_monthly_export: lastExport || null,
     oauth: oauth || null,
-    logs: logs.results || []
+    logs: logs.results || [],
+    ...telegram
   };
 }
 
@@ -1728,7 +1804,7 @@ function editableIncident(body) {
   const allowed = [
     "incident_date", "incident_date_source", "country", "province", "district",
     "locality", "location_label", "latitude", "longitude", "location_precision",
-    "incident_type", "category_name", "summary", "killed", "injured",
+    "incident_type", "category_name", "summary", "killed", "injured", "arrested",
     "actor_or_group", "confidence"
   ];
   return Object.fromEntries(allowed.filter((key) => Object.hasOwn(body || {}, key)).map((key) => [key, body[key]]));
@@ -1766,6 +1842,9 @@ async function updateReviewItem(env, id, body) {
     }
     if (merged.injured != null && nullableCount(merged.injured) == null) {
       throw new AgentError("Injured must be blank, zero, or a positive whole number.", 400);
+    }
+    if (merged.arrested != null && nullableCount(merged.arrested) == null) {
+      throw new AgentError("Arrested must be blank, zero, or a positive whole number.", 400);
     }
     status = "published";
     publishedAt = new Date().toISOString();
@@ -1904,6 +1983,16 @@ export async function handleAgentAdmin(request, env, ctx, adminPath) {
   const method = request.method;
   const url = new URL(request.url);
   if (adminPath === "/agent/status" && method === "GET") return json(await agentStatus(env));
+  if (adminPath === "/agent/telegram/toggle" && method === "POST") {
+    const body = await readJsonLimited(request);
+    return json(await setTelegramEnabled(env, body?.enabled === true));
+  }
+  if (adminPath === "/agent/telegram/test" && method === "POST") {
+    return json(await sendTelegramTest(env));
+  }
+  if (adminPath === "/agent/infographic" && method === "GET") {
+    return json(await dailyInfographicData(env, clean(url.searchParams.get("date"), 10)));
+  }
   if (adminPath === "/agent/x/connect" && method === "POST") return json(await beginXOAuth(request, env));
   if (adminPath === "/agent/pause" && method === "POST") {
     await stateSet(env, "agent_enabled", "false");

@@ -21,9 +21,11 @@ crons = ["* * * * *"]
 #   X_CLIENT_ID                    official X OAuth application client ID
 #   X_CLIENT_SECRET                official X OAuth confidential client secret
 #   X_TOKEN_ENCRYPTION_KEY         32-byte base64url/hex AES key for stored tokens
+#   TELEGRAM_BOT_TOKEN             BotFather token for TGD Alert Bot
 [vars]
 X_USERNAME = "Global_Decipher"
 X_OAUTH_REDIRECT_URI = "https://theglobaldecipher.com/api/agent/x/callback"
+TELEGRAM_CHANNEL_USERNAME = "@theglobaldecipher"
 INCIDENT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 MONTHLY_CHARTS_ENABLED = "true"
 GITHUB_REPO = "globaldecipher/globaldecipher.github.io"

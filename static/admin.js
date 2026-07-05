@@ -490,6 +490,140 @@
           ));
         }
 
+        const telegramToggle = el("button", {
+          class: "btn " + (status.telegram_enabled ? "danger" : "primary"),
+          disabled: !status.telegram_configured && !status.telegram_enabled,
+          onclick: async () => {
+            telegramToggle.disabled = true;
+            try {
+              await api("/agent/telegram/toggle", {
+                method: "POST",
+                body: { enabled: !status.telegram_enabled }
+              });
+              toast(status.telegram_enabled ? "Telegram mirroring is off." : "Telegram mirroring is on.");
+              await refresh();
+            } catch (error) {
+              toast(error.message, "err");
+              telegramToggle.disabled = false;
+            }
+          }
+        }, status.telegram_enabled ? "Turn Telegram OFF" : "Turn Telegram ON");
+        const telegramTest = el("button", {
+          class: "btn",
+          disabled: !status.telegram_configured,
+          onclick: async () => {
+            if (!confirm(`Send a visible test message to ${status.telegram_channel}?`)) return;
+            telegramTest.disabled = true;
+            telegramTest.textContent = "Sending…";
+            try {
+              await api("/agent/telegram/test", { method: "POST" });
+              toast(`Test message sent to ${status.telegram_channel}.`);
+              await refresh();
+            } catch (error) {
+              toast(error.message, "err");
+              telegramTest.disabled = false;
+              telegramTest.textContent = "Send test message";
+            }
+          }
+        }, "Send test message");
+        const telegramLog = el("div", { class: "agent-log-list telegram-log" });
+        (status.telegram_deliveries || []).forEach((entry) => {
+          telegramLog.append(el("div", { class: "agent-log-row " + (entry.status === "failed" ? "error" : "") },
+            el("time", {}, fmtWhen(entry.sent_at || entry.updated_at)),
+            el("strong", {}, entry.status),
+            el("span", {},
+              entry.last_error
+                ? entry.last_error
+                : entry.post_url
+                  ? `X post ${entry.x_post_id}`
+                  : entry.x_post_id
+            )
+          ));
+        });
+        if (!status.telegram_deliveries?.length) {
+          telegramLog.append(el("p", { class: "muted" }, "No Telegram deliveries yet."));
+        }
+        mount.append(el("section", { class: "card telegram-card" },
+          el("div", { class: "section-head split-head" },
+            el("div", {},
+              el("h3", {}, "Telegram mirror ", statusPill(status.telegram_enabled)),
+              el("p", { class: "section-sub" },
+                `New TGD X posts and replies use the same fetched payload and mirror to ${status.telegram_channel}. Replies thread beneath their Telegram parent when available.`
+              )
+            ),
+            el("div", { class: "page-head-actions" }, telegramTest, telegramToggle)
+          ),
+          el("div", { class: "telegram-summary" },
+            agentMetric("Bot secret", status.telegram_configured ? "Configured" : "Missing", "Stored only as a Cloudflare secret", status.telegram_configured ? "" : "warn"),
+            agentMetric("Channel", status.telegram_channel || "@theglobaldecipher", "TGD Alert Bot must remain an admin"),
+            agentMetric(
+              "Last delivery",
+              status.telegram_last_delivery ? fmtWhen(status.telegram_last_delivery.sent_at || status.telegram_last_delivery.updated_at) : "Not yet",
+              status.telegram_last_delivery?.status || "No message sent"
+            ),
+            agentMetric("Failed deliveries", status.telegram_failed_deliveries || 0, "Retried from D1 without another X read", status.telegram_failed_deliveries ? "danger" : "")
+          ),
+          telegramLog
+        ));
+
+        const infographicPreview = el("div", { class: "infographic-preview empty" },
+          el("p", {}, "Generate a PNG preview from today’s published D1 incidents.")
+        );
+        const infographicDownload = el("button", { class: "btn", disabled: true }, "Download PNG");
+        let infographicBlobUrl = "";
+        let infographicFilename = "";
+        infographicDownload.addEventListener("click", () => {
+          if (!infographicBlobUrl) return;
+          const anchor = el("a", { href: infographicBlobUrl, download: infographicFilename });
+          document.body.append(anchor);
+          anchor.click();
+          anchor.remove();
+        });
+        const infographicGenerate = el("button", {
+          class: "btn primary",
+          onclick: async () => {
+            infographicGenerate.disabled = true;
+            infographicGenerate.textContent = "Generating PNG…";
+            try {
+              if (!window.TGDInfographic) throw new Error("Infographic renderer did not load.");
+              const data = await api("/agent/infographic");
+              const generated = await window.TGDInfographic.generateInfographicPng(data, {
+                mapUrl: "/assets/pakistan-map.svg",
+                logoUrl: "/assets/brand/tgd-logo-header.png"
+              });
+              if (infographicBlobUrl) URL.revokeObjectURL(infographicBlobUrl);
+              infographicBlobUrl = URL.createObjectURL(generated.blob);
+              infographicFilename = `tgd-security-incidents-${data.date}.png`;
+              clear(infographicPreview);
+              infographicPreview.classList.remove("empty");
+              infographicPreview.append(el("img", {
+                src: infographicBlobUrl,
+                alt: `Security and terrorism incidents infographic for ${data.date}`
+              }));
+              infographicDownload.disabled = false;
+              infographicDownload.textContent = `Download ${data.date} PNG`;
+              toast(`PNG ready: ${data.total_incidents} published incident${data.total_incidents === 1 ? "" : "s"}.`);
+            } catch (error) {
+              toast(error.message, "err");
+            } finally {
+              infographicGenerate.disabled = false;
+              infographicGenerate.textContent = "Generate Today’s Infographic";
+            }
+          }
+        }, "Generate Today’s Infographic");
+        mount.append(el("section", { class: "card infographic-card" },
+          el("div", { class: "section-head split-head" },
+            el("div", {},
+              el("h3", {}, "Daily infographic"),
+              el("p", { class: "section-sub" },
+                "Manual only. Uses today’s approved D1 incidents, creates one 1080×1350 PNG, and never posts it automatically."
+              )
+            ),
+            el("div", { class: "page-head-actions" }, infographicGenerate, infographicDownload)
+          ),
+          infographicPreview
+        ));
+
         const monthInput = el("input", { class: "field inline", type: "month", value: previousMonthKey() });
         const generate = el("button", {
           class: "btn primary",
@@ -624,6 +758,7 @@
             add("summary", "Summary", { type: "textarea", rows: 4, wide: true, required: true }),
             add("killed", "Killed", { type: "number", min: 0, optional: true }),
             add("injured", "Injured", { type: "number", min: 0, optional: true }),
+            add("arrested", "Arrested", { type: "number", min: 0, optional: true }),
             add("actor_or_group", "Actor / group", { optional: true })
           ),
           section("Location", "Coordinates are required to publish. Keep them approximate when the post only names a district.",

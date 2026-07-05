@@ -4,6 +4,7 @@ import { unzipSync, strFromU8 } from "fflate";
 import {
   acquireAgentLock,
   conversationReady,
+  dailyInfographicSummary,
   decryptToken,
   effectiveIncidentDate,
   encryptToken,
@@ -63,6 +64,7 @@ function extraction(overrides = {}) {
       killed_terrorists: 3,
       killed_civilians: 0,
       injured: null,
+      arrested: 0,
       actor_or_group: "Security forces",
       confidence: "high",
       requires_review: false,
@@ -265,9 +267,50 @@ test("owner ignore rules deterministically suppress automatic publication", () =
 });
 
 test("preserves missing casualties as null rather than zero", () => {
-  const parsed = validateGeminiOutput(extraction({ killed: null, injured: null }), posts);
+  const parsed = validateGeminiOutput(extraction({ killed: null, injured: null, arrested: null }), posts);
   assert.equal(parsed.incidents[0].killed, null);
   assert.equal(parsed.incidents[0].injured, null);
+  assert.equal(parsed.incidents[0].arrested, null);
+});
+
+test("daily infographic totals use published D1 fields without rereading X", () => {
+  const result = dailyInfographicSummary([
+    {
+      id: "one",
+      incident_date: "2026-07-05",
+      district: "Kech",
+      province: "Balochistan",
+      latitude: 26,
+      longitude: 63.05,
+      category_name: "Counterterrorism operation",
+      summary: "Three militants were killed and two suspects were arrested.",
+      killed: 3,
+      injured: 0,
+      arrested: 2
+    },
+    {
+      id: "two",
+      incident_date: "2026-07-05",
+      district: "Bannu",
+      province: "Khyber Pakhtunkhwa",
+      latitude: 32.99,
+      longitude: 70.6,
+      category_name: "Armed attack",
+      summary: "One officer was injured.",
+      killed: 0,
+      injured: 1,
+      arrested: null
+    }
+  ], "2026-07-05");
+  assert.deepEqual(
+    {
+      incidents: result.total_incidents,
+      killed: result.killed,
+      injured: result.injured,
+      arrested: result.arrested
+    },
+    { incidents: 2, killed: 3, injured: 1, arrested: 2 }
+  );
 });
 
 test("a daily roundup can return several separate incidents", () => {
