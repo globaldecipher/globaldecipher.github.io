@@ -1809,12 +1809,12 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260705-telegram-infographic">
+<link rel="stylesheet" href="/assets/admin.css?v=20260705-agent-resilience">
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin-infographic.js?v=20260705-telegram-infographic" defer></script>
-<script src="/assets/admin.js?v=20260705-telegram-infographic" defer></script>
+<script src="/assets/admin-infographic.js?v=20260705-agent-resilience" defer></script>
+<script src="/assets/admin.js?v=20260705-agent-resilience" defer></script>
 </body>
 </html>
 `;
@@ -2105,7 +2105,7 @@ function monitoringAccessPage() {
 // for the public site. It also gates only /monitoring/ behind a paid subscriber
 // session; other editorial sections and public tools stay open.
 function pagesWorker() {
-  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/assets\\/vendor\\//, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin\\./, /^\\/assets\\/vendor\\//, /^\\/assets\\/pakistan-map\\.svg$/, /^\\/assets\\/brand\\/tgd-logo-header\\.png$/, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
 const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
 const SESSION_COOKIE = "tgd_monitoring_session";
 const CANONICAL_ORIGIN = "https://theglobaldecipher.com";

@@ -16,6 +16,7 @@ import {
   monthlySummary
 } from "./monthly-data-package.js";
 import {
+  mirrorStoredPostsToTelegram,
   mirrorFetchedPostsToTelegram,
   sendTelegramTest,
   setTelegramEnabled,
@@ -43,6 +44,8 @@ const X_TIMELINE_QUERY_KEYS = new Set([
 ]);
 const GEMINI_TIMEOUT_MS = 15_000;
 const X_TIMEOUT_MS = 10_000;
+const X_RETRY_DELAYS_SECONDS = [60, 120, 300, 600, 900];
+const TRANSIENT_X_STATUSES = new Set([0, 429, 500, 502, 503, 504]);
 const MAX_UPSTREAM_BYTES = 1024 * 1024;
 const THREAD_IDLE_MS = 3 * 60 * 1000;
 const LOCK_SECONDS = 5 * 60;
@@ -302,8 +305,12 @@ async function fetchWithTimeout(url, init, timeoutMs, service) {
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (error) {
-    if (error?.name === "AbortError") throw new AgentError(`${service} timed out.`, 504);
-    throw new AgentError(`${service} could not be reached.`, 502);
+    const wrapped = error?.name === "AbortError"
+      ? new AgentError(`${service} timed out.`, 504)
+      : new AgentError(`${service} could not be reached.`, 502);
+    wrapped.retryable = true;
+    wrapped.upstreamStatus = 0;
+    throw wrapped;
   } finally {
     clearTimeout(timer);
   }
@@ -485,16 +492,44 @@ async function xApiRequest(env, path, retryAuth = true) {
     await currentAccessToken(env, true);
     return xApiRequest(env, path, false);
   }
-  const data = await readResponseJsonLimited(response);
+  let data = null;
+  try {
+    data = await readResponseJsonLimited(response);
+  } catch (error) {
+    if (response.ok) throw error;
+  }
   if (!response.ok) {
-    const error = new AgentError(
-      response.status === 429 ? "X API rate limit reached; the cursor was not moved." : `X API request failed (${response.status}).`,
-      response.status === 429 ? 429 : 502
+    const upstreamDetail = clean(
+      data?.detail || data?.title || data?.errors?.[0]?.message,
+      300
     );
-    error.retryAfter = response.headers.get("x-rate-limit-reset");
+    const temporary = TRANSIENT_X_STATUSES.has(response.status);
+    const error = new AgentError(
+      response.status === 429
+        ? "X API rate limit reached; the cursor was not moved."
+        : temporary
+          ? `X is temporarily unavailable (${response.status}); the cursor was not moved.`
+          : `X API request failed (${response.status})${upstreamDetail ? `: ${upstreamDetail}` : "."}`,
+      response.status === 429 ? 429 : temporary ? 503 : 502
+    );
+    error.retryAfter = response.headers.get("retry-after") || response.headers.get("x-rate-limit-reset");
+    error.retryable = temporary;
+    error.upstreamStatus = response.status;
+    error.upstreamDetail = upstreamDetail || null;
+    error.transactionId = clean(response.headers.get("x-transaction-id"), 200) || null;
     throw error;
   }
   return data || {};
+}
+
+export function xRetryDelaySeconds(consecutiveFailures) {
+  const failures = Math.max(1, Number(consecutiveFailures) || 1);
+  return X_RETRY_DELAYS_SECONDS[Math.min(failures - 1, X_RETRY_DELAYS_SECONDS.length - 1)];
+}
+
+export function isTransientXError(error) {
+  if (error?.retryable === true) return true;
+  return TRANSIENT_X_STATUSES.has(Number(error?.upstreamStatus || error?.status || 0));
 }
 
 export async function beginXOAuth(request, env) {
@@ -651,6 +686,81 @@ async function fetchNewXPosts(env) {
   await metricIncrement(env, "x_posts_read", posts.length);
   await stateSet(env, "last_x_post_detected", newCursor);
   return { posts, cursor: newCursor };
+}
+
+async function fetchNewXPostsResilient(env) {
+  const cursor = await stateGet(env, "last_tweet_id", "");
+  const retryNotBefore = Number(await stateGet(env, "x_retry_not_before", "0")) || 0;
+  if (retryNotBefore > Date.now()) {
+    return {
+      posts: [],
+      cursor,
+      x_available: false,
+      x_check_skipped: true,
+      x_retry_at: new Date(retryNotBefore).toISOString(),
+      x_warning: await stateGet(
+        env,
+        "x_last_warning",
+        "X is temporarily unavailable; automatic retry is scheduled."
+      )
+    };
+  }
+
+  try {
+    const fetched = await fetchNewXPosts(env);
+    const previousFailures = Number(await stateGet(env, "x_consecutive_failures", "0")) || 0;
+    await stateDelete(env, "x_retry_not_before");
+    await stateDelete(env, "x_consecutive_failures");
+    await stateDelete(env, "x_last_warning");
+    await stateDelete(env, "x_last_upstream_status");
+    await stateSet(env, "last_successful_x_check", new Date().toISOString());
+    if (previousFailures > 0) {
+      await logAgent(
+        env,
+        "x_recovered",
+        `X polling recovered after ${previousFailures} temporary failure${previousFailures === 1 ? "" : "s"}.`,
+        { cursor: fetched.cursor }
+      );
+    }
+    return {
+      ...fetched,
+      x_available: true,
+      x_check_skipped: false,
+      x_retry_at: null,
+      x_warning: null
+    };
+  } catch (error) {
+    if (!isTransientXError(error)) throw error;
+    const consecutiveFailures = (Number(await stateGet(env, "x_consecutive_failures", "0")) || 0) + 1;
+    const retryDelaySeconds = xRetryDelaySeconds(consecutiveFailures);
+    const retryAt = Date.now() + retryDelaySeconds * 1000;
+    const upstreamStatus = Number(error?.upstreamStatus || error?.status || 0);
+    const warning = `X is temporarily unavailable${upstreamStatus ? ` (${upstreamStatus})` : ""}. No post was lost; automatic retry is scheduled.`;
+    await stateSet(env, "x_consecutive_failures", consecutiveFailures);
+    await stateSet(env, "x_retry_not_before", retryAt);
+    await stateSet(env, "x_last_warning", warning);
+    await stateSet(env, "x_last_upstream_status", upstreamStatus || "network");
+    await stateDelete(env, "last_error");
+    await metricIncrement(env, "x_upstream_unavailable", 1);
+    if (consecutiveFailures <= X_RETRY_DELAYS_SECONDS.length || consecutiveFailures % 12 === 0) {
+      await logAgent(env, "x_temporarily_unavailable", warning, {
+        upstream_status: upstreamStatus || null,
+        upstream_detail: error?.upstreamDetail || null,
+        retry_at: new Date(retryAt).toISOString(),
+        consecutive_failures: consecutiveFailures,
+        cursor,
+        transaction_id: error?.transactionId || null
+      }, "warn");
+    }
+    return {
+      posts: [],
+      cursor,
+      x_available: false,
+      x_check_skipped: false,
+      x_retry_at: new Date(retryAt).toISOString(),
+      x_warning: warning
+    };
+  }
 }
 
 async function fetchXPostsForPakistanDate(env, requestedDate) {
@@ -1571,10 +1681,23 @@ export async function runXToMapAgent(env, options = {}) {
   const startedAt = new Date().toISOString();
   await metricIncrement(env, "cron_runs", 1);
   try {
-    const fetched = await fetchNewXPosts(env);
-    // Telegram receives the already-fetched X payload immediately. This promise
-    // runs alongside backfill/date repair/Gemini work and never calls X itself.
-    const telegramPromise = mirrorFetchedPostsToTelegram(env, fetched.posts).catch(async (error) => {
+    // Finish messages already preserved in D1 before contacting X. This keeps
+    // Telegram recoverable during a temporary X outage without another X read.
+    const telegramBacklog = await mirrorStoredPostsToTelegram(env).catch(async (error) => {
+      await metricIncrement(env, "errors", 1);
+      await logAgent(env, "telegram_mirror_failed", error?.message || String(error), {}, "error");
+      return {
+        enabled: true,
+        queued: 0,
+        sent: 0,
+        failed: 1,
+        skipped: 0,
+        error: clean(error?.message || error, 500)
+      };
+    });
+    const fetched = await fetchNewXPostsResilient(env);
+    // New Telegram messages use the exact payload returned by the one X read.
+    const telegramNew = await mirrorFetchedPostsToTelegram(env, fetched.posts).catch(async (error) => {
       await metricIncrement(env, "errors", 1);
       await logAgent(env, "telegram_mirror_failed", error?.message || String(error), {}, "error");
       return {
@@ -1589,7 +1712,7 @@ export async function runXToMapAgent(env, options = {}) {
     await renewAgentLock(env, lease);
     const backfillDate = await stateGet(env, "x_backfill_date", "");
     let backfill = { date: null, posts: [], x_posts_returned: 0 };
-    if (backfillDate) {
+    if (backfillDate && fetched.x_available) {
       backfill = await fetchXPostsForPakistanDate(env, backfillDate);
       await stateDelete(env, "x_backfill_date");
       await logAgent(env, "x_backfill_complete", `Owned posts for ${backfill.date} Pakistan time were imported.`, {
@@ -1599,9 +1722,14 @@ export async function runXToMapAgent(env, options = {}) {
       await renewAgentLock(env, lease);
     }
     const repairedDates = await repairInferredPostDates(env);
-    await stateSet(env, "last_successful_x_check", new Date().toISOString());
     const processed = await processPendingPosts(env, () => renewAgentLock(env, lease));
-    const telegram = await telegramPromise;
+    const telegram = {
+      enabled: telegramBacklog.enabled || telegramNew.enabled,
+      queued: (telegramBacklog.queued || 0) + (telegramNew.queued || 0),
+      sent: (telegramBacklog.sent || 0) + (telegramNew.sent || 0),
+      failed: (telegramBacklog.failed || 0) + (telegramNew.failed || 0),
+      skipped: (telegramBacklog.skipped || 0) + (telegramNew.skipped || 0)
+    };
     const resyncRequired = await stateGet(env, "feed_resync_required", "false") === "true";
     if (processed.published > 0 || repairedDates > 0 || resyncRequired) {
       await syncPublishedFeed(env);
@@ -1617,6 +1745,10 @@ export async function runXToMapAgent(env, options = {}) {
       backfill_posts_matched: backfill.posts.length,
       repaired_inferred_dates: repairedDates,
       cursor: fetched.cursor,
+      x_available: fetched.x_available,
+      x_check_skipped: fetched.x_check_skipped,
+      x_retry_at: fetched.x_retry_at,
+      x_warning: fetched.x_warning,
       ...processed,
       telegram
     };
@@ -1768,6 +1900,11 @@ async function agentStatus(env) {
     last_x_post_detected: state.last_x_post_detected || null,
     last_map_update: state.last_map_update || null,
     last_error: state.last_error || null,
+    x_warning: state.x_last_warning || null,
+    x_retry_at: state.x_retry_not_before
+      ? new Date(Number(state.x_retry_not_before)).toISOString()
+      : null,
+    x_consecutive_failures: Number(state.x_consecutive_failures || 0),
     target_country: state.target_country || "Pakistan",
     incidents_published_today: Number(today?.count || 0),
     waiting_for_review: Number(review?.count || 0),
@@ -1779,6 +1916,7 @@ async function agentStatus(env) {
     gemini_calls_this_month: metricMap.gemini_calls || 0,
     cron_runs_this_month: metricMap.cron_runs || 0,
     errors_this_month: metricMap.errors || 0,
+    x_upstream_unavailable_this_month: metricMap.x_upstream_unavailable || 0,
     exports_this_month: metricMap.exports_generated || 0,
     last_monthly_export: lastExport || null,
     oauth: oauth || null,

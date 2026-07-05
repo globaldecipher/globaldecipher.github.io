@@ -47,7 +47,7 @@
     if (auth && KEY) headers.authorization = "Bearer " + KEY;
     if (body !== undefined) headers["content-type"] = "application/json";
     const payload = formData || (body !== undefined ? JSON.stringify(body) : undefined);
-    const res = await fetch(API + path, { method, headers, body: payload });
+    const res = await fetch(API + path, { method, headers, body: payload, cache: "no-store" });
     let data = {};
     try { data = await res.json(); } catch {}
     if (!res.ok) {
@@ -252,11 +252,26 @@
     status.textContent = text || "Updating…";
   }
 
+  function setMaintenanceUnavailable() {
+    const sw = document.getElementById("maint-switch");
+    const label = document.getElementById("maint-label");
+    const status = document.getElementById("maint-status");
+    if (!sw) return;
+    sw.setAttribute("aria-checked", "false");
+    sw.removeAttribute("aria-busy");
+    sw.disabled = true;
+    label.classList.remove("is-on", "is-loading");
+    status.textContent = "Status unavailable";
+  }
+
   async function initMaintenance() {
     setMaintenanceLoading("Checking…");
-    let current = false;
-    try { current = Boolean((await api("/maintenance")).on); } catch {}
-    applyMaintenanceState(current);
+    try {
+      applyMaintenanceState(Boolean((await api("/maintenance")).on));
+    } catch {
+      setMaintenanceUnavailable();
+      return;
+    }
     document.getElementById("maint-switch").addEventListener("click", async (e) => {
       const sw = e.currentTarget;
       if (sw.getAttribute("aria-busy") === "true") return;
@@ -437,7 +452,14 @@
             run.textContent = "Checking X…";
             try {
               const result = await api("/agent/run", { method: "POST" });
-              toast(result.x_posts_returned ? `${result.x_posts_returned} new post(s) processed.` : "No new TGD posts. Gemini was not called.");
+              toast(
+                result.x_available === false
+                  ? `X is temporarily unavailable. D1 and Telegram recovery still ran; next retry ${fmtWhen(result.x_retry_at)}.`
+                  : result.x_posts_returned
+                    ? `${result.x_posts_returned} new post(s) processed.`
+                    : "No new TGD posts. Gemini was not called.",
+                result.x_available === false ? "warn" : "ok"
+              );
               await refresh();
             } catch (error) {
               toast(error.message, "err");
@@ -473,10 +495,17 @@
             agentMetric("Estimated X cost", "$" + Number(status.estimated_x_cost_usd || 0).toFixed(3), "$0.001 per returned owned post"),
             agentMetric("Gemini calls", status.gemini_calls_this_month ?? 0, "Empty X checks do not call Gemini"),
             agentMetric("Cron runs", status.cron_runs_this_month ?? 0),
-            agentMetric("Errors / retries", status.errors_this_month ?? 0)
+            agentMetric("Agent errors", status.errors_this_month ?? 0),
+            agentMetric("X temporary outages", status.x_upstream_unavailable_this_month ?? 0, "Backoff prevents repeated one-minute failures")
           )
         );
 
+        if (status.x_warning) {
+          mount.append(el("div", { class: "agent-alert warn" },
+            el("strong", {}, "X temporarily unavailable"),
+            el("span", {}, `${status.x_warning}${status.x_retry_at ? ` Next retry: ${fmtWhen(status.x_retry_at)}.` : ""}`)
+          ));
+        }
         if (status.last_error) {
           mount.append(el("div", { class: "agent-alert danger" },
             el("strong", {}, "Latest error"),
@@ -604,6 +633,9 @@
               infographicDownload.textContent = `Download ${data.date} PNG`;
               toast(`PNG ready: ${data.total_incidents} published incident${data.total_incidents === 1 ? "" : "s"}.`);
             } catch (error) {
+              clear(infographicPreview);
+              infographicPreview.classList.add("empty");
+              infographicPreview.append(el("p", { class: "err" }, `Could not generate the PNG: ${error.message}`));
               toast(error.message, "err");
             } finally {
               infographicGenerate.disabled = false;

@@ -135,6 +135,19 @@ async function queueFetchedPosts(env, posts) {
   return eligible.length;
 }
 
+async function recentStoredPostsWithoutDelivery(env) {
+  const rows = await env.CONTENT_DB.prepare(`
+    SELECT xp.x_post_id, xp.raw_text, xp.post_url, xp.parent_post_id
+    FROM x_posts xp
+    LEFT JOIN telegram_deliveries td ON td.x_post_id = xp.x_post_id
+    WHERE td.x_post_id IS NULL
+      AND datetime(xp.created_at) >= datetime('now', '-24 hours')
+    ORDER BY xp.created_at, xp.x_post_id
+    LIMIT 25
+  `).all();
+  return rows.results || [];
+}
+
 async function pendingDeliveries(env) {
   const rows = await env.CONTENT_DB.prepare(`
     SELECT td.*, xp.raw_text, xp.post_url, xp.parent_post_id
@@ -221,6 +234,13 @@ export async function mirrorFetchedPostsToTelegram(env, fetchedPosts = []) {
     summary.skipped += result.skipped || 0;
   }
   return summary;
+}
+
+export async function mirrorStoredPostsToTelegram(env) {
+  if (!(await telegramEnabled(env))) {
+    return { enabled: false, queued: 0, sent: 0, failed: 0, skipped: 0 };
+  }
+  return mirrorFetchedPostsToTelegram(env, await recentStoredPostsWithoutDelivery(env));
 }
 
 export async function telegramStatus(env) {

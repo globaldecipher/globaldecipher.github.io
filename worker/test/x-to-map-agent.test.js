@@ -10,6 +10,7 @@ import {
   encryptToken,
   evaluateOwnerRules,
   highestXId,
+  isTransientXError,
   normalizeXPost,
   publicationSafety,
   publicIncident,
@@ -18,7 +19,8 @@ import {
   renewAgentLock,
   resolveSafeLocation,
   validateGeminiOutput,
-  validateXApiRequestPath
+  validateXApiRequestPath,
+  xRetryDelaySeconds
 } from "../src/x-to-map-agent.js";
 import { pakistanDateFromIso } from "../src/feed.js";
 import {
@@ -92,6 +94,15 @@ test("keeps X IDs as strings and retains self-replies", () => {
 
 test("an empty X response normalizes to no posts", () => {
   assert.deepEqual([].map(normalizeXPost).filter(Boolean), []);
+});
+
+test("temporary X failures use bounded backoff instead of failing every minute forever", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 20].map(xRetryDelaySeconds),
+    [60, 120, 300, 600, 900, 900]
+  );
+  assert.equal(isTransientXError({ upstreamStatus: 503 }), true);
+  assert.equal(isTransientXError({ status: 401 }), false);
 });
 
 test("moves the cursor to the greatest string X ID without number conversion", () => {
