@@ -1849,8 +1849,24 @@ export function dailyInfographicSummary(rows, date) {
   };
 }
 
+export function preferredInfographicDate(requestedDate, latestPublishedDate, pakistanToday) {
+  if (requestedDate) return realIsoDate(requestedDate);
+  const today = realIsoDate(pakistanToday);
+  const latest = realIsoDate(latestPublishedDate);
+  if (latest && today && latest <= today) return latest;
+  return today;
+}
+
 async function dailyInfographicData(env, requestedDate = "") {
-  const date = requestedDate ? realIsoDate(requestedDate) : pakistanDateFromSeconds();
+  const pakistanToday = pakistanDateFromSeconds();
+  const latest = requestedDate
+    ? null
+    : await env.CONTENT_DB.prepare(`
+      SELECT MAX(incident_date) AS date
+      FROM incidents
+      WHERE status = 'published' AND incident_date <= ?
+    `).bind(pakistanToday).first();
+  const date = preferredInfographicDate(requestedDate, latest?.date, pakistanToday);
   if (!date) throw new AgentError("Infographic date must use YYYY-MM-DD.", 400);
   const rows = await env.CONTENT_DB.prepare(`
     SELECT id, incident_date, district, province, locality, location_label,
@@ -1861,7 +1877,11 @@ async function dailyInfographicData(env, requestedDate = "") {
     ORDER BY COALESCE(published_at, updated_at), id
     LIMIT 100
   `).bind(date).all();
-  return dailyInfographicSummary(rows.results || [], date);
+  return {
+    ...dailyInfographicSummary(rows.results || [], date),
+    pakistan_today: pakistanToday,
+    date_selection: requestedDate ? "selected" : date === pakistanToday ? "today" : "latest_published"
+  };
 }
 
 async function agentStatus(env) {
@@ -1871,6 +1891,7 @@ async function agentStatus(env) {
     failed,
     duplicates,
     today,
+    latestIncidentDate,
     lastExport,
     oauth,
     logs,
@@ -1882,6 +1903,7 @@ async function agentStatus(env) {
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM x_posts WHERE processing_status IN ('failed', 'pending_retry')").first(),
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'possible_duplicate'").first(),
     env.CONTENT_DB.prepare("SELECT COUNT(*) AS count FROM incidents WHERE status = 'published' AND date(published_at, '+5 hours') = date('now', '+5 hours')").first(),
+    env.CONTENT_DB.prepare("SELECT MAX(incident_date) AS date FROM incidents WHERE status = 'published' AND incident_date <= date('now', '+5 hours')").first(),
     env.CONTENT_DB.prepare("SELECT * FROM monthly_exports ORDER BY generated_at DESC LIMIT 1").first(),
     env.CONTENT_DB.prepare("SELECT expires_at, scope, updated_at FROM x_oauth_tokens WHERE id = 1").first(),
     env.CONTENT_DB.prepare("SELECT * FROM agent_logs ORDER BY id DESC LIMIT 25").all(),
@@ -1910,6 +1932,7 @@ async function agentStatus(env) {
     waiting_for_review: Number(review?.count || 0),
     possible_duplicates: Number(duplicates?.count || 0),
     failed_jobs: Number(failed?.count || 0),
+    latest_published_incident_date: realIsoDate(latestIncidentDate?.date),
     x_posts_read_this_month: ownedReads,
     estimated_x_cost_usd: Number((ownedReads * 0.001).toFixed(3)),
     x_cost_warning: ownedReads >= 500 ? "alert" : ownedReads >= 350 ? "warning" : null,

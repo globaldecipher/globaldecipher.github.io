@@ -13,6 +13,7 @@ import {
   isTransientXError,
   normalizeXPost,
   publicationSafety,
+  preferredInfographicDate,
   publicIncident,
   realIsoDate,
   releaseAgentLock,
@@ -322,6 +323,18 @@ test("daily infographic totals use published D1 fields without rereading X", () 
     },
     { incidents: 2, killed: 3, injured: 1, arrested: 2 }
   );
+});
+
+test("infographic defaults to the latest populated date after Pakistan midnight", () => {
+  assert.equal(
+    preferredInfographicDate("", "2026-07-05", "2026-07-06"),
+    "2026-07-05"
+  );
+  assert.equal(
+    preferredInfographicDate("2026-07-04", "2026-07-05", "2026-07-06"),
+    "2026-07-04"
+  );
+  assert.equal(preferredInfographicDate("not-a-date", "2026-07-05", "2026-07-06"), null);
 });
 
 test("a daily roundup can return several separate incidents", () => {

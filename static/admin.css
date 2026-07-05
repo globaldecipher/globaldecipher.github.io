@@ -443,6 +443,15 @@ a:hover { text-decoration: underline; }
 .page-head h1 { margin-bottom: 4px; }
 .page-head .page-sub { color: var(--muted); font-size: 13.5px; max-width: 56ch; }
 .page-head-actions { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.inline-field .field { min-width: 154px; }
 
 /* ============================== LIST TOOLBAR (search + bulk) ============================== */
 .list-toolbar {

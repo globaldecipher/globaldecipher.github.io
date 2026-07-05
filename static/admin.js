@@ -596,8 +596,13 @@
         ));
 
         const infographicPreview = el("div", { class: "infographic-preview empty" },
-          el("p", {}, "Generate a PNG preview from today’s published D1 incidents.")
+          el("p", {}, "Generate a PNG preview from the latest date containing published incidents.")
         );
+        const infographicDate = el("input", {
+          class: "field inline",
+          type: "date",
+          value: status.latest_published_incident_date || ""
+        });
         const infographicDownload = el("button", { class: "btn", disabled: true }, "Download PNG");
         let infographicBlobUrl = "";
         let infographicFilename = "";
@@ -615,11 +620,15 @@
             infographicGenerate.textContent = "Generating PNG…";
             try {
               if (!window.TGDInfographic) throw new Error("Infographic renderer did not load.");
-              const data = await api("/agent/infographic");
+              const query = infographicDate.value
+                ? `?date=${encodeURIComponent(infographicDate.value)}`
+                : "";
+              const data = await api(`/agent/infographic${query}`);
               const generated = await window.TGDInfographic.generateInfographicPng(data, {
                 mapUrl: "/assets/pakistan-map.svg",
                 logoUrl: "/assets/brand/tgd-logo-header.png"
               });
+              infographicDate.value = data.date;
               if (infographicBlobUrl) URL.revokeObjectURL(infographicBlobUrl);
               infographicBlobUrl = URL.createObjectURL(generated.blob);
               infographicFilename = `tgd-security-incidents-${data.date}.png`;
@@ -639,19 +648,23 @@
               toast(error.message, "err");
             } finally {
               infographicGenerate.disabled = false;
-              infographicGenerate.textContent = "Generate Today’s Infographic";
+              infographicGenerate.textContent = "Generate Infographic";
             }
           }
-        }, "Generate Today’s Infographic");
+        }, "Generate Infographic");
         mount.append(el("section", { class: "card infographic-card" },
           el("div", { class: "section-head split-head" },
             el("div", {},
               el("h3", {}, "Daily infographic"),
               el("p", { class: "section-sub" },
-                "Manual only. Uses today’s approved D1 incidents, creates one 1080×1350 PNG, and never posts it automatically."
+                "Manual only. Defaults to the latest date with published incidents, creates one 1080×1350 PNG, and never posts automatically."
               )
             ),
-            el("div", { class: "page-head-actions" }, infographicGenerate, infographicDownload)
+            el("div", { class: "page-head-actions" },
+              el("label", { class: "inline-field" }, "Incident date", infographicDate),
+              infographicGenerate,
+              infographicDownload
+            )
           ),
           infographicPreview
         ));
