@@ -60,6 +60,9 @@ const DEFAULT_GLOBAL_INSTRUCTION = [
   "Do not treat allegations or unclear claims as confirmed incidents.",
   "If a location, date, casualty figure, or incident type is unclear, return null and require review.",
   "A missing casualty figure is null; zero is allowed only when the post explicitly says none were reported.",
+  "Classify explicitly identified deaths using killed_forces, killed_terrorists, and killed_civilians.",
+  "For example, 'eliminating three terrorists' means killed=3, killed_terrorists=3, killed_forces=0, and killed_civilians=0.",
+  "If the post does not identify who was killed, set all three classified fatality fields to null.",
   "Monthly assessments, reports, research, infographics, commentary, and promotions never create map incidents.",
   "A quoted UPDATE may refer to an existing incident, but material corrections and motive changes require review.",
   "Return only valid JSON."
@@ -91,6 +94,9 @@ const GEMINI_SCHEMA = {
           category: { type: "string", nullable: true },
           summary: { type: "string", nullable: true },
           killed: { type: "integer", nullable: true },
+          killed_forces: { type: "integer", nullable: true },
+          killed_terrorists: { type: "integer", nullable: true },
+          killed_civilians: { type: "integer", nullable: true },
           injured: { type: "integer", nullable: true },
           actor_or_group: { type: "string", nullable: true },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
@@ -112,6 +118,9 @@ const GEMINI_SCHEMA = {
           "category",
           "summary",
           "killed",
+          "killed_forces",
+          "killed_terrorists",
+          "killed_civilians",
           "injured",
           "actor_or_group",
           "confidence",
@@ -826,6 +835,13 @@ export function validateGeminiOutput(value, posts) {
     const sourceTweetId = clean(incident?.source_tweet_id, 30);
     const rawIncidentDate = clean(incident?.incident_date, 40);
     const incidentDate = realIsoDate(rawIncidentDate);
+    const killed = nullableCount(incident.killed);
+    const killedForces = nullableCount(incident.killed_forces);
+    const killedTerrorists = nullableCount(incident.killed_terrorists);
+    const killedCivilians = nullableCount(incident.killed_civilians);
+    const classifiedKilled = [killedForces, killedTerrorists, killedCivilians]
+      .reduce((total, count) => total + (count || 0), 0);
+    const casualtyMismatch = killed !== null && classifiedKilled > killed;
     if (!postIds.has(sourceTweetId)) throw new AgentError("Gemini referenced a post outside the supplied thread.", 502);
     return {
       source_tweet_id: sourceTweetId,
@@ -842,12 +858,18 @@ export function validateGeminiOutput(value, posts) {
       incident_type: nullableText(incident.incident_type, 120),
       category: nullableText(incident.category, 120),
       summary: nullableText(incident.summary, 900),
-      killed: nullableCount(incident.killed),
+      killed,
+      killed_forces: killedForces,
+      killed_terrorists: killedTerrorists,
+      killed_civilians: killedCivilians,
       injured: nullableCount(incident.injured),
       actor_or_group: nullableText(incident.actor_or_group, 180),
       confidence: CONFIDENCE_VALUES.has(incident.confidence) ? incident.confidence : "low",
-      requires_review: incident.requires_review === true,
-      reason_for_review: nullableText(incident.reason_for_review, 500),
+      requires_review: incident.requires_review === true || casualtyMismatch,
+      reason_for_review: [
+        nullableText(incident.reason_for_review, 500),
+        casualtyMismatch ? "Classified fatalities exceed the total killed." : null
+      ].filter(Boolean).join(" ") || null,
       update_target_tweet_id: nullableText(incident.update_target_tweet_id, 30),
       disqualifies_prior_incident: incident.disqualifies_prior_incident === true
     };
@@ -1071,9 +1093,10 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
         id, fingerprint, source_tweet_id, source_url, source_text, tweet_created_at,
         incident_date, incident_date_source, country, province, district, locality,
         location_label, latitude, longitude, location_precision, incident_type,
-        category_name, summary, killed, injured, actor_or_group, confidence, status,
+        category_name, summary, killed, killed_forces, killed_terrorists,
+        killed_civilians, injured, actor_or_group, confidence, status,
         review_reason, duplicate_of, published_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         fingerprint = excluded.fingerprint,
         source_tweet_id = excluded.source_tweet_id,
@@ -1094,6 +1117,9 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
         category_name = excluded.category_name,
         summary = excluded.summary,
         killed = excluded.killed,
+        killed_forces = excluded.killed_forces,
+        killed_terrorists = excluded.killed_terrorists,
+        killed_civilians = excluded.killed_civilians,
         injured = excluded.injured,
         actor_or_group = excluded.actor_or_group,
         confidence = excluded.confidence,
@@ -1123,6 +1149,9 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
       category,
       decision.summary,
       decision.killed,
+      decision.killed_forces,
+      decision.killed_terrorists,
+      decision.killed_civilians,
       decision.injured,
       decision.actor_or_group,
       decision.confidence,
@@ -1284,7 +1313,7 @@ async function processPendingPosts(env, keepLock = null) {
   return { processed_posts: processedPosts, published, review, ignored };
 }
 
-function publicIncident(row) {
+export function publicIncident(row) {
   const fatalities = row.killed == null ? null : Number(row.killed);
   const injuries = row.injured == null ? null : Number(row.injured);
   return {
@@ -1308,6 +1337,11 @@ function publicIncident(row) {
     status: "Initial report",
     severity: severityFor(fatalities || 0, injuries || 0),
     fatalities,
+    fatality_breakdown: {
+      forces: row.killed_forces == null ? null : Number(row.killed_forces),
+      terrorists: row.killed_terrorists == null ? null : Number(row.killed_terrorists),
+      civilians: row.killed_civilians == null ? null : Number(row.killed_civilians)
+    },
     injuries,
     summary: row.summary,
     source: "TGD X",
@@ -1371,6 +1405,8 @@ export async function updatePublishedAgentIncidents(env, candidates) {
       district: clean(incident.district, 100)
     };
     const fingerprint = await incidentFingerprint(decision, location);
+    const incomingBreakdown = incident.fatality_breakdown;
+    const hasBreakdown = incomingBreakdown && typeof incomingBreakdown === "object";
     updates.push(env.CONTENT_DB.prepare(`
       UPDATE incidents SET
         fingerprint = ?,
@@ -1388,6 +1424,9 @@ export async function updatePublishedAgentIncidents(env, candidates) {
         category_name = ?,
         summary = ?,
         killed = ?,
+        killed_forces = ?,
+        killed_terrorists = ?,
+        killed_civilians = ?,
         injured = ?,
         actor_or_group = ?,
         updated_at = datetime('now')
@@ -1408,6 +1447,9 @@ export async function updatePublishedAgentIncidents(env, candidates) {
       clean(incident.category, 120) || existing.category_name || "Security incident",
       decision.summary,
       incident.fatalities == null ? null : Number(incident.fatalities),
+      hasBreakdown ? nullableCount(incomingBreakdown.forces) : existing.killed_forces,
+      hasBreakdown ? nullableCount(incomingBreakdown.terrorists) : existing.killed_terrorists,
+      hasBreakdown ? nullableCount(incomingBreakdown.civilians) : existing.killed_civilians,
       incident.injuries == null ? null : Number(incident.injuries),
       clean(incident.actor, 180) || null,
       existing.id
@@ -1532,7 +1574,11 @@ export async function runXToMapAgent(env, options = {}) {
     const repairedDates = await repairInferredPostDates(env);
     await stateSet(env, "last_successful_x_check", new Date().toISOString());
     const processed = await processPendingPosts(env, () => renewAgentLock(env, lease));
-    if (processed.published > 0 || repairedDates > 0) await syncPublishedFeed(env);
+    const resyncRequired = await stateGet(env, "feed_resync_required", "false") === "true";
+    if (processed.published > 0 || repairedDates > 0 || resyncRequired) {
+      await syncPublishedFeed(env);
+      if (resyncRequired) await stateDelete(env, "feed_resync_required");
+    }
     await stateDelete(env, "last_error");
     const result = {
       ok: true,

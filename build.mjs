@@ -398,7 +398,7 @@ const CONTENT_DUMP_TOKEN = process.env.CONTENT_DUMP_TOKEN || "";
 function refreshManagedAssetUrls(value = "") {
   return String(value)
     .replace(/\/assets\/incident-map\.css(?:\?[^\s"'>]*)?/g, "/assets/incident-map.css?v=20260705-daily-first")
-    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260705-daily-first")
+    .replace(/\/assets\/incident-map\.js(?:\?[^\s"'>]*)?/g, "/assets/incident-map.js?v=20260705-casualty-fix")
     .replace(
       '<p class="tracker-kicker">TGD PUBLIC-SOURCE MONITORING</p>',
       '<p class="tracker-kicker">Daily security record</p>'

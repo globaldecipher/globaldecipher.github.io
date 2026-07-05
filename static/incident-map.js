@@ -408,7 +408,7 @@
     const fatalitySplit = fatalityTotals();
     const injuries = state.filtered.reduce((sum, item) => sum + Number(item.injuries || 0), 0);
     const districts = new Set(state.filtered.map((item) => item.district).filter(Boolean)).size;
-    const topProvince = topLabels(countBy(state.filtered, "province"), 1)[0] || "None";
+    const districtNames = topLabels(countBy(state.filtered, "district"), 2).join(" · ") || "None";
     const high = state.filtered.filter((item) => severityClass(item.severity) === "high").length;
     const metric = (label, value, note, extra = "") => `<article class="tracker-metric"><span class="metric-label">${esc(label)}</span><strong class="metric-value">${count(value)}</strong><span class="metric-note">${esc(note)}</span>${extra}</article>`;
     const splitRows = FATALITY_GROUPS.map(([key, label]) => {
@@ -421,7 +421,7 @@
       ["Incidents", state.filtered.length, rangeLabel()],
       ["Fatalities", fatalities, "Click for Forces / Terrorists / Civilians", `<button class="fatality-toggle" type="button" data-fatality-toggle aria-expanded="${state.fatalityBreakdownOpen ? "true" : "false"}">Breakdown</button><div class="fatality-breakdown${state.fatalityBreakdownOpen ? " is-open" : ""}">${splitRows}${splitNote}</div>`],
       ["Injuries", injuries, "Reported in feed"],
-      ["Districts", districts, topProvince],
+      ["Districts", districts, districtNames],
       ["High severity", high, "Marked for review"]
     ].map(([label, value, note, extra]) => metric(label, value, note, extra)).join("");
   }

@@ -244,4 +244,4 @@ extra_head: '<link rel="stylesheet" href="/assets/incident-map.css?v=20260705-da
   };
 })();
 </script>
-<script src="/assets/incident-map.js?v=20260705-daily-first" defer></script>
+<script src="/assets/incident-map.js?v=20260705-casualty-fix" defer></script>

@@ -11,6 +11,7 @@ import {
   highestXId,
   normalizeXPost,
   publicationSafety,
+  publicIncident,
   realIsoDate,
   releaseAgentLock,
   renewAgentLock,
@@ -58,6 +59,9 @@ function extraction(overrides = {}) {
       category: "Counterterrorism operation",
       summary: "Security forces killed three terrorists during an intelligence-based operation in Turbat.",
       killed: 3,
+      killed_forces: 0,
+      killed_terrorists: 3,
+      killed_civilians: 0,
       injured: null,
       actor_or_group: "Security forces",
       confidence: "high",
@@ -149,7 +153,25 @@ test("accepts one high-confidence Pakistan incident", () => {
   const location = resolveSafeLocation(parsed.incidents[0]);
   const safety = publicationSafety(parsed, parsed.incidents[0], location);
   assert.equal(location.district, "Kech");
+  assert.equal(parsed.incidents[0].killed_terrorists, 3);
   assert.equal(safety.publish, true);
+});
+
+test("publishes the structured fatality breakdown used by the incident map", () => {
+  const incident = publicIncident({
+    id: "incident-1",
+    incident_date: "2026-07-05",
+    tweet_created_at: "2026-07-05T09:00:00.000Z",
+    killed: 3,
+    killed_forces: 0,
+    killed_terrorists: 3,
+    killed_civilians: 0
+  });
+  assert.deepEqual(incident.fatality_breakdown, {
+    forces: 0,
+    terrorists: 3,
+    civilians: 0
+  });
 });
 
 test("does not confuse Khyber Pakhtunkhwa province text with Khyber district", () => {
