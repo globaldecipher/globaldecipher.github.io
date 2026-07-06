@@ -3,33 +3,38 @@
 
   const WIDTH = 1080;
   const HEIGHT = 1350;
-  const MAP = { x: 205, y: 224, width: 670, height: 982 };
+  const MAP = { x: 32, y: 228, width: 676, height: 950 };
   const MAP_BOUNDS = { west: 60.5, east: 78.1, north: 37.5, south: 23.4 };
   const CARD_AREA = { top: 232, bottom: 1218, gap: 16 };
   const CARD_COLUMNS = {
-    left: { x: 18, width: 344 },
+    left: { x: 18, width: 330 },
     right: { x: 718, width: 344 }
   };
   const PROVINCE_META = {
     "khyber-pakhtunkhwa": {
       name: "Khyber Pakhtunkhwa", short: "KP", color: "#6d3684",
-      latitude: 34.15, longitude: 71.75, side: "right", mapLabel: "Khyber Pakhtunkhwa"
+      latitude: 34.15, longitude: 71.75, side: "right", cardTop: 234,
+      labelLatitude: 34.58, labelLongitude: 70.75, mapLabel: "Khyber Pakhtunkhwa"
     },
     balochistan: {
       name: "Balochistan", short: "BALOCHISTAN", color: "#c38a22",
-      latitude: 28.35, longitude: 65.45, side: "left", mapLabel: "Balochistan"
+      latitude: 28.35, longitude: 65.45, side: "left", cardTop: 244,
+      labelLatitude: 29.05, labelLongitude: 66.35, mapLabel: "Balochistan"
     },
     punjab: {
       name: "Punjab", short: "PUNJAB", color: "#a3222b",
-      latitude: 31.35, longitude: 72.85, side: "right", mapLabel: "Punjab"
+      latitude: 31.35, longitude: 72.85, side: "right", cardTop: 764,
+      labelLatitude: 31.25, labelLongitude: 71.35, mapLabel: "Punjab"
     },
     sindh: {
       name: "Sindh", short: "SINDH", color: "#247378",
-      latitude: 26.45, longitude: 68.55, side: "left", mapLabel: "Sindh"
+      latitude: 26.45, longitude: 68.55, side: "left", cardTop: 770,
+      labelLatitude: 25.85, labelLongitude: 68.05, mapLabel: "Sindh"
     },
     "gilgit-baltistan": {
       name: "Gilgit-Baltistan", short: "GB", color: "#314d71",
-      latitude: 35.75, longitude: 74.55, side: "right", mapLabel: "Gilgit-Baltistan"
+      latitude: 35.75, longitude: 74.55, side: "right", cardTop: 234,
+      labelLatitude: 35.85, labelLongitude: 73.75, mapLabel: "Gilgit-Baltistan"
     },
     islamabad: {
       name: "Islamabad", short: "ICT", color: "#605348",
@@ -37,7 +42,8 @@
     },
     "azad-jammu-and-kashmir": {
       name: "Azad Jammu and Kashmir", short: "AJK", color: "#49705a",
-      latitude: 33.55, longitude: 73.85, side: "right", mapLabel: "Azad Kashmir"
+      latitude: 33.55, longitude: 73.85, side: "right", cardTop: 670,
+      labelLatitude: 33.35, labelLongitude: 74.05, mapLabel: "Azad Kashmir"
     }
   };
 
@@ -200,7 +206,10 @@
     const weight = options.weight || 500;
     const fill = options.fill || "#171a1f";
     const anchor = options.anchor || "start";
-    return `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${lines.map((line, index) => `<tspan x="${x}" dy="${index ? lineHeight : 0}">${xml(line)}</tspan>`).join("")}</text>`;
+    const stroke = options.stroke
+      ? ` stroke="${options.stroke}" stroke-width="${options.strokeWidth || 3}" paint-order="stroke" stroke-linejoin="round"`
+      : "";
+    return `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}"${stroke}>${lines.map((line, index) => `<tspan x="${x}" dy="${index ? lineHeight : 0}">${xml(line)}</tspan>`).join("")}</text>`;
   }
 
   function statBlock(x, label, value, color) {
@@ -278,6 +287,7 @@
         const marker = projectMarker(group.latitude, group.longitude);
         const allocation = Math.max(150, Math.floor(cardSpace * (weights[index] / totalWeight)));
         const metrics = cardMetrics(group, allocation);
+        const preferredTop = PROVINCE_META[group.key]?.cardTop;
         return {
           group,
           marker,
@@ -287,11 +297,14 @@
           width: column.width,
           y: Math.max(
             CARD_AREA.top,
-            Math.min(CARD_AREA.bottom - metrics.height, marker.y - metrics.height / 2)
+            Math.min(
+              CARD_AREA.bottom - metrics.height,
+              Number.isFinite(preferredTop) ? preferredTop : marker.y - metrics.height / 2
+            )
           )
         };
       })
-      .sort((a, b) => a.marker.y - b.marker.y);
+      .sort((a, b) => a.y - b.y || a.marker.y - b.marker.y);
     for (let index = 1; index < cards.length; index += 1) {
       const earliest = cards[index - 1].y + cards[index - 1].metrics.height + CARD_AREA.gap;
       cards[index].y = Math.max(cards[index].y, earliest);
@@ -325,7 +338,7 @@
     const { group, marker, metrics, side, x, y, width } = card;
     const height = metrics.height;
     const cardEdgeX = side === "left" ? x + width : x;
-    const elbowX = side === "left" ? MAP.x - 12 : MAP.x + MAP.width + 12;
+    const elbowX = side === "left" ? cardEdgeX + 18 : cardEdgeX - 18;
     const lineY = Math.max(y + 35, Math.min(y + height - 35, marker.y));
     const clipId = `card-clip-${group.key}`;
     const badgeY = y + 36;
@@ -384,18 +397,23 @@
     return Object.values(PROVINCE_META)
       .filter((meta) => meta.short !== "ICT")
       .map((meta) => {
-        const point = projectMarker(meta.latitude, meta.longitude);
+        const point = projectMarker(
+          meta.labelLatitude ?? meta.latitude,
+          meta.labelLongitude ?? meta.longitude
+        );
         const lines = meta.short === "KP"
           ? ["Khyber", "Pakhtunkhwa"]
           : meta.short === "GB"
             ? ["Gilgit-", "Baltistan"]
             : [meta.mapLabel];
-        return textLines(lines, point.x, point.y - 30, {
+        return textLines(lines, point.x, point.y, {
           size: meta.short === "AJK" ? 13 : 15,
-          lineHeight: 16,
-          weight: 750,
+          lineHeight: 17,
+          weight: 800,
           fill: "#3d474f",
-          anchor: "middle"
+          anchor: "middle",
+          stroke: "#f8f6ef",
+          strokeWidth: 4
         });
       }).join("");
   }
@@ -442,13 +460,17 @@
       ${statBlock(322, "Killed", data.killed || 0, "#b20e18")}
       ${statBlock(580, "Injured", data.injured || 0, "#6d3684")}
       ${statBlock(838, "Arrested", data.arrested || 0, "#c38a22")}
-      <rect x="${MAP.x - 4}" y="${MAP.y - 4}" width="${MAP.width + 8}" height="${MAP.height + 8}" rx="34" fill="#f6f4ed" opacity=".72"/>
       <svg x="${MAP.x}" y="${MAP.y}" width="${MAP.width}" height="${MAP.height}" viewBox="0 0 112 100" preserveAspectRatio="none">
         <style>
-          .country { fill: #f1eee6 !important; }
-          .province { fill: #dedfdb !important; stroke: #65717a !important; stroke-width: 1.15 !important; stroke-opacity: .98 !important; vector-effect: non-scaling-stroke; }
-          .claimed-kashmir { fill: #e3e1db !important; stroke: #37424b !important; stroke-width: 1.15 !important; vector-effect: non-scaling-stroke; }
-          .border { stroke: #1d2831 !important; stroke-width: 1.55 !important; vector-effect: non-scaling-stroke; }
+          .country { fill: #f4f1e9 !important; }
+          .province { fill: #e5e5df !important; stroke: #89939a !important; stroke-width: .9 !important; stroke-opacity: .95 !important; vector-effect: non-scaling-stroke; }
+          .province[data-region="Khyber Pakhtunkhwa"] { fill: #e4e2e7 !important; stroke: none !important; }
+          .province[data-region="Balochistan"] { fill: #e8e5dd !important; }
+          .province[data-region="Punjab"] { fill: #e3e6e2 !important; }
+          .province[data-region="Sindh"] { fill: #e7e5df !important; }
+          .province[data-region="Gilgit-Baltistan"] { fill: #e2e6e8 !important; }
+          .claimed-kashmir { fill: #ece7dd !important; stroke: #6f7a82 !important; stroke-width: .9 !important; vector-effect: non-scaling-stroke; }
+          .border { stroke: #24313a !important; stroke-width: 1.8 !important; vector-effect: non-scaling-stroke; }
         </style>
         ${assets.mapInner || ""}
       </svg>

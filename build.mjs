@@ -1813,7 +1813,7 @@ function adminPage() {
 </head>
 <body>
 <div id="admin-root"></div>
-<script src="/assets/admin-infographic.js?v=20260706-province-clusters" defer></script>
+<script src="/assets/admin-infographic.js?v=20260706-map-polish" defer></script>
 <script src="/assets/admin.js?v=20260706-infographic-date" defer></script>
 </body>
 </html>

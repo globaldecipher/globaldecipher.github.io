@@ -84,6 +84,8 @@ test("infographic uses one fixed province marker and card per province", () => {
   const cards = renderer.layoutGroups(groups);
   assert.equal(cards.find((card) => card.group.province === "Khyber Pakhtunkhwa").side, "right");
   assert.equal(cards.find((card) => card.group.province === "Balochistan").side, "left");
+  assert.equal(cards.find((card) => card.group.province === "Khyber Pakhtunkhwa").y, 234);
+  assert.equal(cards.find((card) => card.group.province === "Balochistan").y, 244);
   assert.ok(
     cards.find((card) => card.group.province === "Khyber Pakhtunkhwa").marker.y
       < cards.find((card) => card.group.province === "Balochistan").marker.y
@@ -119,7 +121,8 @@ test("infographic SVG is a single Instagram-size branded canvas", () => {
   assert.match(svg, />Incidents<\/text>/);
   assert.match(svg, />2<\/text>/);
   assert.match(svg, /theglobaldecipher\.com/);
-  assert.match(svg, /\.province \{ fill: #dedfdb !important; stroke: #65717a !important;/);
+  assert.match(svg, /\.province \{ fill: #e5e5df !important; stroke: #89939a !important;/);
+  assert.match(svg, /\.province\[data-region="Khyber Pakhtunkhwa"\] \{ fill: #e4e2e7 !important; stroke: none !important; \}/);
   assert.match(svg, /clipPath id="card-clip-khyber-pakhtunkhwa"/);
   assert.match(svg, /class="province-marker" data-province="Khyber Pakhtunkhwa"/);
   assert.match(svg, /Khyber/);
