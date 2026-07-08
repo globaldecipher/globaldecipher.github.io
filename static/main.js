@@ -256,7 +256,7 @@
   /* ---------- reveal on scroll ---------- */
   if ("IntersectionObserver" in window) {
     const targets = $$(
-      ".content-card, .snapshot-card, .gateway-card, .stat-card, .region-card, .method-steps span, .desk-list a, .intel-desk, .split-heading, .article-body, .article-sidebar, .hero h1, .hero-lead, .hero-meta, .hero-actions, .premium-cta"
+      ".content-card, .snapshot-card, .gateway-card, .stat-card, .region-card, .method-steps span, .desk-list a, .intel-desk, .split-heading, .hero h1, .hero-lead, .hero-meta, .hero-actions, .premium-cta"
     );
     for (const t of targets) t.classList.add("reveal");
     const io = new IntersectionObserver(
