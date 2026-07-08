@@ -1,4 +1,6 @@
 // The Global Decipher — incident-feed + admin API Worker.
+//   Admin session: sets a browser cookie so admin users can view /monitoring/
+//   content without needing a Safepay subscription.
 //
 //   scheduled(): poll the official TGD X account and build monthly data exports.
 //   fetch():
@@ -13,6 +15,9 @@
 //     GET    /api/monitoring/me       public — read Monitoring session state
 //     POST   /api/monitoring/logout   public — revoke the current Monitoring session
 //     POST   /api/safepay/webhook     public — Safepay subscription events
+//     POST   /api/admin/session       admin token — create admin session cookie
+//     POST   /api/admin/session/logout admin token — revoke admin session cookie
+//     GET    /api/admin/session/check  admin token — verify admin session validity
 //     *      /api/admin/*             admin token — all editor and management operations
 //     GET    /media/<key>            public — serve uploaded research media
 //     GET    /                       health check
@@ -97,6 +102,44 @@ function bearerToken(request) {
 }
 
 const readJson = (request) => readJsonLimited(request, 1024 * 1024);
+
+// ---- Admin session (monitoring bypass) ----
+const ADMIN_SESSION_COOKIE = "tgd_admin_session";
+const ADMIN_SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
+
+function randomToken(bytes = 32) {
+  const data = new Uint8Array(bytes);
+  crypto.getRandomValues(data);
+  return [...data].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function adminSessionCookie(token) {
+  return [
+    `${ADMIN_SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    "Path=/",
+    `Max-Age=${ADMIN_SESSION_TTL}`,
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "Priority=High"
+  ].join("; ");
+}
+
+function clearAdminSessionCookie() {
+  return `${ADMIN_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+}
+
+function parseAdminSessionCookie(request) {
+  const header = request.headers.get("cookie") || "";
+  for (const part of header.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const index = trimmed.indexOf("=");
+    const key = index === -1 ? trimmed : trimmed.slice(0, index);
+    if (key === ADMIN_SESSION_COOKIE) return decodeURIComponent(index === -1 ? "" : trimmed.slice(index + 1));
+  }
+  return "";
+}
 
 // Light front-matter scrapers for audit-log labelling — cheaper than importing
 // the full markdown parser. They tolerate either bare or quoted YAML values.
@@ -210,6 +253,28 @@ export default {
       }
 
       if (adminPath === "/ping") return json({ ok: true });
+
+      // ---- Admin session (monitoring bypass) ----
+      if (adminPath === "/session" && method === "POST") {
+        const token = randomToken();
+        await env.INCIDENTS.put(`admin:session:${token}`, JSON.stringify({
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + ADMIN_SESSION_TTL * 1000).toISOString()
+        }), { expirationTtl: ADMIN_SESSION_TTL });
+        return json({ ok: true }, 200, { "set-cookie": adminSessionCookie(token) });
+      }
+      if (adminPath === "/session/logout" && method === "POST") {
+        const existing = parseAdminSessionCookie(request);
+        if (existing && env.INCIDENTS) await env.INCIDENTS.delete(`admin:session:${existing}`);
+        return json({ ok: true }, 200, { "set-cookie": clearAdminSessionCookie() });
+      }
+      if (adminPath === "/session/check" && method === "GET") {
+        const existing = parseAdminSessionCookie(request);
+        if (!existing) return json({ valid: false });
+        const session = await env.INCIDENTS.get(`admin:session:${existing}`, "json");
+        const valid = Boolean(session && Date.parse(session.expires_at || "") > Date.now());
+        return json({ valid });
+      }
 
       const agentAdminResponse = await handleAgentAdmin(request, env, ctx, adminPath);
       if (agentAdminResponse) return agentAdminResponse;

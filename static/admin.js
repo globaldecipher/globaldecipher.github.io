@@ -120,6 +120,8 @@
       KEY = key;
       try {
         await api("/ping");
+        // Establish admin session cookie so /monitoring/ pages bypass the paywall
+        try { await api("/session", { method: "POST" }); } catch {}
         renderApp();
       } catch (e) {
         KEY = "";
@@ -141,6 +143,8 @@
   }
 
   function logout() {
+    // Clear admin session cookie
+    try { api("/session/logout", { method: "POST" }).catch(() => {}); } catch {}
     KEY = "";
     renderLogin();
   }
@@ -171,7 +175,9 @@
         tabBtn("content", "Articles & Profiles"),
         tabBtn("activity", "Activity")
       ),
-      el("div", { class: "topbar-right" }, themeToggle(), maint, el("button", { class: "btn ghost", onclick: logout }, "Log out"))
+      el("div", { class: "topbar-right" },
+        el("a", { class: "btn ghost", href: "/monitoring/", target: "_blank", rel: "noopener noreferrer", title: "Preview the Monitoring Desk (admin bypass)" }, "View Monitoring Desk"),
+        themeToggle(), maint, el("button", { class: "btn ghost", onclick: logout }, "Log out"))
     );
     const main = el("main", { id: "view", class: "view" });
     root.append(header, main);

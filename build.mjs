@@ -2102,12 +2102,15 @@ function monitoringAccessPage() {
 
 // Cloudflare Pages advanced-mode worker. Runs on every request to the Pages
 // project. Reads the maintenance flag from KV and serves the maintenance page
-// for the public site. It also gates only /monitoring/ behind a paid subscriber
-// session; other editorial sections and public tools stay open.
+// for the public site. It gates individual /monitoring/<slug>/ articles behind
+// a paid subscriber session; the /monitoring/ listing page stays public so
+// visitors can see article previews. Other editorial sections and public tools
+// stay open.
 function pagesWorker() {
   return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin(?:[.-])/, /^\\/assets\\/vendor\\//, /^\\/assets\\/pakistan-map\\.svg$/, /^\\/assets\\/brand\\/tgd-logo-header\\.png$/, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
-const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
+const MONITORING_PATH = /^\\/monitoring\\/[^/]+/;
 const SESSION_COOKIE = "tgd_monitoring_session";
+const ADMIN_SESSION_COOKIE = "tgd_admin_session";
 const CANONICAL_ORIGIN = "https://theglobaldecipher.com";
 const CSP = "default-src 'self'; base-uri 'self'; object-src 'self'; script-src 'self' '${TRUSTED_INLINE_SCRIPT_HASH}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://tiles.openfreemap.org; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 
@@ -2167,6 +2170,18 @@ async function hasMonitoringAccess(request, env) {
   }
 }
 
+async function hasAdminAccess(request, env) {
+  const store = env.PAYWALL_KV || env.MAINTENANCE_KV;
+  const token = cookieValue(request, ADMIN_SESSION_COOKIE);
+  if (!store || !token) return false;
+  try {
+    const session = await store.get("admin:session:" + token, "json");
+    return Boolean(session && Date.parse(session.expires_at || "") > Date.now());
+  } catch (err) {
+    return false;
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -2189,7 +2204,7 @@ export default {
         // fail open — serve the site
       }
     }
-    if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasMonitoringAccess(request, env))) {
+    if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasAdminAccess(request, env)) && !(await hasMonitoringAccess(request, env))) {
       const page = await env.ASSETS.fetch(new URL("/monitoring-access/index.html", url.origin));
       return secureResponse(new Response(page.body, {
         status: 200,
@@ -2258,8 +2273,8 @@ async function main() {
   writePage(
     "/monitoring/",
     listingPage({
-      title: "Monitoring Desk",
-      eyebrow: "Premium intelligence previews",
+      title: "Pay To Read",
+      eyebrow: "Monitoring Desk",
       summary: "Structured previews of militant media monitoring, propaganda ecosystems, and narrative shifts.",
       current: "/monitoring/",
       items: allContent.filter((item) => item.type === "monitoring"),
