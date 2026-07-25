@@ -2216,7 +2216,10 @@ async function main() {
   const [news, opinion, monitoring, reports, profiles, pages] = await Promise.all([
     readCollection("news"),
     readCollection("opinion"),
-    readCollection("monitoring"),
+    // Monitoring lives behind CONTENT_DUMP_TOKEN. While the desk is retired
+    // there is nothing to render from it, so skip the protected fetch entirely
+    // rather than make every build depend on that credential.
+    SHOW_MONITORING ? readCollection("monitoring") : Promise.resolve([]),
     readCollection("reports"),
     readCollection("profiles"),
     readCollection("pages")
