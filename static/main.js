@@ -6,6 +6,58 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+  /* ---------- reveal sections on scroll ---------- */
+  // Deliberately scroll-driven rather than IntersectionObserver: a throttled
+  // scroll handler still runs in throttled/background renderers where the
+  // observer never delivers a callback, and a missed callback here would leave
+  // the section permanently invisible.
+  let pending = [...document.querySelectorAll("[data-reveal]")];
+  if (pending.length) {
+    document.documentElement.classList.add("js-reveal");
+    let queued = false;
+    const sweep = () => {
+      queued = false;
+      const limit = (window.innerHeight || document.documentElement.clientHeight || 0) * 0.88;
+      pending = pending.filter((el) => {
+        // With no measurable viewport there is nothing to animate against, so
+        // reveal rather than risk hiding the section for good.
+        if (!limit || el.getBoundingClientRect().top < limit) {
+          el.classList.add("is-visible");
+          return false;
+        }
+        return true;
+      });
+      if (!pending.length) {
+        window.removeEventListener("scroll", schedule);
+        window.removeEventListener("resize", schedule);
+        document.removeEventListener("visibilitychange", schedule);
+        window.removeEventListener("pageshow", schedule);
+      }
+    };
+    // A timer, not requestAnimationFrame: rAF is suspended while a page is not
+    // being painted (background tab), and the sweep must still run when the
+    // reader comes back to it.
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      window.setTimeout(sweep, 16);
+    };
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    document.addEventListener("visibilitychange", schedule);
+    window.addEventListener("pageshow", schedule);
+    sweep();
+  }
+
+  /* ---------- header date ---------- */
+  const dateSlot = document.querySelector(".header-date");
+  if (dateSlot) {
+    const today = new Date();
+    dateSlot.textContent = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    dateSlot.setAttribute("aria-hidden", "false");
+  }
+
   /* ---------- reader color theme ---------- */
   const themeToggle = $("[data-theme-toggle]");
   const themeMeta = $("#theme-color-meta");

@@ -10,6 +10,33 @@ const STATIC_DIR = path.join(ROOT, "static");
 const OUT_DIR = path.join(ROOT, "site");
 const TRUSTED_INLINE_SCRIPT_HASH = "sha256-Kpwr9vcpJlFefP21kj5wxp1RRGuoz9dcBziMdZGoNmc=";
 
+// styles.css and main.js keep stable filenames, so browsers hold the previous
+// copy for the full max-age after a deploy. The digest goes in the filename
+// rather than a ?v= query because the CDN caches these by path and serves the
+// old body back for a new query string.
+function fileStamp(file) {
+  const full = path.join(STATIC_DIR, file);
+  if (!fs.existsSync(full)) return "";
+  return crypto.createHash("sha256").update(fs.readFileSync(full)).digest("hex").slice(0, 10);
+}
+function stampedName(file) {
+  const stamp = fileStamp(file);
+  if (!stamp) return file;
+  const ext = path.extname(file);
+  return `${file.slice(0, -ext.length)}.${stamp}${ext}`;
+}
+const STYLES_ASSET = stampedName("styles.css");
+const MAIN_ASSET = stampedName("main.js");
+
+// Write the digest-named copies alongside the originals so both URLs resolve.
+function writeStampedAssets(outAssetsDir) {
+  for (const [source, stamped] of [["styles.css", STYLES_ASSET], ["main.js", MAIN_ASSET]]) {
+    if (source === stamped) continue;
+    const from = path.join(outAssetsDir, source);
+    if (fs.existsSync(from)) fs.copyFileSync(from, path.join(outAssetsDir, stamped));
+  }
+}
+
 const SITE = {
   title: "The Global Decipher",
   shortTitle: "TGD",
@@ -17,7 +44,7 @@ const SITE = {
   description:
     "Independent, research-first coverage of terrorism, militant networks, and security risk — focused on Pakistan, with regional and global context.",
   url: "https://theglobaldecipher.com",
-  defaultImage: "/assets/brand/tgd-og-default.png",
+  defaultImage: "/assets/brand/tgd-og-default-v2.png",
   email: "contact@theglobaldecipher.com",
   x: "https://x.com/Global_Decipher",
   whatsapp: "https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31",
@@ -36,7 +63,6 @@ const NAV = [
   ["Incident Map", "/incident-map/"],
   ["Network Graph", "/network-graph/"],
   ["Reports", "/reports/"],
-  ["Profiles", "/profiles/"],
   ["Contact", "/contact/"]
 ];
 
@@ -655,15 +681,15 @@ function accessLabel(item) {
 }
 
 function brandMark(prefix = "", variant = "header") {
-  const file = variant === "footer" ? "tgd-logo-footer.png" : "tgd-logo-header.png";
-  const small = variant === "footer" ? "tgd-logo-footer-420.png" : "tgd-logo-header-420.png";
-  const large = variant === "footer" ? "tgd-logo-footer-840.png" : "tgd-logo-header-840.png";
+  const file = variant === "footer" ? "tgd-logo-footer-v2.png" : "tgd-logo-header-v2.png";
+  const small = variant === "footer" ? "tgd-logo-footer-420-v2.png" : "tgd-logo-header-420-v2.png";
+  const large = variant === "footer" ? "tgd-logo-footer-840-v2.png" : "tgd-logo-header-840-v2.png";
   if (variant === "footer") {
-    return `<img class="brand-logo" src="${prefix}assets/brand/${small}" srcset="${prefix}assets/brand/${small} 420w, ${prefix}assets/brand/${large} 840w, ${prefix}assets/brand/${file} 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">`;
+    return `<img class="brand-logo" src="${prefix}assets/brand/${small}" srcset="${prefix}assets/brand/${small} 420w, ${prefix}assets/brand/${large} 840w, ${prefix}assets/brand/${file} 1254w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="420">`;
   }
   return `<span class="brand-picture">
-    <img class="brand-logo brand-logo-light" src="${prefix}assets/brand/tgd-logo-header-420.png" srcset="${prefix}assets/brand/tgd-logo-header-420.png 420w, ${prefix}assets/brand/tgd-logo-header-840.png 840w, ${prefix}assets/brand/tgd-logo-header.png 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
-    <img class="brand-logo brand-logo-dark" src="${prefix}assets/brand/tgd-logo-footer-420.png" srcset="${prefix}assets/brand/tgd-logo-footer-420.png 420w, ${prefix}assets/brand/tgd-logo-footer-840.png 840w, ${prefix}assets/brand/tgd-logo-footer.png 1800w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="140">
+    <img class="brand-logo brand-logo-light" src="${prefix}assets/brand/tgd-logo-header-420-v2.png" srcset="${prefix}assets/brand/tgd-logo-header-420-v2.png 420w, ${prefix}assets/brand/tgd-logo-header-840-v2.png 840w, ${prefix}assets/brand/tgd-logo-header-v2.png 1254w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="420">
+    <img class="brand-logo brand-logo-dark" src="${prefix}assets/brand/tgd-logo-footer-420-v2.png" srcset="${prefix}assets/brand/tgd-logo-footer-420-v2.png 420w, ${prefix}assets/brand/tgd-logo-footer-840-v2.png 840w, ${prefix}assets/brand/tgd-logo-footer-v2.png 1254w" sizes="(max-width: 560px) 210px, 280px" alt="The Global Decipher" width="420" height="420">
   </span>`;
 }
 
@@ -720,26 +746,26 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
   <script src="${assetPrefix}assets/theme-init.js"></script>
-  <link rel="stylesheet" href="${assetPrefix}assets/styles.css">
+  <link rel="stylesheet" href="${assetPrefix}assets/${STYLES_ASSET}">
   ${extraHead}
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <div class="container header-grid">
-      <a class="brand" href="${linkFor("/", pagePath)}" aria-label="${SITE.title} home">
-        ${brandMark(assetPrefix)}
-      </a>
-      <nav class="site-nav" id="site-nav" aria-label="Primary navigation">${nav}</nav>
-      <div class="header-cta">
+  <header class="site-header site-header-centered">
+    <div class="container header-stack">
+      <div class="header-utility">
         <button class="theme-toggle" type="button" aria-label="Switch color theme" data-theme-toggle>
           <span class="theme-icon theme-sun" aria-hidden="true">${icon("sun")}</span>
           <span class="theme-icon theme-moon" aria-hidden="true">${icon("moon")}</span>
         </button>
         <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
-        <a class="pitch-cta" href="${linkFor("/contact/", pagePath)}">Pitch us</a>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
       </div>
-      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
+      <a class="brand brand-center" href="${linkFor("/", pagePath)}" aria-label="${SITE.title} home">
+        ${brandMark(assetPrefix)}
+      </a>
+      <div class="header-date" aria-hidden="true"></div>
+      <nav class="site-nav site-nav-centered" id="site-nav" aria-label="Primary navigation">${nav}</nav>
     </div>
     <section class="site-search-panel" id="site-search" data-site-search data-search-index="${assetPrefix}search-index.json" hidden>
       <div class="container site-search-inner">
@@ -782,7 +808,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
       <span>Public-interest reporting · No propaganda amplification</span>
     </div>
   </footer>
-  <script src="${assetPrefix}assets/main.js" defer></script>
+  <script src="${assetPrefix}assets/${MAIN_ASSET}" defer></script>
 </body>
 </html>`;
 }
@@ -923,35 +949,39 @@ function toolsBand(currentPath = "/") {
     <span class="tool-map-marker marker-sindh"><i></i><b>Sindh</b></span>
     <span class="tool-map-window"><strong>31D</strong><small>rolling window</small></span>
   </span>`;
-  const netPreview = `<svg class="tool-element-network" viewBox="0 0 220 150" aria-hidden="true">
-    <g class="tool-bonds">
-      <line x1="55" y1="42" x2="111" y2="72"/>
-      <line x1="166" y1="35" x2="111" y2="72"/>
-      <line x1="111" y1="72" x2="58" y2="116"/>
-      <line x1="111" y1="72" x2="169" y2="111"/>
-      <line class="dashed" x1="55" y1="42" x2="166" y2="35"/>
+  // A node-and-link constellation: the square element cells this replaced read
+  // as a periodic table rather than a relationship map.
+  const netPreview = `<svg class="tool-network" viewBox="0 0 220 150" aria-hidden="true">
+    <g class="net-links">
+      <path d="M110 74 C 88 60, 72 50, 54 40"/>
+      <path d="M110 74 C 134 62, 150 46, 166 36"/>
+      <path d="M110 74 C 92 92, 76 104, 58 116"/>
+      <path d="M110 74 C 136 90, 152 102, 170 112"/>
+      <path d="M110 74 C 108 46, 104 30, 100 16"/>
+      <path class="net-link-weak" d="M54 40 C 90 22, 132 22, 166 36"/>
+      <path class="net-link-weak" d="M58 116 C 96 132, 136 128, 170 112"/>
     </g>
-    <g class="tool-element cell-gold" transform="translate(28 15)">
-      <rect width="54" height="54"/><text class="number" x="6" y="11">01</text><text class="symbol" x="27" y="35">AQ</text><text class="name" x="27" y="47">AL-QAEDA</text>
+    <g class="net-nodes">
+      <circle class="net-node net-node-core" cx="110" cy="74" r="17"/>
+      <circle class="net-node net-node-major" cx="54" cy="40" r="11"/>
+      <circle class="net-node net-node-major" cx="166" cy="36" r="11"/>
+      <circle class="net-node" cx="58" cy="116" r="9"/>
+      <circle class="net-node" cx="170" cy="112" r="9"/>
+      <circle class="net-node net-node-minor" cx="100" cy="16" r="6"/>
     </g>
-    <g class="tool-element cell-ink" transform="translate(139 8)">
-      <rect width="54" height="54"/><text class="number" x="6" y="11">02</text><text class="symbol" x="27" y="35">IS</text><text class="name" x="27" y="47">ISLAMIC STATE</text>
-    </g>
-    <g class="tool-element cell-red" transform="translate(84 45)">
-      <rect width="54" height="54"/><text class="number" x="6" y="11">03</text><text class="symbol" x="27" y="35">TTP</text><text class="name" x="27" y="47">PAKISTAN</text>
-    </g>
-    <g class="tool-element cell-paper" transform="translate(31 89)">
-      <rect width="54" height="54"/><text class="number" x="6" y="11">04</text><text class="symbol" x="27" y="35">LeT</text><text class="name" x="27" y="47">LASHKAR</text>
-    </g>
-    <g class="tool-element cell-paper" transform="translate(142 84)">
-      <rect width="54" height="54"/><text class="number" x="6" y="11">05</text><text class="symbol" x="27" y="35">BLA</text><text class="name" x="27" y="47">BALOCHISTAN</text>
+    <g class="net-labels">
+      <text x="110" y="78">TTP</text>
+      <text x="54" y="43">AQ</text>
+      <text x="166" y="39">IS</text>
+      <text x="58" y="119">LeT</text>
+      <text x="170" y="115">BLA</text>
     </g>
   </svg>`;
   return `<section class="band tools-band">
     <div class="container split-heading">
       <div>
-        <p class="band-eyebrow">Intelligence tools</p>
-        <h2>Live research tools, built in-house.</h2>
+        <p class="band-eyebrow">Explore the data</p>
+        <h2>Two ways into the evidence.</h2>
       </div>
       <a href="${linkFor("/incident-map/", currentPath)}">Open the incident map</a>
     </div>
@@ -1047,13 +1077,6 @@ function homepage(items) {
   const metricMap = new Map(metrics);
   const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
   const briefings = items.filter((item) => ["news", "opinion", "monitoring"].includes(item.type));
-  const railItems = [
-    ...briefings,
-    ...reports.slice(1),
-    ...profiles
-  ]
-    .filter((item, idx, arr) => item && item.url !== lead?.url && arr.findIndex((other) => other.url === item.url) === idx)
-    .slice(0, 5);
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
   const heroTitle = lead?.hero_title || (lead?.type === "reports"
@@ -1083,6 +1106,9 @@ function homepage(items) {
     });
   }
 
+  // A counter reading "0" undersells the desk, so a stat only earns its place
+  // once it has something to report. With none of them filled the whole strip
+  // is dropped rather than rendered empty.
   const stats = [
     ["Profiles", profiles.length, "Research profiles live"],
     ["Regions", profileRegions.size, "Actor database coverage"],
@@ -1090,7 +1116,7 @@ function homepage(items) {
     metricMap.get("Militant attacks reported") ? ["Attacks", metricMap.get("Militant attacks reported"), `${reportPeriod} report`] : null,
     metricMap.get("Fatalities") ? ["Fatalities", metricMap.get("Fatalities"), `${reportPeriod} report`] : null,
     metricMap.get("Injuries") ? ["Injuries", metricMap.get("Injuries"), `${reportPeriod} report`] : null
-  ].filter(Boolean).slice(0, 6);
+  ].filter(Boolean).filter(([, value]) => Number(value) > 0).slice(0, 6);
 
   const body = `
   ${tickerStrip(items)}
@@ -1112,32 +1138,27 @@ function homepage(items) {
           <a class="button secondary" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
         </div>
       </div>
-      <aside class="hero-rail">
-        <div class="hero-rail-head">
-          <span class="title">Latest research</span>
-          <span class="status"><span class="live-dot"></span> Recently updated</span>
-        </div>
-        ${railItems.length ? railItems.map((item, i) => {
-          const status = item.type === "profiles" ? profileStatus(item) : "";
-          const statusSlug = status ? slugify(status) : "";
-          const metaParts = [typeLabel(item.type), item.region || item.category]
-            .filter(Boolean)
-            .map(escapeHtml)
-            .join(" · ");
-          return `<a class="rail-item${statusSlug ? ` rail-status-${statusSlug}` : ""}" href="${linkFor(item.url, currentPath)}">
-          <span class="num">0${i + 2}</span>
-          <span>
-            <span class="meta">${metaParts}${status ? ` · <span class="rail-status">${escapeHtml(status)}</span>` : ""}</span>
-            <strong>${escapeHtml(item.title)}</strong>
-          </span>
-        </a>`;
-        }).join("") : '<p class="empty-state">New uploads will appear here.</p>'}
-        <a class="rail-cta" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
-      </aside>
     </div>
   </section>
 
-  <section class="snapshot-strip">
+  ${briefings.filter((item) => item.url !== lead.url).length ? `<section class="band" data-reveal>
+    <div class="container split-heading">
+      <div>
+        <p class="band-eyebrow">From the desk</p>
+        <h2>Latest briefings</h2>
+      </div>
+      <a href="${linkFor("/news/", currentPath)}">All briefings</a>
+    </div>
+    <div class="container card-grid">${briefings
+      .filter((item) => item.url !== lead.url)
+      .slice(0, 6)
+      .map((item) => card(item, currentPath))
+      .join("")}</div>
+  </section>` : ""}
+
+  ${toolsBand(currentPath)}
+
+  ${stats.length ? `<section class="snapshot-strip" data-reveal>
     <div class="container snapshot-grid">
       ${stats.map(([label, value, note]) => `<article class="snapshot-card">
         <span>${escapeHtml(label)}</span>
@@ -1145,33 +1166,9 @@ function homepage(items) {
         <small>${escapeHtml(note)}</small>
       </article>`).join("")}
     </div>
-  </section>
+  </section>` : ""}
 
-  ${toolsBand(currentPath)}
-
-  <section class="band muted">
-    <div class="container split-heading">
-      <div>
-        <p class="band-eyebrow">Start here</p>
-        <h2>Reports and actor profiles, built for scanning.</h2>
-      </div>
-      <a href="${linkFor("/reports/", currentPath)}">View reports</a>
-    </div>
-    <div class="container gateway-grid">
-      <a class="gateway-card" href="${linkFor("/reports/", currentPath)}">
-        <span class="gateway-kicker">Monthly assessments</span>
-        <strong>Read structured Pakistan security reports</strong>
-        <p>Casualties, tactics, provincial trends, threat actors, and downloadable source PDFs.</p>
-      </a>
-      <a class="gateway-card" href="${linkFor("/profiles/", currentPath)}">
-        <span class="gateway-kicker">Actor database</span>
-        <strong>Explore terrorist and militant leader profiles</strong>
-        <p>Search by region, organisation, status, and movement ecosystem.</p>
-      </a>
-    </div>
-  </section>
-
-  <section class="band">
+  ${profiles.length ? `<section class="band" data-reveal>
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Actor database</p>
@@ -1180,9 +1177,9 @@ function homepage(items) {
       <a href="${linkFor("/profiles/", currentPath)}">View all profiles</a>
     </div>
     <div class="container card-grid">${profiles.slice(0, 6).map((item) => card(item, currentPath)).join("")}</div>
-  </section>
+  </section>` : ""}
 
-  ${reports.length ? `<section class="band muted">
+  ${reports.length ? `<section class="band muted" data-reveal>
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">Research product</p>
@@ -1213,48 +1210,16 @@ function sparseListingCta({ title, current, count }) {
   </aside>`;
 }
 
-function featuredArticleBlock(item, current) {
-  const tags = Array.isArray(item.tags) ? item.tags : [];
-  const tagMarkup = tags.slice(0, 4).map((tag) => tagChip(tag, current)).join("");
-  return `<article class="featured-article">
-    <div class="featured-meta">
-      <span class="featured-kicker">${escapeHtml(typeLabel(item.type))}${item.region ? ` · ${escapeHtml(item.region)}` : ""}</span>
-      ${accessLabel(item)}
-    </div>
-    <h2><a href="${linkFor(item.url, current)}">${escapeHtml(item.title)}</a></h2>
-    <p class="featured-summary">${escapeHtml(item.summary || "")}</p>
-    <div class="featured-byline">
-      <span class="byline">By ${escapeHtml(item.author || "TGD Desk")}</span>
-      <span>${escapeHtml(formatDate(item.date))}</span>
-      ${item.region ? `<span>${escapeHtml(item.region)}</span>` : ""}
-    </div>
-    ${tagMarkup ? `<div class="tag-row">${tagMarkup}</div>` : ""}
-    <a class="button primary featured-cta" href="${linkFor(item.url, current)}">Read briefing <span class="arrow">→</span></a>
-  </article>`;
-}
-
 function listingPage({ title, eyebrow, summary, current, items, filters }) {
   const hasItems = items.length > 0;
-  const layoutClass = items.length === 1
-    ? "listing-grid layout-feature"
-    : items.length <= 3
-      ? "listing-grid layout-duo"
-      : "listing-grid layout-grid";
-  const renderList = () => {
-    if (items.length === 1) {
-      return `<div class="${layoutClass}" data-content-list>${featuredArticleBlock(items[0], current)}</div>`;
-    }
-    if (items.length <= 3) {
-      const [lead, ...rest] = items;
-      return `<div class="${layoutClass}" data-content-list>
-        ${featuredArticleBlock(lead, current)}
-        <div class="duo-rail">${rest.map((item) => card(item, current, { compact: true })).join("")}</div>
-      </div>`;
-    }
-    return `<div class="${layoutClass}" data-content-list>${items.map((item) => card(item, current)).join("")}</div>`;
-  };
+  // Every briefing gets the same card. Promoting the first item to a feature
+  // block made two same-day articles look like different kinds of content.
+  const renderList = () =>
+    `<div class="listing-grid layout-grid" data-content-list>${items
+      .map((item) => card(item, current))
+      .join("")}</div>`;
   const body = `${sectionHero(title, eyebrow, summary)}
-  <section class="band">
+  <section class="band" data-reveal>
     <div class="container">
       ${hasItems && items.length > 3 ? filterToolbar(filters) : ""}
       ${hasItems ? renderList() : `<div class="listing-grid layout-grid" data-content-list></div>`}
@@ -1466,7 +1431,7 @@ function articleTemplate(item, allItems) {
       ${premiumCta}
     </div>
   </section>
-  ${related.length ? `<section class="band">
+  ${related.length ? `<section class="band" data-reveal>
     <div class="container split-heading">
       <div>
         <p class="eyebrow">Related reading</p>
@@ -1710,7 +1675,7 @@ function hubStatRow(items) {
 function hubSection({ title, eyebrow, items, currentPath, emptyNote }) {
   if (!items.length) {
     if (!emptyNote) return "";
-    return `<section class="band">
+    return `<section class="band" data-reveal>
       <div class="container split-heading">
         <div>
           <p class="band-eyebrow">${escapeHtml(eyebrow)}</p>
@@ -1721,7 +1686,7 @@ function hubSection({ title, eyebrow, items, currentPath, emptyNote }) {
     </section>`;
   }
   const sorted = items.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-  return `<section class="band">
+  return `<section class="band" data-reveal>
     <div class="container split-heading">
       <div>
         <p class="band-eyebrow">${escapeHtml(eyebrow)}</p>
@@ -2110,7 +2075,7 @@ function monitoringAccessPage() {
 // for the public site. It also gates only /monitoring/ behind a paid subscriber
 // session; other editorial sections and public tools stay open.
 function pagesWorker() {
-  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin(?:[.-])/, /^\\/assets\\/vendor\\//, /^\\/assets\\/pakistan-map\\.svg$/, /^\\/assets\\/brand\\/tgd-logo-header\\.png$/, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
+  return `const EXEMPT = [/^\\/admin(\\/|$)/, /^\\/assets\\/admin(?:[.-])/, /^\\/assets\\/vendor\\//, /^\\/assets\\/pakistan-map\\.svg$/, /^\\/assets\\/brand\\/tgd-logo-header(?:-v2)?\\.png$/, /^\\/maintenance\\.html$/, /^\\/monitoring-access(\\/|$)/, /^\\/api(\\/|$)/, /^\\/favicon\\./];
 const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
 const SESSION_COOKIE = "tgd_monitoring_session";
 const CANONICAL_ORIGIN = "https://theglobaldecipher.com";
@@ -2211,6 +2176,7 @@ async function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
   copyDir(STATIC_DIR, path.join(OUT_DIR, "assets"));
+  writeStampedAssets(path.join(OUT_DIR, "assets"));
   copyVendorAssets();
 
   const [news, opinion, monitoring, reports, profiles, pages] = await Promise.all([

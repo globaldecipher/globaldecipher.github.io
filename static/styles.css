@@ -147,16 +147,47 @@ input:focus-visible {
 .brand-logo-dark { display: none; }
 
 .brand-logo {
-  height: 70px;
+  height: 140px;
   width: auto;
   display: block;
   transition: height 220ms var(--ease), transform 320ms var(--ease);
 }
 .brand-picture .brand-logo-dark { display: none; }
 .brand:hover .brand-logo { transform: scale(1.03); }
-.site-header.is-scrolled .brand-logo { height: 58px; }
+.site-header.is-scrolled .brand-logo { height: 110px; }
 
-.footer-brand .brand-logo { height: 92px; }
+.footer-brand .brand-logo { height: 128px; }
+
+/* Centered header layout */
+.site-header-centered { padding: 12px 0 8px; }
+.header-stack {
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+  justify-items: center;
+  gap: 6px;
+  position: relative;
+}
+.header-utility {
+  position: absolute; top: 0; right: 0;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.brand-center { margin: 4px 0 0; }
+.header-date {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #6a6a6a);
+  padding: 4px 0 8px;
+}
+.site-nav-centered {
+  justify-content: center !important;
+  border-top: 1px solid var(--rule, rgba(0,0,0,0.08));
+  border-bottom: 1px solid var(--rule, rgba(0,0,0,0.08));
+  width: 100%;
+  padding: 6px 0;
+  gap: 8px;
+}
 
 .site-nav {
   display: flex; justify-content: flex-end; align-items: center;
@@ -849,12 +880,7 @@ input:focus-visible {
 .badge::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%;
 }
-.badge-free { color: var(--green); background: rgba(20, 83, 45, 0.08); }
-.badge-free::before { background: var(--green); }
-.badge-premium { color: var(--gold); background: rgba(161, 115, 40, 0.10); }
-.badge-premium::before { background: var(--gold); }
-.badge-research { color: var(--red); background: var(--red-soft); }
-.badge-research::before { background: var(--red); }
+.badge, .badge-free, .badge-premium, .badge-research { display: none !important; }
 
 /* ============ HUB PAGES (organisations / regions) ============ */
 .hub-snapshot { padding-top: 0; padding-bottom: 0; }
@@ -1074,49 +1100,52 @@ input:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.tool-element-network { overflow: visible; }
-.tool-bonds line {
+.tool-network { overflow: visible; }
+.net-links path {
+  fill: none;
   stroke: var(--line-3);
-  stroke-width: 1.6;
+  stroke-width: 1.5;
+  stroke-linecap: round;
 }
-.tool-bonds line.dashed {
-  stroke-dasharray: 4 5;
-  opacity: 0.62;
+.net-link-weak {
+  stroke-dasharray: 3 6;
+  opacity: 0.5;
 }
-.tool-element rect {
+.net-node {
   fill: var(--paper);
   stroke: var(--ink);
-  stroke-width: 1.4;
+  stroke-width: 1.6;
+  transition: fill 320ms var(--ease), stroke 320ms var(--ease), r 320ms var(--ease);
 }
-.tool-element .number {
-  fill: currentColor;
+.net-node-core {
+  fill: var(--red);
+  stroke: var(--red-dark);
+}
+.net-node-major {
+  fill: var(--ink-3);
+  stroke: var(--ink);
+}
+.net-node-minor {
+  fill: var(--gold);
+  stroke: #79551d;
+}
+.net-labels text {
+  fill: var(--ink);
   font-family: var(--mono);
-  font-size: 7px;
-  font-weight: 700;
-}
-.tool-element .symbol {
-  fill: currentColor;
-  font-family: var(--sans);
-  font-size: 17px;
-  font-weight: 900;
-  text-anchor: middle;
-}
-.tool-element .name {
-  fill: currentColor;
-  font-family: var(--mono);
-  font-size: 5.5px;
+  font-size: 6.5px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-anchor: middle;
 }
-.tool-element.cell-red { color: #fff; }
-.tool-element.cell-red rect { fill: var(--red); stroke: var(--red-dark); }
-.tool-element.cell-gold { color: #fff; }
-.tool-element.cell-gold rect { fill: var(--gold); stroke: #79551d; }
-.tool-element.cell-ink { color: #fff; }
-.tool-element.cell-ink rect { fill: var(--ink-3); stroke: var(--ink); }
-.tool-element.cell-paper { color: var(--ink); }
-.tool-card:hover .tool-element.cell-red rect { fill: var(--red-dark); }
+.net-labels text:first-child {
+  fill: #fff;
+  font-size: 8.5px;
+}
+/* The two hub nodes are white-on-dark, so their labels invert too. */
+.net-labels text:nth-child(2),
+.net-labels text:nth-child(3) { fill: #fff; }
+.tool-card:hover .net-node-core { fill: var(--red-dark); }
+.tool-card:hover .net-links path { stroke: var(--ink-3); }
 .tool-body { display: block; min-width: 0; }
 .tool-card strong {
   display: block;
@@ -2234,8 +2263,8 @@ input:focus-visible {
 @media (max-width: 860px) {
   .container { width: min(100% - 32px, 1260px); }
   .header-grid { grid-template-columns: auto 1fr auto; gap: 12px; min-height: 64px; }
-  .brand-logo { height: 44px; }
-  .site-header.is-scrolled .brand-logo { height: 40px; }
+  .brand-logo { height: 104px; }
+  .site-header.is-scrolled .brand-logo { height: 88px; }
   .header-cta { display: inline-flex; justify-self: end; }
   .pitch-cta { display: none; }
   .nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
@@ -2279,10 +2308,10 @@ input:focus-visible {
 }
 
 @media (max-width: 560px) {
-  .brand-logo { height: 36px; }
-  .site-header.is-scrolled .brand-logo { height: 32px; }
+  .brand-logo { height: 84px; }
+  .site-header.is-scrolled .brand-logo { height: 72px; }
   .header-grid { min-height: 56px; }
-  .footer-brand .brand-logo { height: 64px; }
+  .footer-brand .brand-logo { height: 96px; }
   .footer-grid { grid-template-columns: 1fr; }
   .pitch-card { padding: 24px; }
 }
@@ -2945,3 +2974,85 @@ input:focus-visible {
   .hero-map { transform: none !important; }
 }
 
+
+/* ============ HOMEPAGE REFINEMENT — quieter, roomier, more deliberate ============ */
+
+/* Give the lead story room to breathe. */
+.hero { padding: 96px 0 104px; }
+.hero-grid { gap: 80px; align-items: start; }
+.hero h1 {
+  font-size: clamp(2.8rem, 6vw, 5.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+}
+.hero-lead {
+  font-size: 1.26rem;
+  line-height: 1.62;
+  max-width: 620px;
+  margin-bottom: 32px;
+}
+.hero-eyebrow { margin-bottom: 26px; }
+.hero-meta { margin-bottom: 36px; }
+
+/* The map behind the hero should whisper, not shout. */
+.hero-map { opacity: 0.28; }
+
+/* Snapshot strip: fewer, larger figures instead of a dense six-across grid. */
+.snapshot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.snapshot-card { min-height: 148px; padding: 32px 28px; }
+.snapshot-card:nth-child(n+4) { display: none; }
+.snapshot-card strong { font-size: 2.4rem; letter-spacing: -0.02em; }
+
+/* Content sections get consistent vertical rhythm. */
+.section, .tools-band, .snapshot-strip + section { padding-block: 88px; }
+
+/* Reveal sections as they enter the viewport. The hidden state is scoped to
+   .js-reveal, which main.js sets, so the content stays visible without JS. */
+.js-reveal [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+.js-reveal [data-reveal].is-visible { opacity: 1; transform: none; }
+
+@media (max-width: 900px) {
+  .hero { padding: 56px 0 64px; }
+  .hero-grid { gap: 44px; }
+  .snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .snapshot-card:nth-child(n+3) { display: none; }
+  .section, .tools-band { padding-block: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+/* The two data tools now lead the page, so they get more presence. */
+.tools-band .tool-grid { gap: 28px; }
+.tools-band .tool-card { padding: 28px; }
+.tools-band .tool-visual { margin-bottom: 20px; }
+.tools-band .tool-card strong { font-size: 1.5rem; }
+
+/* Network preview reads on the dark theme too. */
+:root[data-theme="dark"] .net-node,
+:root:not([data-theme="light"]) .net-node { fill: var(--ink-3); stroke: var(--line-3); }
+:root[data-theme="dark"] .net-node-core,
+:root:not([data-theme="light"]) .net-node-core { fill: var(--red); stroke: var(--red); }
+:root[data-theme="dark"] .net-labels text,
+:root:not([data-theme="light"]) .net-labels text { fill: var(--paper); }
+
+/* A short desk day leaves one or two cards in a three-column grid, which reads
+   as a broken row. Match the column count to what actually published. */
+.card-grid:has(> :last-child:nth-child(1)),
+.listing-grid:has(> :last-child:nth-child(1)) { grid-template-columns: minmax(0, 1fr); }
+.card-grid:has(> :last-child:nth-child(2)),
+.listing-grid:has(> :last-child:nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* The hero lost its side rail, so it is a single column now. The measure is
+   capped so the lead paragraph stays readable instead of running edge to edge. */
+.hero-grid:has(> :last-child:nth-child(1)) { grid-template-columns: minmax(0, 1fr); }
+/* The headline runs the full measure; only the lead paragraph is held to a
+   comfortable reading width. */
+.hero-grid:has(> :last-child:nth-child(1)) h1 { max-width: 26ch; }
+.hero-grid:has(> :last-child:nth-child(1)) .hero-lead { max-width: 62ch; }

@@ -626,7 +626,7 @@
               const data = await api(`/agent/infographic${query}`);
               const generated = await window.TGDInfographic.generateInfographicPng(data, {
                 mapUrl: "/assets/pakistan-map.svg",
-                logoUrl: "/assets/brand/tgd-logo-header.png"
+                logoUrl: "/assets/brand/tgd-logo-header-v2.png"
               });
               infographicDate.value = data.date;
               if (infographicBlobUrl) URL.revokeObjectURL(infographicBlobUrl);

@@ -498,7 +498,7 @@
   async function loadAssets(options = {}) {
     const [mapResponse, logoResponse] = await Promise.all([
       fetch(options.mapUrl || "/assets/pakistan-map.svg"),
-      fetch(options.logoUrl || "/assets/brand/tgd-logo-header.png")
+      fetch(options.logoUrl || "/assets/brand/tgd-logo-header-v2.png")
     ]);
     if (!mapResponse.ok) throw new Error("Pakistan map asset could not be loaded.");
     if (!logoResponse.ok) throw new Error("TGD logo asset could not be loaded.");

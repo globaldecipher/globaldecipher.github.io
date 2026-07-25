@@ -11,7 +11,6 @@ import {
 
 export default function TopBar() {
   const entities = useExplorer((s) => s.entities);
-  const selectedId = useExplorer((s) => s.selectedId);
   const selected = useExplorer((s) => (s.selectedId ? s.byId.get(s.selectedId) ?? null : null));
   const byId = useExplorer((s) => s.byId);
   const select = useExplorer((s) => s.select);
@@ -26,6 +25,11 @@ export default function TopBar() {
     () => document.documentElement.dataset.theme === "dark" ? "dark" : "light"
   );
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const todayLabel = useMemo(
+    () => new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+    []
+  );
 
   const index = useMemo(() => buildEntitySearchIndex(entities, byId), [byId, entities]);
   const search = useMemo(() => createEntitySearch(index), [index]);
@@ -111,48 +115,8 @@ export default function TopBar() {
 
   return (
     <header className="explorer-shell">
-      <div className="explorer-topbar">
-        <div className="explorer-brand-group">
-          <a href="/" className="brand-link" aria-label="The Global Decipher home">
-            <span className="explorer-brand-short">TGD</span>
-            <span className="explorer-brand-picture">
-              <img
-                className="explorer-brand-logo explorer-brand-logo-light"
-                src="/assets/brand/tgd-logo-header-420.png"
-                alt="The Global Decipher"
-                width="420"
-                height="140"
-              />
-              <img
-                className="explorer-brand-logo explorer-brand-logo-dark"
-                src="/assets/brand/tgd-logo-footer-420.png"
-                alt=""
-                width="420"
-                height="140"
-              />
-            </span>
-          </a>
-          <span className="explorer-brand-divider" aria-hidden="true">/</span>
-          <button
-            type="button"
-            onClick={() => select(null)}
-            className="explorer-title"
-            aria-current={selectedId ? undefined : "page"}
-          >
-            Explorer
-          </button>
-        </div>
-
-        <nav className="site-links" aria-label="TGD sections">
-          <a href="/news/">News</a>
-          <a href="/opinion/">Opinion</a>
-          <a href="/monitoring/">Monitoring</a>
-          <a href="/incident-map/">Incident Map</a>
-          <a href="/reports/">Reports</a>
-          <a href="/profiles/">Profiles</a>
-        </nav>
-
-        <div className="explorer-global-actions">
+      <div className="explorer-header-stack">
+        <div className="explorer-header-utility">
           <button
             type="button"
             onClick={toggleTheme}
@@ -186,7 +150,6 @@ export default function TopBar() {
               <path d="m21 21-4.3-4.3" />
             </svg>
           </button>
-          <a className="topbar-pitch" href="/contact/">Pitch us</a>
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
@@ -197,6 +160,36 @@ export default function TopBar() {
             {menuOpen ? "✕" : "Menu"}
           </button>
         </div>
+
+        <a href="/" className="brand-link explorer-brand-center" aria-label="The Global Decipher home">
+          <span className="explorer-brand-picture">
+            <img
+              className="explorer-brand-logo explorer-brand-logo-light"
+              src="/assets/brand/tgd-logo-header-420-v2.png"
+              alt="The Global Decipher"
+              width="420"
+              height="420"
+            />
+            <img
+              className="explorer-brand-logo explorer-brand-logo-dark"
+              src="/assets/brand/tgd-logo-footer-420-v2.png"
+              alt=""
+              width="420"
+              height="420"
+            />
+          </span>
+        </a>
+
+        <div className="explorer-header-date">{todayLabel}</div>
+
+        <nav className="site-links explorer-nav-centered" aria-label="TGD sections">
+          <a href="/news/">News</a>
+          <a href="/opinion/">Opinion</a>
+          <a href="/incident-map/">Incident Map</a>
+          <a href="/network-graph/" aria-current="page">Network Graph</a>
+          <a href="/reports/">Reports</a>
+          <a href="/contact/">Contact</a>
+        </nav>
       </div>
 
       <div className="explorer-tool-row">
@@ -318,10 +311,9 @@ export default function TopBar() {
         <nav id="explorer-site-menu" className="mobile-site-menu" aria-label="TGD sections">
           <a href="/news/">News</a>
           <a href="/opinion/">Opinion</a>
-          <a href="/monitoring/">Monitoring</a>
           <a href="/incident-map/">Incident Map</a>
+          <a href="/network-graph/">Network Graph</a>
           <a href="/reports/">Reports</a>
-          <a href="/profiles/">Profiles</a>
           <a href="/contact/">Contact</a>
         </nav>
       )}
