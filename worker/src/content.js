@@ -294,20 +294,16 @@ export async function dumpCollection(env, folder) {
   });
 }
 
-// Trigger a Cloudflare Pages rebuild via the project's deploy hook. Cloudflare
-// builds and deploys the site itself — no GitHub Actions in the publish path.
-// Retries transient failures so a brief Cloudflare hiccup cannot silently
-// leave a published article unbuilt.
-export async function triggerRebuild(env) {
-  if (!env.DEPLOY_HOOK_URL) {
-    return { triggered: false, reason: "DEPLOY_HOOK_URL not configured" };
-  }
+// Ask Cloudflare Pages to rebuild, retrying transient failures so a brief
+// outage cannot silently leave a published article unbuilt.
+async function triggerDeployHook(env) {
+  if (!env.DEPLOY_HOOK_URL) return null;
   let lastReason = "";
   let lastStatus = 0;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
-      if (res.ok) return { triggered: true, status: res.status, attempts: attempt };
+      if (res.ok) return { triggered: true, via: "cloudflare", status: res.status, attempts: attempt };
       lastStatus = res.status;
       lastReason = await res.text();
       // 4xx means the hook itself is wrong — retrying will not help.
@@ -317,7 +313,53 @@ export async function triggerRebuild(env) {
     }
     if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
   }
-  return { triggered: false, status: lastStatus, reason: lastReason, attempts: 3 };
+  return { triggered: false, via: "cloudflare", status: lastStatus, reason: lastReason };
+}
+
+// GitHub Actions still deploys the original Pages project, which serves the
+// live domain until the migration to the Git-connected project completes.
+async function triggerWorkflowDispatch(env) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return null;
+  const workflow = env.DEPLOY_WORKFLOW || "deploy.yml";
+  const url = `https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        accept: "application/vnd.github+json",
+        "user-agent": "tgd-admin-worker",
+        "x-github-api-version": "2022-11-28",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ ref: env.GITHUB_BRANCH || "main" })
+    });
+    if (res.ok) return { triggered: true, via: "github", status: res.status };
+    return { triggered: false, via: "github", status: res.status, reason: await res.text() };
+  } catch (err) {
+    return { triggered: false, via: "github", reason: err.message };
+  }
+}
+
+// Fire every rebuild path that is configured. During the migration both the
+// old and new Pages projects need rebuilding, and we cannot tell from inside
+// the Worker which one currently serves the domain — so a publish counts as
+// successful when any path succeeds.
+export async function triggerRebuild(env) {
+  const results = (await Promise.all([triggerDeployHook(env), triggerWorkflowDispatch(env)]))
+    .filter(Boolean);
+  if (!results.length) {
+    return { triggered: false, reason: "No rebuild path configured (DEPLOY_HOOK_URL or GITHUB_TOKEN)." };
+  }
+  const succeeded = results.filter((result) => result.triggered);
+  if (succeeded.length) {
+    return { triggered: true, via: succeeded.map((result) => result.via).join("+"), results };
+  }
+  return {
+    triggered: false,
+    reason: results.map((result) => `${result.via}: ${result.reason || result.status}`).join("; "),
+    results
+  };
 }
 
 // Read the newest Cloudflare Pages deployment so the admin can show whether the

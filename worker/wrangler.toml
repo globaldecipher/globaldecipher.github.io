@@ -31,6 +31,10 @@ INCIDENT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 MONTHLY_CHARTS_ENABLED = "true"
 CF_ACCOUNT_ID = "12bf8b0b63c0425c0790ee4c4d72441a"
 CF_PAGES_PROJECT = "theglobaldecipher-v2"
+# The original Pages project still serves the live domain, and only GitHub
+# Actions can redeploy it. Drop these two once the domain moves for good.
+GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
+GITHUB_BRANCH = "main"
 SITE_URL = "https://theglobaldecipher.com"
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 GEMINI_FALLBACK_MODEL = "gemini-2.5-flash"

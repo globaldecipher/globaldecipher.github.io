@@ -2194,13 +2194,13 @@ export default {
         // fail open — serve the site
       }
     }
-    if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasMonitoringAccess(request, env))) {
+    ${SHOW_MONITORING ? `if (!exempt && MONITORING_PATH.test(url.pathname) && !(await hasMonitoringAccess(request, env))) {
       const page = await env.ASSETS.fetch(new URL("/monitoring-access/index.html", url.origin));
       return secureResponse(new Response(page.body, {
         status: 200,
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       }), url.pathname);
-    }
+    }` : "// Monitoring Desk retired: /monitoring/ falls through to a real 404."}
     return secureResponse(await env.ASSETS.fetch(request), url.pathname);
   }
 };
