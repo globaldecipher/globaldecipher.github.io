@@ -342,11 +342,24 @@ function markdownToHtml(markdown) {
       continue;
     }
 
-    const heading = trimmed.match(/^(#{2,4})\s+(.+)$/);
+    // All six heading levels are matched. Anything outside h2–h4 is clamped
+    // into that range rather than left to render its hashes as body text: the
+    // page already owns the h1, so a `#` in the body becomes an h2. A "heading"
+    // holding no words — a lone image, as Word imports tend to produce — is not
+    // one, so its content is emitted without the hashes leaking into the copy.
+    const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
     if (heading) {
       flushAll();
-      const level = heading[1].length;
-      html.push(`<h${level} id="${headingId(heading[2])}">${inlineMarkdown(heading[2])}</h${level}>`);
+      const content = heading[2];
+      // Images are dropped rather than reduced to alt text, so a generic
+      // "image" alt cannot pass as heading copy.
+      const textual = stripMarkdown(content.replace(/!\[[^\]]*\]\([^)]+\)/g, ""));
+      if (textual) {
+        const level = Math.min(Math.max(heading[1].length, 2), 4);
+        html.push(`<h${level} id="${headingId(content)}">${inlineMarkdown(content)}</h${level}>`);
+      } else {
+        html.push(`<p>${inlineMarkdown(content)}</p>`);
+      }
       continue;
     }
 
@@ -1343,26 +1356,13 @@ function pageTemplate(page) {
   });
 }
 
-// The author note only appears when a bio was actually written, so pieces
-// filed under a desk byline do not get an empty box.
+// A single italic line in the press tradition, not a card. The byline already
+// names the author at the top, so the note carries only the bio itself, and
+// only when one was written.
 function authorNote(item) {
   const bio = (item.author_bio || "").trim();
   if (!bio) return "";
-  const name = item.author || "TGD Desk";
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("");
-  return `<aside class="author-note">
-    <span class="author-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
-    <div>
-      <p class="author-note-label">Written by</p>
-      <p class="author-note-name">${escapeHtml(name)}</p>
-      <p class="author-note-bio">${escapeHtml(bio)}</p>
-    </div>
-  </aside>`;
+  return `<p class="author-note">${escapeHtml(bio)}</p>`;
 }
 
 function articleSidebar(item) {

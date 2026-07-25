@@ -3058,54 +3058,14 @@ input:focus-visible {
 .hero-grid:has(> :last-child:nth-child(1)) .hero-lead { max-width: 62ch; }
 
 /* ============ AUTHOR NOTE ============ */
+/* Set as a quiet italic standfirst, the way a print desk signs off a piece. */
 .author-note {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  margin: 48px 0 0;
-  padding: 24px 26px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--red);
-  background: var(--paper-2, rgba(0, 0, 0, 0.02));
-}
-.author-avatar {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: var(--mono);
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-.author-note-label {
-  margin: 0 0 4px;
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.author-note-name {
-  margin: 0 0 6px;
-  font-family: var(--sans);
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-.author-note-bio {
-  margin: 0;
+  margin: 40px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
   font-family: var(--serif);
-  font-size: 0.98rem;
-  line-height: 1.55;
+  font-style: italic;
+  font-size: 1.02rem;
+  line-height: 1.6;
   color: var(--text-soft);
-}
-@media (max-width: 560px) {
-  .author-note { flex-direction: column; gap: 14px; padding: 20px; }
 }
