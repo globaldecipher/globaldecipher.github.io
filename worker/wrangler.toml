@@ -13,7 +13,8 @@ crons = ["* * * * *"]
 # Non-secret config. Secrets are set with `wrangler secret put`, never committed:
 #   ADMIN_TOKEN    admin-panel API secret
 #   INGEST_TOKEN   separate machine-only incident ingestion secret
-#   GITHUB_TOKEN   fine-grained PAT, Actions: Read and write + Contents: Read
+#   DEPLOY_HOOK_URL                Cloudflare Pages deploy hook that rebuilds the site
+#   CF_API_TOKEN                   Cloudflare API token, Pages: Read (deployment status)
 #   SAFEPAY_SECRET_KEY             creates Monitoring Desk checkouts
 #   SAFEPAY_WEBHOOK_SECRET         verifies Safepay webhooks
 #   CONTENT_DUMP_TOKEN             protects Monitoring content during builds
@@ -28,8 +29,8 @@ X_OAUTH_REDIRECT_URI = "https://theglobaldecipher.com/api/agent/x/callback"
 TELEGRAM_CHANNEL_USERNAME = "@theglobaldecipher"
 INCIDENT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 MONTHLY_CHARTS_ENABLED = "true"
-GITHUB_REPO = "globaldecipher/globaldecipher.github.io"
-GITHUB_BRANCH = "main"
+CF_ACCOUNT_ID = "12bf8b0b63c0425c0790ee4c4d72441a"
+CF_PAGES_PROJECT = "theglobaldecipher"
 SITE_URL = "https://theglobaldecipher.com"
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 GEMINI_FALLBACK_MODEL = "gemini-2.5-flash"

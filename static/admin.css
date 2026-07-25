@@ -1181,6 +1181,22 @@ body.editor-focus-active { overflow: hidden; }
 .editor-card.is-focus .editor-mount { flex: 1; }
 
 /* ============================== DEPLOYMENT + MONTHLY AUTOMATION ============================== */
+.rebuild-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: 14px 16px;
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface-1));
+}
+.rebuild-alert strong { display: block; margin-bottom: 2px; }
+.rebuild-alert span { color: var(--muted); font-size: 13px; }
+.rebuild-alert .btn { flex-shrink: 0; }
+
 .deployment-panel {
   display: flex;
   align-items: center;

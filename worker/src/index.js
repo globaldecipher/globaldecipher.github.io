@@ -217,6 +217,9 @@ export default {
       if (adminPath === "/deployment" && method === "GET") {
         return json(await latestDeployment(env));
       }
+      if (adminPath === "/rebuild" && method === "POST") {
+        return json(await triggerRebuild(env));
+      }
 
       if (adminPath === "/analytics/monthly" && method === "GET") {
         const month = url.searchParams.get("month") || "";

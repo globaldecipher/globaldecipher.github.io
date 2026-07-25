@@ -294,52 +294,44 @@ export async function dumpCollection(env, folder) {
   });
 }
 
-// Trigger a Pages rebuild by dispatching the existing deploy.yml workflow.
-// Uses GitHub's workflow_dispatch API + the existing GITHUB_TOKEN — no
-// Cloudflare deploy hook needed. Best-effort: failure here is logged but
-// doesn't bubble up to the admin (the D1 save already succeeded).
+// Trigger a Cloudflare Pages rebuild via the project's deploy hook. Cloudflare
+// builds and deploys the site itself — no GitHub Actions in the publish path.
+// Retries transient failures so a brief Cloudflare hiccup cannot silently
+// leave a published article unbuilt.
 export async function triggerRebuild(env) {
-  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) {
-    return { triggered: false, reason: "GITHUB_TOKEN/GITHUB_REPO not configured" };
+  if (!env.DEPLOY_HOOK_URL) {
+    return { triggered: false, reason: "DEPLOY_HOOK_URL not configured" };
   }
-  const ref = env.GITHUB_BRANCH || "main";
-  const workflow = env.DEPLOY_WORKFLOW || "deploy.yml";
-  const url = `https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        accept: "application/vnd.github+json",
-        "user-agent": "tgd-admin-worker",
-        "x-github-api-version": "2022-11-28",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ ref })
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      return { triggered: false, status: res.status, reason: text };
+  let lastReason = "";
+  let lastStatus = 0;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
+      if (res.ok) return { triggered: true, status: res.status, attempts: attempt };
+      lastStatus = res.status;
+      lastReason = await res.text();
+      // 4xx means the hook itself is wrong — retrying will not help.
+      if (res.status < 500) break;
+    } catch (err) {
+      lastReason = err.message;
     }
-    return { triggered: true, status: res.status };
-  } catch (err) {
-    return { triggered: false, reason: err.message };
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
   }
+  return { triggered: false, status: lastStatus, reason: lastReason, attempts: 3 };
 }
 
+// Read the newest Cloudflare Pages deployment so the admin can show whether the
+// last publish actually reached the live site.
 export async function latestDeployment(env) {
-  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) {
-    return { configured: false, error: "GitHub deployment access is not configured." };
+  if (!env.CF_API_TOKEN || !env.CF_ACCOUNT_ID) {
+    return { configured: false, error: "Cloudflare deployment access is not configured." };
   }
-  const workflow = env.DEPLOY_WORKFLOW || "deploy.yml";
-  const branch = env.GITHUB_BRANCH || "main";
-  const url = `https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${encodeURIComponent(workflow)}/runs?branch=${encodeURIComponent(branch)}&per_page=1`;
+  const project = env.CF_PAGES_PROJECT || "theglobaldecipher";
+  const url = `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/pages/projects/${encodeURIComponent(project)}/deployments?per_page=1`;
   const res = await fetch(url, {
     headers: {
-      authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      accept: "application/vnd.github+json",
-      "user-agent": "tgd-admin-worker",
-      "x-github-api-version": "2022-11-28"
+      authorization: `Bearer ${env.CF_API_TOKEN}`,
+      "content-type": "application/json"
     }
   });
   if (!res.ok) {
@@ -347,25 +339,30 @@ export async function latestDeployment(env) {
       configured: true,
       available: false,
       status: res.status,
-      error: "GitHub could not return deployment status. Check the token's Actions permission."
+      error: "Cloudflare could not return deployment status. Check the API token's Pages permission."
     };
   }
   const payload = await res.json();
-  const run = Array.isArray(payload.workflow_runs) ? payload.workflow_runs[0] : null;
-  if (!run) return { configured: true, available: true, run: null };
+  const deployment = Array.isArray(payload.result) ? payload.result[0] : null;
+  if (!deployment) return { configured: true, available: true, run: null };
+  // Cloudflare reports stage-level progress; the latest stage carries the
+  // outcome we surface as a single status.
+  const stage = deployment.latest_stage || {};
+  const stageStatus = stage.status || "";
+  const done = ["success", "failure", "canceled", "skipped"].includes(stageStatus);
   return {
     configured: true,
     available: true,
     run: {
-      id: run.id,
-      status: run.status,
-      conclusion: run.conclusion,
-      event: run.event,
-      title: run.display_title,
-      url: run.html_url,
-      startedAt: run.run_started_at || run.created_at,
-      updatedAt: run.updated_at,
-      headSha: run.head_sha
+      id: deployment.id,
+      status: done ? "completed" : "in_progress",
+      conclusion: done ? (stageStatus === "success" ? "success" : stageStatus) : null,
+      event: stage.name || "deploy",
+      title: deployment.deployment_trigger?.metadata?.commit_message || "Website deployment",
+      url: deployment.url,
+      startedAt: deployment.created_on,
+      updatedAt: stage.ended_on || stage.started_on || deployment.modified_on,
+      headSha: deployment.deployment_trigger?.metadata?.commit_hash || null
     }
   };
 }

@@ -2094,12 +2094,52 @@
     return panel;
   }
 
+  // A missed rebuild is the one failure that looks exactly like success from the
+  // editor's side, so it gets a banner that stays until it is acted on rather
+  // than a toast that disappears.
   function publicationResult(result, successText) {
     if (result?.deployment && !result.deployment.triggered) {
-      toast("Saved in D1, but the website rebuild did not start. Check deployment status.", "warn");
+      showRebuildFailure(result.deployment);
       return;
     }
+    clearRebuildFailure();
     toast(successText);
+  }
+
+  function clearRebuildFailure() {
+    document.getElementById("rebuild-alert")?.remove();
+  }
+
+  function showRebuildFailure(deployment) {
+    clearRebuildFailure();
+    const retry = el("button", { class: "btn small" }, "Retry now");
+    const banner = el("div", { class: "rebuild-alert", id: "rebuild-alert", role: "alert" },
+      el("div", {},
+        el("strong", {}, "Saved, but the website did not rebuild."),
+        el("span", {}, ` Your work is safe in the database. The public site still shows the previous version. ${deployment.reason || ""}`)
+      ),
+      retry
+    );
+    retry.addEventListener("click", async () => {
+      retry.disabled = true;
+      retry.textContent = "Retrying…";
+      try {
+        const again = await api("/rebuild", { method: "POST" });
+        if (again.triggered) {
+          clearRebuildFailure();
+          toast("Rebuild started. The site updates in a few minutes.");
+        } else {
+          retry.disabled = false;
+          retry.textContent = "Retry now";
+          toast(again.reason || "Rebuild still failing.", "err");
+        }
+      } catch (e) {
+        retry.disabled = false;
+        retry.textContent = "Retry now";
+        toast(e.message, "err");
+      }
+    });
+    document.querySelector("main")?.prepend(banner);
   }
 
   async function renderContent(view) {
