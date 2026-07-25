@@ -60,6 +60,7 @@ function rowToFrontMatter(row, collection) {
   } else {
     if (row.date) fm.date = row.date;
     if (row.author) fm.author = row.author;
+    if (row.author_bio) fm.author_bio = row.author_bio;
     if (row.type) fm.type = row.type;
     if (row.category) fm.category = row.category;
     if (row.region) fm.region = row.region;
@@ -131,7 +132,7 @@ export async function putFile(env, filePath, content, expectedSha = null) {
     const statement = expectedSha
       ? env.CONTENT_DB
         .prepare(`UPDATE content SET
-          type = ?, title = ?, date = ?, author = ?, category = ?, region = ?,
+          type = ?, title = ?, date = ?, author = ?, author_bio = ?, category = ?, region = ?,
           summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
           eyebrow = ?, body = ?, updated_at = ?
           WHERE id = ? AND updated_at = ?`)
@@ -140,6 +141,7 @@ export async function putFile(env, filePath, content, expectedSha = null) {
           fm.title || slug,
           fm.date || null,
           fm.author || null,
+          fm.author_bio || null,
           fm.category || null,
           fm.region || null,
           fm.summary || null,
@@ -157,7 +159,7 @@ export async function putFile(env, filePath, content, expectedSha = null) {
         )
       : env.CONTENT_DB
       .prepare(`UPDATE content SET
-        type = ?, title = ?, date = ?, author = ?, category = ?, region = ?,
+        type = ?, title = ?, date = ?, author = ?, author_bio = ?, category = ?, region = ?,
         summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
         eyebrow = ?, body = ?, updated_at = ?
         WHERE id = ?`)
@@ -166,6 +168,7 @@ export async function putFile(env, filePath, content, expectedSha = null) {
         fm.title || slug,
         fm.date || null,
         fm.author || null,
+        fm.author_bio || null,
         fm.category || null,
         fm.region || null,
         fm.summary || null,
@@ -194,8 +197,8 @@ export async function putFile(env, filePath, content, expectedSha = null) {
     }
     await env.CONTENT_DB
       .prepare(`INSERT INTO content
-        (collection, slug, type, title, date, author, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        (collection, slug, type, title, date, author, author_bio, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(
         collection,
         slug,
@@ -203,6 +206,7 @@ export async function putFile(env, filePath, content, expectedSha = null) {
         fm.title || slug,
         fm.date || null,
         fm.author || null,
+        fm.author_bio || null,
         fm.category || null,
         fm.region || null,
         fm.summary || null,
@@ -278,6 +282,7 @@ export async function dumpCollection(env, folder) {
       title: row.title,
       date: row.date,
       author: row.author,
+      author_bio: row.author_bio,
       category: row.category,
       region: row.region,
       summary: row.summary,
@@ -320,6 +325,13 @@ export async function triggerRebuild(env) {
 
 // Read the newest Cloudflare Pages deployment so the admin can show whether the
 // last publish actually reached the live site.
+// Only the subject line is shown. A commit body carries trailers and internal
+// notes that have no business rendering in the admin panel.
+function commitSubject(message) {
+  if (typeof message !== "string") return "";
+  return message.split("\n", 1)[0].trim();
+}
+
 export async function latestDeployment(env) {
   if (!env.CF_API_TOKEN || !env.CF_ACCOUNT_ID) {
     return { configured: false, error: "Cloudflare deployment access is not configured." };
@@ -356,7 +368,7 @@ export async function latestDeployment(env) {
       status: done ? "completed" : "in_progress",
       conclusion: done ? (stageStatus === "success" ? "success" : stageStatus) : null,
       event: stage.name || "deploy",
-      title: deployment.deployment_trigger?.metadata?.commit_message || "Website deployment",
+      title: commitSubject(deployment.deployment_trigger?.metadata?.commit_message) || "Website deployment",
       url: deployment.url,
       startedAt: deployment.created_on,
       updatedAt: stage.ended_on || stage.started_on || deployment.modified_on,

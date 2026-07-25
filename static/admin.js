@@ -2080,7 +2080,10 @@
         const failed = run.status === "completed" && run.conclusion && run.conclusion !== "success";
         status.className = `deployment-state ${success ? "is-success" : failed ? "is-error" : "is-running"}`;
         status.textContent = success ? "Live" : failed ? "Build failed" : "Building";
-        detail.textContent = `${run.title || "Website deployment"} · ${run.updatedAt ? formatRelative(new Date(run.updatedAt)) : run.status}`;
+        // Trimmed here too so a worker that has not been redeployed yet cannot
+        // put a commit body — trailers and all — on screen.
+        const subject = String(run.title || "").split("\n", 1)[0].trim();
+        detail.textContent = `${subject || "Website deployment"} · ${run.updatedAt ? formatRelative(new Date(run.updatedAt)) : run.status}`;
         open.href = run.url;
         open.hidden = !run.url;
       } catch (error) {
@@ -2315,6 +2318,7 @@
           add("title", "Title", { required: true, placeholder: "Headline" }),
           add("date", "Publish date", { type: "date", default: today(), required: true }),
           add("author", "Author / desk", { default: folder.author, hint: "Defaults to the desk for this section." }),
+          add("author_bio", "Author bio", { type: "textarea", rows: 2, wide: true, optional: true, placeholder: "One or two lines on who filed this and what they cover.", hint: "Shown as an author note under the article. Leave blank to omit it." }),
           add("summary", "Summary", { type: "textarea", rows: 3, wide: true, required: true, hint: "Shown in feed cards, search results, and social previews." })
         ),
         section("Classification & tags", "How the article is filed and surfaced.",
@@ -2493,6 +2497,7 @@
       fm = {
         title, date,
         author: f.author.value.trim() || folder.author,
+        author_bio: f.author_bio.value.trim(),
         type: folder.type,
         category: f.category.value.trim() || "",
         region: f.region.value.trim() || "",
@@ -2684,6 +2689,7 @@
     const fm = {
       title, date,
       author: (f.author?.value || "").trim() || folder.author,
+      author_bio: (f.author_bio?.value || "").trim(),
       type: folder.type,
       category: (f.category?.value || "").trim(),
       region: (f.region?.value || "").trim(),

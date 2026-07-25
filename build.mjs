@@ -473,6 +473,7 @@ async function readCollection(collection) {
         title: row.title,
         date: row.date,
         author: row.author,
+        author_bio: row.author_bio,
         type: row.type,
         category: row.category,
         region: row.region,
@@ -1341,6 +1342,28 @@ function pageTemplate(page) {
   });
 }
 
+// The author note only appears when a bio was actually written, so pieces
+// filed under a desk byline do not get an empty box.
+function authorNote(item) {
+  const bio = (item.author_bio || "").trim();
+  if (!bio) return "";
+  const name = item.author || "TGD Desk";
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+  return `<aside class="author-note">
+    <span class="author-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+    <div>
+      <p class="author-note-label">Written by</p>
+      <p class="author-note-name">${escapeHtml(name)}</p>
+      <p class="author-note-bio">${escapeHtml(bio)}</p>
+    </div>
+  </aside>`;
+}
+
 function articleSidebar(item) {
   const headings = collectHeadings(item.body).filter((heading) => heading.level === 2).slice(0, 10);
   const pdfs = extractPdfLinks(item.body);
@@ -1426,7 +1449,7 @@ function articleTemplate(item, allItems) {
   </section>
   <section class="article-band">
     <div class="container article-shell">
-      <article class="article-body">${item.html}</article>
+      <article class="article-body">${item.html}${authorNote(item)}</article>
       ${articleSidebar(item)}
       ${premiumCta}
     </div>
