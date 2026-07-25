@@ -27,10 +27,11 @@ function stampedName(file) {
 }
 const STYLES_ASSET = stampedName("styles.css");
 const MAIN_ASSET = stampedName("main.js");
+const MARK_ASSET = stampedName("tgd-mark.svg");
 
 // Write the digest-named copies alongside the originals so both URLs resolve.
 function writeStampedAssets(outAssetsDir) {
-  for (const [source, stamped] of [["styles.css", STYLES_ASSET], ["main.js", MAIN_ASSET]]) {
+  for (const [source, stamped] of [["styles.css", STYLES_ASSET], ["main.js", MAIN_ASSET], ["tgd-mark.svg", MARK_ASSET]]) {
     if (source === stamped) continue;
     const from = path.join(outAssetsDir, source);
     if (fs.existsSync(from)) fs.copyFileSync(from, path.join(outAssetsDir, stamped));
@@ -741,7 +742,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <meta name="twitter:title" content="${escapeHtml(pageTitle)}">
   <meta name="twitter:description" content="${escapeHtml(pageDescription)}">
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
-  <link rel="icon" href="${assetPrefix}assets/tgd-mark.svg" type="image/svg+xml">
+  <link rel="icon" href="${assetPrefix}assets/${MARK_ASSET}" type="image/svg+xml">
   <link rel="alternate" type="application/rss+xml" title="${escapeHtml(SITE.title)} RSS" href="${SITE.url}/rss.xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
