@@ -2072,7 +2072,7 @@
         if (!data.available || !run) {
           status.className = "deployment-state is-warning";
           status.textContent = data.error || "No deployment found";
-          detail.textContent = "Content remains safely stored in D1. Check the GitHub token's Actions permission if this persists.";
+          detail.textContent = "Publishing still triggers the rebuild — this panel only reads deployment status, which needs a Cloudflare API token with Pages: Read.";
           open.hidden = true;
           return;
         }
