@@ -24,10 +24,15 @@ const SITE = {
   substack: "https://theglobaldecipher.substack.com/"
 };
 
+// The Monitoring Desk is retired from the public site for now. Its content and
+// paywall stay intact in D1 and the Worker — flip this to true to bring the
+// whole category back.
+const SHOW_MONITORING = false;
+
 const NAV = [
   ["News", "/news/"],
   ["Opinion", "/opinion/"],
-  ["Monitoring", "/monitoring/"],
+  ...(SHOW_MONITORING ? [["Monitoring", "/monitoring/"]] : []),
   ["Incident Map", "/incident-map/"],
   ["Network Graph", "/network-graph/"],
   ["Reports", "/reports/"],
@@ -1542,7 +1547,7 @@ function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] 
     "/",
     "/news/",
     "/opinion/",
-    "/monitoring/",
+    ...(SHOW_MONITORING ? ["/monitoring/"] : []),
     "/reports/",
     "/profiles/",
     ...items.map((item) => item.url),
@@ -2216,7 +2221,13 @@ async function main() {
     readCollection("profiles"),
     readCollection("pages")
   ]);
-  const allContent = [...news, ...opinion, ...monitoring, ...reports, ...profiles];
+  const allContent = [
+    ...news,
+    ...opinion,
+    ...(SHOW_MONITORING ? monitoring : []),
+    ...reports,
+    ...profiles
+  ];
 
   const hubs = buildHubIndex(allContent);
   HUB_ORG_SLUGS.clear();
@@ -2255,21 +2266,23 @@ async function main() {
       ]
     })
   );
-  writePage(
-    "/monitoring/",
-    listingPage({
-      title: "Monitoring Desk",
-      eyebrow: "Premium intelligence previews",
-      summary: "Structured previews of militant media monitoring, propaganda ecosystems, and narrative shifts.",
-      current: "/monitoring/",
-      items: allContent.filter((item) => item.type === "monitoring"),
-      filters: [
-        ["Digital Propaganda", "Digital Propaganda"],
-        ["Narratives", "Narratives"],
-        ["South Asia", "South Asia"]
-      ]
-    })
-  );
+  if (SHOW_MONITORING) {
+    writePage(
+      "/monitoring/",
+      listingPage({
+        title: "Monitoring Desk",
+        eyebrow: "Premium intelligence previews",
+        summary: "Structured previews of militant media monitoring, propaganda ecosystems, and narrative shifts.",
+        current: "/monitoring/",
+        items: allContent.filter((item) => item.type === "monitoring"),
+        filters: [
+          ["Digital Propaganda", "Digital Propaganda"],
+          ["Narratives", "Narratives"],
+          ["South Asia", "South Asia"]
+        ]
+      })
+    );
+  }
   writePage(
     "/reports/",
     listingPage({
@@ -2331,7 +2344,7 @@ async function main() {
 
   // Admin panel, maintenance page, and the Pages maintenance gate.
   writePage("/admin/", adminPage());
-  writePage("/monitoring-access/", monitoringAccessPage());
+  if (SHOW_MONITORING) writePage("/monitoring-access/", monitoringAccessPage());
   writeRootFile("maintenance.html", maintenancePage());
   writeRootFile("_worker.js", pagesWorker());
 

@@ -2034,7 +2034,8 @@
   const FOLDERS = [
     { key: "news", label: "News", singular: "news article", type: "news", author: "TGD News Desk" },
     { key: "opinion", label: "Opinion", singular: "opinion piece", type: "opinion", author: "TGD Opinion Desk" },
-    { key: "monitoring", label: "Monitoring", singular: "monitoring note", type: "monitoring", author: "TGD Monitoring Desk" },
+    // Monitoring Desk is retired from the site for now. Its drafts stay in D1;
+    // restore this entry (and SHOW_MONITORING in build.mjs) to bring it back.
     { key: "reports", label: "Reports", singular: "report", type: "reports", author: "TGD Research Desk" },
     { key: "profiles", label: "Profiles", singular: "profile", type: "profiles", author: "TGD Research Desk" },
     { key: "pages", label: "Pages", singular: "page", type: "page", author: "" }
