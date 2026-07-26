@@ -49,5 +49,9 @@ jobs:
 
       - name: Build the complete site
         env:
+          # This runner cannot reach the content API, so the build is a smoke
+          # test of the generator rather than a real render. The empty-site
+          # guard stays armed for the Cloudflare Pages build that does deploy.
           ALLOW_PARTIAL_CONTENT_BUILD: "1"
+          ALLOW_EMPTY_CONTENT_BUILD: "1"
         run: npm run build
