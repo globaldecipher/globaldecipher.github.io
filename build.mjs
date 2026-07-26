@@ -511,6 +511,8 @@ async function readCollection(collection) {
         date: row.date,
         author: row.author,
         author_bio: row.author_bio,
+        image: row.image,
+        image_alt: row.image_alt,
         type: row.type,
         category: row.category,
         region: row.region,
@@ -851,6 +853,49 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
 </html>`;
 }
 
+// The first picture in an article body is, in practice, its lead image — Word
+// imports upload every embedded image to R2 already, so this gives existing
+// articles a card picture with no extra step for the desk. An explicit
+// `image` in the front matter always wins.
+// Word import names its uploads "image", "word-image-3" and so on. Carrying
+// that through as alt text tells a screen-reader user nothing, so anything that
+// is obviously a filename rather than a description falls back to the headline.
+function usefulAlt(candidate, fallback) {
+  const text = String(candidate || "").trim();
+  const junk = !text
+    || /^(image|picture|photo|img|graphic)$/i.test(text)
+    || /^(word-)?image[-_\s]?\d*$/i.test(text)
+    || /\.(png|jpe?g|gif|webp|svg)$/i.test(text);
+  return junk ? String(fallback || "").trim() : text;
+}
+
+function leadImage(item) {
+  const explicit = String(item.image || "").trim();
+  if (explicit) return { src: explicit, alt: usefulAlt(item.image_alt, item.title) };
+  const body = String(item.body || "");
+  // Markdown: ![alt](src "title")
+  const md = body.match(/!\[([^\]]*)\]\(\s*([^)\s]+)/);
+  if (md) return { src: md[2], alt: usefulAlt(md[1], item.title) };
+  // Raw HTML: <img src="…" alt="…">
+  const html = body.match(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i);
+  if (html) {
+    const alt = html[0].match(/\balt=["']([^"']*)["']/i);
+    return { src: html[1], alt: usefulAlt(alt && alt[1], item.title) };
+  }
+  return null;
+}
+
+// Cards render at roughly a third of the container, so a full-size upload is
+// wasted bytes. Cloudflare Images resizing is not enabled on this zone, so the
+// browser is told the display size instead and decoding is deferred.
+function cardImageMarkup(item, { wide = false } = {}) {
+  const image = leadImage(item);
+  if (!image) return "";
+  return `<div class="card-media${wide ? " card-media-wide" : ""}">
+      <img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async">
+    </div>`;
+}
+
 function card(item, currentPath = "/", { compact = false } = {}) {
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const tagMarkup = tags.slice(0, 3).map((tag) => tagChip(tag, currentPath)).join("");
@@ -863,7 +908,9 @@ function card(item, currentPath = "/", { compact = false } = {}) {
     ? (statusSlug ? `status-${statusSlug}` : "")
     : (categoryAccent ? `accent-${categoryAccent}` : "");
   const searchText = [item.title, item.summary, item.category, item.region, status, tags.join(" ")].join(" ").toLowerCase();
-  return `<article class="content-card${accentClass ? ` ${accentClass}` : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
+  const media = cardImageMarkup(item);
+  return `<article class="content-card${accentClass ? ` ${accentClass}` : ""}${media ? " has-media" : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
+    ${media}
     <div class="card-kicker">
       <span>${escapeHtml(typeLabel(item.type))}</span>
       ${accessLabel(item)}
@@ -1248,14 +1295,44 @@ function sparseListingCta({ title, current, count }) {
   </aside>`;
 }
 
+// A single card stretched across a three-column grid reads as a broken row, so
+// the lone piece is set as a lead story instead: picture beside the text, the
+// way a front page carries its main item. Text keeps a readable measure either
+// way.
+function leadStory(item, currentPath) {
+  const media = cardImageMarkup(item, { wide: true });
+  const tags = Array.isArray(item.tags) ? item.tags : [];
+  return `<article class="lead-story${media ? " has-media" : ""}" data-search="${escapeHtml([item.title, item.summary, item.category, item.region, tags.join(" ")].join(" ").toLowerCase())}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}">
+    ${media}
+    <div class="lead-story-body">
+      <div class="card-kicker">
+        <span>${escapeHtml(typeLabel(item.type))}</span>
+        ${accessLabel(item)}
+      </div>
+      <h2><a href="${linkFor(item.url, currentPath)}">${escapeHtml(item.title)}</a></h2>
+      <p class="lead-story-summary">${escapeHtml(item.summary || "")}</p>
+      <div class="card-meta">
+        <span>${escapeHtml(formatDate(item.date))}</span>
+        <span>${escapeHtml(item.region || item.category || "")}</span>
+      </div>
+      <div class="tag-row">${tags.slice(0, 3).map((tag) => tagChip(tag, currentPath)).join("")}</div>
+    </div>
+  </article>`;
+}
+
 function listingPage({ title, eyebrow, summary, current, items, filters }) {
   const hasItems = items.length > 0;
   // Every briefing gets the same card. Promoting the first item to a feature
-  // block made two same-day articles look like different kinds of content.
-  const renderList = () =>
-    `<div class="listing-grid layout-grid" data-content-list>${items
+  // block made two same-day articles look like different kinds of content —
+  // except when it is the only item, where a full-width card looks stretched.
+  const renderList = () => {
+    if (items.length === 1 && current !== "/profiles/") {
+      return `<div class="listing-grid layout-solo" data-content-list>${leadStory(items[0], current)}</div>`;
+    }
+    return `<div class="listing-grid layout-grid" data-content-list>${items
       .map((item) => card(item, current))
       .join("")}</div>`;
+  };
   const body = `${sectionHero(title, eyebrow, summary)}
   <section class="band" data-reveal>
     <div class="container">

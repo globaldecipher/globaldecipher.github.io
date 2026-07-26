@@ -809,6 +809,70 @@ input:focus-visible {
 }
 .content-card:hover { border-top-color: var(--red); }
 
+/* ============ CARD MEDIA ============ */
+/* The picture sits above the kicker so the eye lands on it first, and holds a
+   fixed 3:2 frame so a mixed bag of Word-import uploads still lines up. */
+.card-media {
+  margin: 0 0 18px;
+  overflow: hidden;
+  background: var(--line-1, rgba(0, 0, 0, 0.04));
+  border-radius: 2px;
+  aspect-ratio: 3 / 2;
+  /* Backstop for any layout that hands a card more room than expected — a card
+     picture should never grow taller than the text beside it. */
+  max-height: 440px;
+}
+.card-media img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 600ms var(--ease);
+}
+.content-card:hover .card-media img,
+.lead-story:hover .card-media img { transform: scale(1.03); }
+.content-card.has-media { padding-top: 20px; }
+
+/* ============ LEAD STORY ============ */
+.lead-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 44px;
+  align-items: start;
+  border-top: 2px solid var(--red);
+  padding-top: 28px;
+}
+.lead-story:not(.has-media) { grid-template-columns: minmax(0, 1fr); }
+.lead-story .card-media-wide { margin: 0; aspect-ratio: 16 / 10; }
+.lead-story-body { min-width: 0; display: flex; flex-direction: column; }
+.lead-story h2 {
+  margin: 0 0 14px;
+  font-family: var(--serif-display);
+  font-weight: 800;
+  font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+  line-height: 1.12;
+  color: var(--ink);
+  /* The column already sets the measure. Capping the headline further only
+     forces avoidable orphan lines. */
+  text-wrap: balance;
+}
+.lead-story h2 a { transition: color 180ms var(--ease); }
+.lead-story h2 a:hover { color: var(--red); }
+.lead-story-summary {
+  margin: 0;
+  /* The one measure that matters: prose stops at a readable line length even
+     though the story block spans the full container. */
+  max-width: 58ch;
+  color: var(--text-soft);
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+.lead-story .card-meta { margin-top: 22px; }
+@media (max-width: 860px) {
+  .lead-story { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .lead-story .card-media-wide { aspect-ratio: 3 / 2; }
+}
+
 .card-kicker {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
@@ -3048,6 +3112,52 @@ input:focus-visible {
 .listing-grid:has(> :last-child:nth-child(1)) { grid-template-columns: minmax(0, 1fr); }
 .card-grid:has(> :last-child:nth-child(2)),
 .listing-grid:has(> :last-child:nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Widening the column must not widen the prose with it. Past roughly 70
+   characters the eye loses the start of the next line, so the summary keeps a
+   reading measure no matter how much room the card is given. */
+.card-grid:has(> :last-child:nth-child(1)) .content-card > p,
+.listing-grid:has(> :last-child:nth-child(1)) .content-card > p { max-width: 68ch; }
+.card-grid:has(> :last-child:nth-child(1)) .content-card h2,
+.listing-grid:has(> :last-child:nth-child(1)) .content-card h2 { max-width: 24ch; }
+.card-grid:has(> :last-child:nth-child(2)) .content-card > p,
+.listing-grid:has(> :last-child:nth-child(2)) .content-card > p { max-width: 62ch; }
+
+/* A picture in a full-width card would stand 800px tall on a 3:2 frame. Set the
+   lone card side by side instead, so the image stays a picture rather than a
+   billboard and the text keeps its measure. */
+.card-grid:has(> :last-child:nth-child(1)) .content-card.has-media,
+.listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 44px;
+}
+.card-grid:has(> :last-child:nth-child(1)) .content-card.has-media > .card-media,
+.listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media > .card-media {
+  grid-column: 1;
+  grid-row: 1 / span 10;
+  align-self: start;
+  margin-bottom: 0;
+}
+.card-grid:has(> :last-child:nth-child(1)) .content-card.has-media > :not(.card-media),
+.listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media > :not(.card-media) {
+  grid-column: 2;
+}
+@media (max-width: 860px) {
+  .card-grid:has(> :last-child:nth-child(1)) .content-card.has-media,
+  .listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .card-grid:has(> :last-child:nth-child(1)) .content-card.has-media > .card-media,
+  .listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media > .card-media {
+    grid-row: auto;
+    margin-bottom: 18px;
+  }
+  .card-grid:has(> :last-child:nth-child(1)) .content-card.has-media > :not(.card-media),
+  .listing-grid:has(> :last-child:nth-child(1)) .content-card.has-media > :not(.card-media) {
+    grid-column: 1;
+  }
+}
 
 /* The hero lost its side rail, so it is a single column now. The measure is
    capped so the lead paragraph stays readable instead of running edge to edge. */

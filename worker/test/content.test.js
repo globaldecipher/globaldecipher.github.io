@@ -116,8 +116,11 @@ test("autosave cannot promote a draft to published", async () => {
 
   const write = env.statements.find((s) => /UPDATE content SET\s+type = \?/.test(s.sql));
   assert.ok(write, "expected a normal row update for a draft");
-  // status is the 12th bound column in the update statement.
-  assert.equal(write.args[11], "draft");
+  // Locate status by its position in the column list rather than a hard-coded
+  // index, so adding a column cannot make this test quietly check the wrong arg.
+  const columns = write.sql.slice(write.sql.indexOf("SET") + 3, write.sql.indexOf("WHERE"))
+    .split(",").map((part) => part.trim().split(/\s*=/)[0]);
+  assert.equal(write.args[columns.indexOf("status")], "draft");
 });
 
 test("a deliberate save clears any parked draft", async () => {

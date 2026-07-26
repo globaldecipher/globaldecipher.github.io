@@ -2388,6 +2388,9 @@
           add("author_bio", "Author bio", { type: "textarea", rows: 2, wide: true, optional: true, placeholder: "One or two lines on who filed this and what they cover.", hint: "Shown as an author note under the article. Leave blank to omit it." }),
           add("summary", "Summary", { type: "textarea", rows: 3, wide: true, required: true, hint: "Shown in feed cards, search results, and social previews." })
         ),
+        section("Card picture", "The image readers see on the homepage and section listings.",
+          leadImageField(f, fm, () => (window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody?.value || "")))
+        ),
         section("Classification & tags", "How the article is filed and surfaced.",
           add("category", "Category", { optional: true, placeholder: "e.g. KP, Security operations" }),
           add("region", "Region", { default: "Pakistan", hint: "Geographic region. Used for filtering." }),
@@ -2474,6 +2477,80 @@
         }
       });
     }
+  }
+
+  // The card picture. Left empty the site uses the first image already in the
+  // article, so a Word import needs nothing here — this is the override for
+  // when a different picture should lead.
+  const FIRST_IMAGE_RE = /!\[([^\]]*)\]\(\s*([^)\s]+)|<img\b[^>]*\bsrc=["']([^"']+)["']/i;
+  function firstBodyImage(markdown) {
+    const match = String(markdown || "").match(FIRST_IMAGE_RE);
+    return match ? (match[2] || match[3] || "") : "";
+  }
+
+  function leadImageField(f, fm, getBody) {
+    const { wrap: urlWrap, input: urlInput } = makeField("Lead image URL", {
+      optional: true, wide: true,
+      placeholder: "Leave empty to use the first picture in the article",
+      hint: "Only set this to override which picture leads."
+    }, fm.image || "");
+    const { wrap: altWrap, input: altInput } = makeField("Image caption for screen readers", {
+      optional: true, wide: true,
+      placeholder: "e.g. Security personnel at a checkpoint in Swat",
+      hint: "Describes the picture for readers who cannot see it. Also used by search engines."
+    }, fm.image_alt || "");
+    f.image = urlInput;
+    f.image_alt = altInput;
+
+    const preview = el("div", { class: "leadimg-preview" });
+    const note = el("p", { class: "fld-hint leadimg-note" }, "");
+    const refresh = () => {
+      const chosen = urlInput.value.trim();
+      const inherited = chosen ? "" : firstBodyImage(getBody());
+      const src = chosen || inherited;
+      clear(preview);
+      if (src) {
+        preview.append(el("img", { src, alt: "", loading: "lazy" }));
+        note.textContent = chosen
+          ? "Using the picture set above."
+          : "Using the first picture from the article automatically.";
+      } else {
+        preview.append(el("div", { class: "leadimg-empty" }, "No picture yet"));
+        note.textContent = "This article has no picture, so its card will show text only. Add an image to the body or set one above.";
+      }
+    };
+    urlInput.addEventListener("input", refresh);
+
+    const fileInput = el("input", { type: "file", accept: "image/*", style: "display:none" });
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      try {
+        note.textContent = "Uploading…";
+        const uploaded = await uploadMedia(file, file.name);
+        urlInput.value = uploaded.url;
+        refresh();
+        toast("Picture uploaded.");
+      } catch (err) {
+        toast("Could not upload picture: " + err.message, "err");
+        refresh();
+      }
+      fileInput.value = "";
+    });
+
+    // The body is only readable once the editor has mounted; retry shortly so
+    // the inherited picture shows on first paint too.
+    setTimeout(refresh, 400);
+    refresh();
+
+    return el("div", { class: "leadimg-field" },
+      el("div", { class: "leadimg-preview-col" },
+        preview,
+        el("button", { type: "button", class: "btn ghost small", onclick: () => fileInput.click() }, "Upload a picture"),
+        fileInput
+      ),
+      el("div", { class: "leadimg-inputs" }, urlWrap, altWrap, note)
+    );
   }
 
   // Offers work recovered from an interrupted session. The live article was
@@ -2621,6 +2698,8 @@
         title, date,
         author: f.author.value.trim() || folder.author,
         author_bio: f.author_bio.value.trim(),
+        image: (f.image?.value || "").trim(),
+        image_alt: (f.image_alt?.value || "").trim(),
         type: folder.type,
         category: f.category.value.trim() || "",
         region: f.region.value.trim() || "",
@@ -2828,6 +2907,8 @@
       title, date,
       author: (f.author?.value || "").trim() || folder.author,
       author_bio: (f.author_bio?.value || "").trim(),
+      image: (f.image?.value || "").trim(),
+      image_alt: (f.image_alt?.value || "").trim(),
       type: folder.type,
       category: (f.category?.value || "").trim(),
       region: (f.region?.value || "").trim(),

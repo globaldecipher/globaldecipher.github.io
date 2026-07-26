@@ -61,6 +61,8 @@ function rowToFrontMatter(row, collection) {
     if (row.date) fm.date = row.date;
     if (row.author) fm.author = row.author;
     if (row.author_bio) fm.author_bio = row.author_bio;
+    if (row.image) fm.image = row.image;
+    if (row.image_alt) fm.image_alt = row.image_alt;
     if (row.type) fm.type = row.type;
     if (row.category) fm.category = row.category;
     if (row.region) fm.region = row.region;
@@ -185,7 +187,7 @@ export async function putFile(env, filePath, content, expectedSha = null, option
     const statement = expectedSha
       ? env.CONTENT_DB
         .prepare(`UPDATE content SET
-          type = ?, title = ?, date = ?, author = ?, author_bio = ?, category = ?, region = ?,
+          type = ?, title = ?, date = ?, author = ?, author_bio = ?, image = ?, image_alt = ?, category = ?, region = ?,
           summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
           eyebrow = ?, body = ?, updated_at = ?
           WHERE id = ? AND updated_at = ?`)
@@ -195,6 +197,8 @@ export async function putFile(env, filePath, content, expectedSha = null, option
           fm.date || null,
           fm.author || null,
           fm.author_bio || null,
+          fm.image || null,
+          fm.image_alt || null,
           fm.category || null,
           fm.region || null,
           fm.summary || null,
@@ -212,7 +216,7 @@ export async function putFile(env, filePath, content, expectedSha = null, option
         )
       : env.CONTENT_DB
       .prepare(`UPDATE content SET
-        type = ?, title = ?, date = ?, author = ?, author_bio = ?, category = ?, region = ?,
+        type = ?, title = ?, date = ?, author = ?, author_bio = ?, image = ?, image_alt = ?, category = ?, region = ?,
         summary = ?, tags = ?, access = ?, sensitivity = ?, status = ?, published_at = ?, featured = ?,
         eyebrow = ?, body = ?, updated_at = ?
         WHERE id = ?`)
@@ -222,6 +226,8 @@ export async function putFile(env, filePath, content, expectedSha = null, option
         fm.date || null,
         fm.author || null,
         fm.author_bio || null,
+        fm.image || null,
+        fm.image_alt || null,
         fm.category || null,
         fm.region || null,
         fm.summary || null,
@@ -252,8 +258,8 @@ export async function putFile(env, filePath, content, expectedSha = null, option
     }
     await env.CONTENT_DB
       .prepare(`INSERT INTO content
-        (collection, slug, type, title, date, author, author_bio, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        (collection, slug, type, title, date, author, author_bio, image, image_alt, category, region, summary, tags, access, sensitivity, status, published_at, featured, eyebrow, body, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(
         collection,
         slug,
@@ -262,6 +268,8 @@ export async function putFile(env, filePath, content, expectedSha = null, option
         fm.date || null,
         fm.author || null,
         fm.author_bio || null,
+        fm.image || null,
+        fm.image_alt || null,
         fm.category || null,
         fm.region || null,
         fm.summary || null,
@@ -338,6 +346,8 @@ export async function dumpCollection(env, folder) {
       date: row.date,
       author: row.author,
       author_bio: row.author_bio,
+      image: row.image,
+      image_alt: row.image_alt,
       category: row.category,
       region: row.region,
       summary: row.summary,
