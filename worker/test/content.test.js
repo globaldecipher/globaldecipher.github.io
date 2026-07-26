@@ -48,30 +48,27 @@ test("rejects a delete when another editor has a newer version", async () => {
   );
 });
 
-test("normalizes the latest GitHub deployment for the admin", async () => {
+test("normalizes the latest Cloudflare Pages deployment for the admin", async () => {
   globalThis.fetch = async () => new Response(JSON.stringify({
-    workflow_runs: [{
-      id: 42,
-      status: "completed",
-      conclusion: "success",
-      event: "workflow_dispatch",
-      display_title: "Deploy website",
-      html_url: "https://github.com/example/actions/runs/42",
-      run_started_at: "2026-06-30T12:00:00Z",
-      updated_at: "2026-06-30T12:01:00Z",
-      head_sha: "abc123"
+    result: [{
+      id: "dep-42",
+      url: "https://theglobaldecipher.pages.dev",
+      created_on: "2026-06-30T12:00:00Z",
+      modified_on: "2026-06-30T12:01:00Z",
+      latest_stage: { name: "deploy", status: "success", ended_on: "2026-06-30T12:01:00Z" },
+      deployment_trigger: { metadata: { commit_message: "Deploy website\n\nbody", commit_hash: "abc123" } }
     }]
   }), {
     headers: { "content-type": "application/json" }
   });
 
   const result = await latestDeployment({
-    GITHUB_TOKEN: "test",
-    GITHUB_REPO: "globaldecipher/globaldecipher.github.io",
-    GITHUB_BRANCH: "main"
+    CF_API_TOKEN: "test",
+    CF_ACCOUNT_ID: "account",
+    CF_PAGES_PROJECT: "theglobaldecipher"
   });
 
   assert.equal(result.available, true);
   assert.equal(result.run.conclusion, "success");
-  assert.equal(result.run.url, "https://github.com/example/actions/runs/42");
+  assert.equal(result.run.url, "https://theglobaldecipher.pages.dev");
 });
