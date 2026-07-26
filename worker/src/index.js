@@ -134,13 +134,16 @@ export default {
       const publicAgentResponse = await handleAgentPublicRequest(request, env);
       if (publicAgentResponse) return publicAgentResponse;
 
-      if (path.startsWith("/media/") && method === "GET") {
+      // HEAD is answered too: link-preview crawlers (WhatsApp, Telegram,
+      // Facebook) check an image with HEAD before fetching it, and a JSON 404
+      // there costs the article its preview picture.
+      if (path.startsWith("/media/") && (method === "GET" || method === "HEAD")) {
         const mediaKey = path.slice("/media/".length);
         const object = await readMedia(env, mediaKey);
         if (!object) return new Response("Not found", { status: 404, headers: baseSecurityHeaders() });
         const headers = new Headers(safeMediaHeaders(object, mediaKey));
         if (object.httpEtag) headers.set("etag", object.httpEtag);
-        return new Response(object.body, { headers });
+        return new Response(method === "HEAD" ? null : object.body, { headers });
       }
 
       // ---- Incident feed (public read) ----
