@@ -108,18 +108,48 @@ export async function getFile(env, filePath) {
   }
   const fm = rowToFrontMatter(row, collection);
   const content = buildMarkdown(fm, row.body || "");
-  return { path: filePath, content, sha: row.updated_at };
+  return {
+    path: filePath,
+    content,
+    sha: row.updated_at,
+    // Work an editor left behind mid-session, recovered without ever having
+    // touched the live article. Null whenever the last save was deliberate.
+    draft: row.draft_content ? { content: row.draft_content, savedAt: row.draft_saved_at } : null
+  };
 }
 
-export async function putFile(env, filePath, content, expectedSha = null) {
+// Drop a parked draft once the editor has deliberately saved or discarded it.
+// Kept separate from the main row update so that a database still waiting on
+// migration 0007 refuses only the parking, never an ordinary save.
+async function clearParkedDraft(env, collection, slug) {
+  try {
+    await env.CONTENT_DB
+      .prepare("UPDATE content SET draft_content = NULL, draft_saved_at = NULL WHERE collection = ? AND slug = ?")
+      .bind(collection, slug)
+      .run();
+    return true;
+  } catch (error) {
+    if (/no such column/i.test(error?.message || "")) return false;
+    throw error;
+  }
+}
+
+export async function discardDraft(env, filePath) {
   const { collection, slug } = parsePath(filePath);
+  await clearParkedDraft(env, collection, slug);
+  return { path: filePath, discarded: true };
+}
+
+export async function putFile(env, filePath, content, expectedSha = null, options = {}) {
+  const { collection, slug } = parsePath(filePath);
+  const isAutosave = options.autosave === true;
   const { fm, body } = parseMarkdown(content);
   const tagsJson = JSON.stringify(Array.isArray(fm.tags) ? fm.tags : []);
   const now = new Date().toISOString();
-  const status = collection === "pages" ? "published" : (fm.status === "published" ? "published" : "draft");
+  const requestedStatus = collection === "pages" ? "published" : (fm.status === "published" ? "published" : "draft");
   // upsert by (collection, slug)
   const existing = await env.CONTENT_DB
-    .prepare("SELECT id, updated_at, published_at FROM content WHERE collection = ? AND slug = ?")
+    .prepare("SELECT id, updated_at, published_at, status FROM content WHERE collection = ? AND slug = ?")
     .bind(collection, slug)
     .first();
   if (existing && expectedSha && existing.updated_at !== expectedSha) {
@@ -127,6 +157,29 @@ export async function putFile(env, filePath, content, expectedSha = null) {
     error.status = 409;
     throw error;
   }
+  // A background autosave must never change what the public sees. For a live
+  // article the draft is parked alongside the row and the published columns are
+  // left exactly as they are; only a deliberate save can unpublish or promote.
+  if (isAutosave && existing && existing.status === "published") {
+    try {
+      await env.CONTENT_DB
+        .prepare("UPDATE content SET draft_content = ?, draft_saved_at = ? WHERE id = ?")
+        .bind(content, now, existing.id)
+        .run();
+    } catch (error) {
+      // Refuse rather than fall back to writing the live row: a failed autosave
+      // costs the editor nothing, an unpublished article costs readers.
+      const failure = new Error(/no such column/i.test(error?.message || "")
+        ? "Autosave is unavailable until database migration 0007 is applied."
+        : "Autosave could not be stored. The published article is unchanged.");
+      failure.status = 503;
+      throw failure;
+    }
+    return { path: filePath, sha: existing.updated_at, parked: true };
+  }
+  const status = isAutosave
+    ? (existing ? existing.status : "draft")
+    : requestedStatus;
   const publishedAt = status === "published" ? (existing?.published_at || now) : null;
   if (existing) {
     const statement = expectedSha
@@ -189,6 +242,8 @@ export async function putFile(env, filePath, content, expectedSha = null) {
       error.status = 409;
       throw error;
     }
+    // This save is now the article of record, so recovered work is spent.
+    await clearParkedDraft(env, collection, slug);
   } else {
     if (expectedSha) {
       const error = new Error("This item no longer exists. Return to the list before saving.");

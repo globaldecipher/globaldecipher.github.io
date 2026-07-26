@@ -462,6 +462,29 @@ function refreshManagedAssetUrls(value = "") {
     );
 }
 
+// A deploy must not fail because the content API blinked. Transient network
+// errors and 5xx responses are retried with a widening delay; a 4xx is a real
+// answer and is returned immediately.
+async function fetchCollection(collection, headers, attempts = 4) {
+  const url = `${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`;
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(30000) });
+      if (res.ok || (res.status >= 400 && res.status < 500)) return res;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) {
+      const delay = 1000 * 2 ** (attempt - 1);
+      console.warn(`Retrying ${collection} in ${delay}ms (${lastError?.message || "no response"}).`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error(`Failed to fetch ${collection} from ${CONTENT_API} after ${attempts} attempts: ${lastError?.message || "unknown error"}`);
+}
+
 async function readCollection(collection) {
   const headers = {
     accept: "application/json",
@@ -470,7 +493,7 @@ async function readCollection(collection) {
   if (collection === "monitoring" && CONTENT_DUMP_TOKEN) {
     headers.authorization = `Bearer ${CONTENT_DUMP_TOKEN}`;
   }
-  const res = await fetch(`${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`, { headers });
+  const res = await fetchCollection(collection, headers);
   const allowPartialBuild = process.env.ALLOW_PARTIAL_CONTENT_BUILD === "1" || process.env.CI !== "true";
   if ([401, 403].includes(res.status) && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
     console.warn(`Skipping protected ${collection} content in partial build (CONTENT_DUMP_TOKEN is not set).`);
@@ -2221,6 +2244,16 @@ async function main() {
     ...reports,
     ...profiles
   ];
+
+  // A database or API fault that answers 200 with nothing would otherwise
+  // deploy an empty site over the real one. An entirely empty result is never
+  // legitimate here, so stop rather than publish it.
+  if (!allContent.length && !pages.length && process.env.ALLOW_EMPTY_CONTENT_BUILD !== "1") {
+    throw new Error(
+      `The content API returned no articles and no pages, so the build stopped instead of deploying an empty site. ` +
+      `Check ${CONTENT_API}/content/dump?folder=news. Set ALLOW_EMPTY_CONTENT_BUILD=1 if an empty site is genuinely intended.`
+    );
+  }
 
   const hubs = buildHubIndex(allContent);
   HUB_ORG_SLUGS.clear();

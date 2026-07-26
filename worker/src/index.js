@@ -38,6 +38,7 @@ import {
   getFile,
   putFile,
   deleteFile,
+  discardDraft,
   dumpCollection,
   triggerRebuild,
   latestDeployment
@@ -311,11 +312,11 @@ export default {
         if (!body?.path || typeof body.content !== "string") return json({ error: "path and content are required" }, 400);
         const before = await getFile(env, body.path).catch(() => null);
         const beforeStatus = before ? parseStatus(before.content) : null;
-        const result = await putFile(env, body.path, body.content, body.sha || null);
-        // Skip rebuild for autosave (still drafts) — no point burning a Pages
-        // build for an in-flight save.
-        const status = parseStatus(body.content);
         const isAutosave = body.autosave === true;
+        const result = await putFile(env, body.path, body.content, body.sha || null, { autosave: isAutosave });
+        // Skip rebuild for autosave — it never changes what the public sees, so
+        // there is nothing to rebuild.
+        const status = parseStatus(body.content);
         let deployment = null;
         if (!isAutosave && (status === "published" || beforeStatus === "published")) {
           deployment = await triggerRebuild(env);
@@ -330,6 +331,12 @@ export default {
           actor
         }));
         return json({ ...result, deployment });
+      }
+      // Editor chose to throw away recovered work rather than restore it.
+      if (adminPath === "/content/draft" && method === "DELETE") {
+        const body = await readJson(request);
+        if (!body?.path) return json({ error: "path is required" }, 400);
+        return json(await discardDraft(env, body.path));
       }
       if (adminPath === "/content/file" && method === "DELETE") {
         const body = await readJson(request);

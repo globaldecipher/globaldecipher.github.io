@@ -1598,6 +1598,32 @@
     return editor;
   }
 
+  // Leaving an editor mounted keeps its ProseMirror instance, its listeners, and
+  // a stale `window.__tgdEditor` alive — which a later save would then read the
+  // body from. Every exit from an article form goes through here.
+  function teardownEditor() {
+    try { window.__tgdEditor?.destroy(); } catch {}
+    window.__tgdEditor = null;
+    document.body.classList.remove("editor-focus-active");
+    guardUnsavedWork(null);
+  }
+
+  // One beforeunload listener for the whole session; the predicate is swapped as
+  // forms open and close so listeners never stack up.
+  let unsavedWorkCheck = null;
+  function guardUnsavedWork(check) {
+    unsavedWorkCheck = check;
+    if (guardUnsavedWork.installed) return;
+    guardUnsavedWork.installed = true;
+    window.addEventListener("beforeunload", (event) => {
+      let dirty = false;
+      try { dirty = typeof unsavedWorkCheck === "function" && unsavedWorkCheck(); } catch {}
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+  }
+
   // A labelled toolbar is intentionally kept alongside Toast UI's icon toolbar.
   // It makes the common writing actions obvious (and still usable if a CDN icon
   // sprite is slow to load or blocked by a browser extension).
@@ -1905,13 +1931,21 @@
       }
     );
     const uploadedImages = await Promise.all(imageUploads);
-    const failedImage = uploadedImages.find((image) => image.error);
-    if (failedImage) throw failedImage.error;
-    const imageUrls = new Map(uploadedImages.map((image) => [image.placeholder, image.url]));
+    // A single failed upload used to throw away the whole converted document.
+    // Keep the text, drop the images that did not make it, and say how many.
+    const failedImages = uploadedImages.filter((image) => image.error);
+    if (failedImages.length === uploadedImages.length && uploadedImages.length > 0) {
+      throw new Error(`No images could be uploaded (${failedImages[0].error?.message || "upload failed"}).`);
+    }
+    const imageUrls = new Map(uploadedImages.filter((image) => image.url).map((image) => [image.placeholder, image.url]));
     const importedHtml = new DOMParser().parseFromString(result.value, "text/html");
     importedHtml.querySelectorAll("img").forEach((image) => {
-      const uploadedUrl = imageUrls.get(image.getAttribute("src") || "");
+      const source = image.getAttribute("src") || "";
+      const uploadedUrl = imageUrls.get(source);
       if (uploadedUrl) image.setAttribute("src", uploadedUrl);
+      // Placeholder never resolved — remove it rather than leave a broken image
+      // sitting in the article body.
+      else if (source.startsWith("tgd-word-image-")) image.remove();
     });
     const td = new window.TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", emDelimiter: "*" });
     if (window.turndownPluginGfm?.gfm) td.use(window.turndownPluginGfm.gfm);
@@ -1934,7 +1968,14 @@
     // Best-effort title: first heading in the markdown
     const titleMatch = markdown.match(/^#+\s+(.+?)\s*$/m);
     const title = titleMatch ? titleMatch[1].trim() : file.name.replace(/\.docx?$/i, "").replace(/[-_]+/g, " ");
-    return { markdown, title, tables: importedTables.length, images: imageIndex, warnings: result.messages || [] };
+    return {
+      markdown,
+      title,
+      tables: importedTables.length,
+      images: imageIndex - failedImages.length,
+      failedImages: failedImages.length,
+      warnings: result.messages || []
+    };
   }
 
   // Marker uses letters+digits only — Turndown escapes `[`, `]`, `_` etc., so
@@ -2027,7 +2068,11 @@
     input.addEventListener("blur", () => { if (input.value.trim()) add(input.value); });
     wrap.addEventListener("click", (e) => { if (e.target === wrap) input.focus(); });
     render();
-    return { wrap, getTags: () => [...tags] };
+    return {
+      wrap,
+      getTags: () => [...tags],
+      setTags: (next) => { tags = Array.isArray(next) ? [...next] : []; render(); }
+    };
   }
 
   // ============================ CONTENT (markdown) ============================
@@ -2240,8 +2285,21 @@
   async function contentForm(view, file, seed) {
     const folder = FOLDERS.find((f) => f.key === activeFolder);
     let fm = {}, body = "", sha = null, path = file ? file.path : null;
+    let recovered = null;
     if (file) {
-      try { const got = await api("/content/file?path=" + encodeURIComponent(file.path)); const p = parseMarkdown(got.content); fm = p.fm; body = p.body; sha = got.sha; }
+      try {
+        const got = await api("/content/file?path=" + encodeURIComponent(file.path));
+        const p = parseMarkdown(got.content);
+        fm = p.fm; body = p.body; sha = got.sha;
+        // Work an earlier session left mid-edit. The live article was never
+        // touched, so it is offered rather than applied.
+        if (got.draft?.content) {
+          const draftParsed = parseMarkdown(got.draft.content);
+          if (draftParsed.body.trim() !== p.body.trim() || draftParsed.fm.title !== p.fm.title) {
+            recovered = { fm: draftParsed.fm, body: draftParsed.body, savedAt: got.draft.savedAt };
+          }
+        }
+      }
       catch (e) { return toast("Could not open file: " + e.message, "err"); }
     } else if (seed) {
       fm = seed.fm || {};
@@ -2287,10 +2345,19 @@
         if (!f.title.value && title) f.title.value = title;
         const stripFirstHeading = markdown.replace(/^#+\s+.+\n+/, "");
         await editorReady;
+        const current = (window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody?.value || "")).trim();
+        // Importing over existing text used to destroy it with no warning.
+        let next = stripFirstHeading;
+        if (current) {
+          const choice = confirm(
+            "This article already has content.\n\nOK — add the Word document to the end.\nCancel — replace everything with the Word document."
+          );
+          next = choice ? `${current}\n\n${stripFirstHeading}` : stripFirstHeading;
+        }
         if (window.__tgdEditor) {
-          window.__tgdEditor.setMarkdown(stripFirstHeading);
+          window.__tgdEditor.setMarkdown(next);
         } else if (f.__fallbackBody) {
-          f.__fallbackBody.value = stripFirstHeading;
+          f.__fallbackBody.value = next;
         }
         toast("Word document imported. Review and publish when ready.");
       });
@@ -2338,6 +2405,7 @@
       if (fm.featured) f.featured.checked = true;
     }
 
+    if (recovered) view.append(recoveryBanner(recovered, { f, tagChips, editorReady, path }));
     if (importCard) view.append(importCard);
     view.append(form);
     const autosaveStatus = el("span", { class: "autosave-status", id: "autosave-status" },
@@ -2347,7 +2415,7 @@
     view.append(el("div", { class: "form-actions" },
       autosaveStatus,
       el("span", { class: "spacer" }),
-      el("button", { class: "btn ghost", onclick: () => { stopAutosave(); renderContent(clearView(view)); } }, "Cancel"),
+      el("button", { class: "btn ghost", onclick: () => { stopAutosave(); teardownEditor(); renderContent(clearView(view)); } }, "Cancel"),
       activeFolder === "pages"
         ? null
         : el("button", { class: "btn ghost", onclick: () => previewContent({ folder, f, tagChips }) }, "Preview"),
@@ -2382,6 +2450,14 @@
       editorReadyResolve?.();
     }
 
+    // Warn before a tab close throws away edits the 15s autosave has not
+    // reached yet. Pages have no autosave at all, so the guard matters most
+    // there.
+    guardUnsavedWork(() => {
+      const current = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody?.value || "");
+      return current.trim() !== String(body || "").trim();
+    });
+
     // Autosave drafts every ~15s. Pages are always published — skip them.
     if (activeFolder !== "pages") {
       startAutosave({
@@ -2398,6 +2474,50 @@
         }
       });
     }
+  }
+
+  // Offers work recovered from an interrupted session. The live article was
+  // never altered, so restoring is a deliberate choice rather than the default.
+  function recoveryBanner(recovered, { f, tagChips, editorReady, path }) {
+    const when = recovered.savedAt ? new Date(recovered.savedAt) : null;
+    const stamp = when && !Number.isNaN(when.getTime())
+      ? `${when.toLocaleDateString()} at ${when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+      : "an earlier session";
+    const banner = el("section", { class: "card recovery-card" },
+      el("div", { class: "recovery-head" },
+        el("div", {},
+          el("h3", { class: "recovery-title" }, "Unsaved work recovered"),
+          el("p", { class: "section-sub" },
+            `You were editing this article on ${stamp} and left without saving. The published version was never changed. Restore that draft, or keep the live version as it is.`)
+        ),
+        el("div", { class: "recovery-actions" },
+          el("button", {
+            class: "btn ghost", onclick: async () => {
+              try { await api("/content/draft", { method: "DELETE", body: { path } }); } catch {}
+              banner.remove();
+              toast("Recovered draft discarded.");
+            }
+          }, "Discard it"),
+          el("button", {
+            class: "btn primary", onclick: async () => {
+              const fmr = recovered.fm || {};
+              for (const [key, input] of Object.entries(f)) {
+                if (key.startsWith("__") || !(key in fmr)) continue;
+                if (input.type === "checkbox") input.checked = Boolean(fmr[key]);
+                else input.value = Array.isArray(fmr[key]) ? fmr[key].join(", ") : String(fmr[key] ?? "");
+              }
+              if (tagChips && Array.isArray(fmr.tags)) tagChips.setTags(fmr.tags);
+              await editorReady;
+              if (window.__tgdEditor) window.__tgdEditor.setMarkdown(recovered.body || "");
+              else if (f.__fallbackBody) f.__fallbackBody.value = recovered.body || "";
+              banner.remove();
+              toast("Draft restored. Publish when you are ready.");
+            }
+          }, "Restore draft")
+        )
+      )
+    );
+    return banner;
   }
 
   // Section card that holds the editor mount point.
@@ -2459,6 +2579,9 @@
         if (result.images) importedParts.push(`${result.images} image${result.images === 1 ? "" : "s"}`);
         const elapsed = Math.max(0.1, (Date.now() - startedAt) / 1000).toFixed(1);
         status.textContent = `Imported ${file.name} in ${elapsed}s` + (importedParts.length ? ` · ${importedParts.join(", ")}` : "") + (result.warnings.length ? ` (${result.warnings.length} formatting note${result.warnings.length === 1 ? "" : "s"})` : "");
+        if (result.failedImages) {
+          toast(`${result.failedImages} image${result.failedImages === 1 ? "" : "s"} could not be uploaded and ${result.failedImages === 1 ? "was" : "were"} left out. The text imported fine.`, "warn");
+        }
         await onImported(result);
       } catch (err) {
         status.textContent = "Import failed: " + err.message;
@@ -2519,9 +2642,7 @@
       const result = await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `${file ? "Update" : "Publish"} ${filePath}` } });
       publicationResult(result, fm.status === "published" ? "Published. Website rebuild started." : "Draft saved.");
       stopAutosave();
-      // Clean up editor instance to avoid leaks on re-mount
-      try { window.__tgdEditor?.destroy(); } catch {}
-      window.__tgdEditor = null;
+      teardownEditor();
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
   }
@@ -2594,12 +2715,17 @@
   // published). The timer is cleared on cancel/save to avoid clobbering a
   // future form mount.
   let autosaveTimer = null;
+  let autosaveLabelTimer = null;
   let lastAutosaveBody = null;
   let lastAutosaveTitle = null;
 
   function stopAutosave() {
     if (autosaveTimer) clearInterval(autosaveTimer);
+    // The relative-time label runs on its own timer. Leaving it behind stacked
+    // one more interval on every form open for the life of the session.
+    if (autosaveLabelTimer) clearInterval(autosaveLabelTimer);
     autosaveTimer = null;
+    autosaveLabelTimer = null;
     lastAutosaveBody = null;
     lastAutosaveTitle = null;
   }
@@ -2636,9 +2762,19 @@
     return workerSupportsAutosave;
   }
 
+  // "Parked" means the article is live and the worker stored this autosave
+  // beside it instead of over it, so the label must not imply the public page
+  // moved.
+  function autosaveLabel(savedAt, parked) {
+    return parked
+      ? `Recovery copy saved ${formatRelative(savedAt)} · live article untouched`
+      : `Saved ${formatRelative(savedAt)}`;
+  }
+
   function startAutosave(ctx) {
     stopAutosave();
     let savedAt = null;
+    let parked = false;
     let disabled = false;
     probeWorkerForAutosave().then((ok) => {
       if (!ok) {
@@ -2656,32 +2792,34 @@
         return;
       }
       if (lastAutosaveBody === body && lastAutosaveTitle === title) {
-        if (savedAt) setAutosaveStatus("saved", `Saved ${formatRelative(savedAt)}`);
+        if (savedAt) setAutosaveStatus("saved", autosaveLabel(savedAt, parked));
         return;
       }
       setAutosaveStatus("saving", "Saving draft…");
       try {
-        await saveDraftQuiet(ctx, title, body);
+        const saved = await saveDraftQuiet(ctx, title, body);
         savedAt = new Date();
         lastAutosaveBody = body;
         lastAutosaveTitle = title;
-        setAutosaveStatus("saved", `Saved ${formatRelative(savedAt)}`);
+        parked = saved?.parked === true;
+        setAutosaveStatus("saved", autosaveLabel(savedAt, parked));
       } catch (e) {
         setAutosaveStatus("error", "Autosave failed");
       }
     };
     autosaveTimer = setInterval(tick, 15000);
     // Refresh the "Saved Xs ago" label every 5s without re-hitting the API.
-    setInterval(() => {
+    autosaveLabelTimer = setInterval(() => {
       const status = document.getElementById("autosave-status");
       if (!status || !savedAt || !status.classList.contains("is-saved")) return;
-      status.querySelector(".autosave-text").textContent = `Saved ${formatRelative(savedAt)}`;
+      status.querySelector(".autosave-text").textContent = autosaveLabel(savedAt, parked);
     }, 5000);
   }
 
-  // Lightweight save for autosave: writes draft status, doesn't redirect or
-  // toast, and doesn't trigger a public-site rebuild (the worker only rebuilds
-  // for status: "published" entries that change publish state).
+  // Lightweight save for autosave: no redirect, no toast, and no public-site
+  // rebuild. The worker never lets an autosave change publication state — for a
+  // live article the work is parked beside the row and the published version is
+  // left untouched — so this can run safely while editing anything.
   async function saveDraftQuiet(ctx, title, body) {
     const { folder, file, f, tagChips } = ctx;
     const date = f.date?.value || today();
@@ -2697,7 +2835,7 @@
       tags,
       access: "free",
       sensitivity: (f.sensitivity?.value || "").trim() || "standard",
-      status: "draft",
+      status: (f.status?.value === "published" ? "published" : "draft"),
       featured: Boolean(f.featured?.checked)
     };
     const filePath = (file && file.path) || ctx.path || `content/${folder.key}/${date}-${slug(title)}.md`;
@@ -2706,11 +2844,15 @@
       try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
     }
     const markdown = buildMarkdown(fm, body);
-    await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `Autosave ${filePath}`, autosave: true } });
-    // Update ctx so subsequent autosaves work against the existing row.
+    const saved = await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `Autosave ${filePath}`, autosave: true } });
+    // Update ctx so subsequent autosaves work against the existing row. The
+    // worker returns the row's current sha (unchanged when the work was parked
+    // beside a live article), so no second round-trip is needed.
     ctx.path = filePath;
-    ctx.sha = (await api("/content/file?path=" + encodeURIComponent(filePath)).catch(() => ({}))).sha || sha;
+    ctx.sha = saved.sha || sha;
+    ctx.parked = saved.parked === true;
     ctx.onSaved?.({ path: ctx.path, sha: ctx.sha });
+    return saved;
   }
 
   // ============================ PREVIEW ============================

@@ -261,20 +261,41 @@ export function defaultFeed() {
 
 // ---- KV access ----
 
+// Cloudflare rejects KV values over 25 MB. Refusing a little earlier turns a
+// silent write failure into a message that says what to do about it.
+const FEED_SIZE_LIMIT = 24 * 1024 * 1024;
+
 export async function loadFeed(env) {
   const raw = await env.INCIDENTS.get(FEED_KEY);
+  // No key yet is a genuine empty feed. Unreadable stored data is not — handing
+  // back an empty feed there would let the next save overwrite every incident
+  // with nothing.
   if (!raw) return defaultFeed();
+  let parsed;
   try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.incidents)) parsed.incidents = [];
-    return parsed;
-  } catch {
-    return defaultFeed();
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    const failure = new Error("The stored incident feed could not be read, so it was left untouched. Restore it from a backup before writing again.");
+    failure.status = 500;
+    throw failure;
   }
+  if (!parsed || typeof parsed !== "object") {
+    const failure = new Error("The stored incident feed is not in the expected format, so it was left untouched.");
+    failure.status = 500;
+    throw failure;
+  }
+  if (!Array.isArray(parsed.incidents)) parsed.incidents = [];
+  return parsed;
 }
 
 export async function saveFeed(env, feed) {
-  await env.INCIDENTS.put(FEED_KEY, JSON.stringify(feed));
+  const serialized = JSON.stringify(feed);
+  if (serialized.length > FEED_SIZE_LIMIT) {
+    const failure = new Error(`The incident feed has grown to ${(serialized.length / 1024 / 1024).toFixed(1)} MB and is near Cloudflare's 25 MB limit. Archive older incidents before adding more.`);
+    failure.status = 507;
+    throw failure;
+  }
+  await env.INCIDENTS.put(FEED_KEY, serialized);
 }
 
 export function deleteIncidentById(feed, id) {
