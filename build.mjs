@@ -1205,9 +1205,10 @@ function homepage(items) {
 
   const body = `
   ${tickerStrip(items)}
-  <section class="hero">
+  <section class="hero${leadImage(lead) ? " hero-has-media" : ""}">
     <div class="hero-map" aria-hidden="true">${heroMapSvg()}</div>
     <div class="container hero-grid">
+      ${leadImage(lead) ? `<a class="hero-media" href="${linkFor(lead.url, currentPath)}" aria-hidden="true" tabindex="-1">${cardImageMarkup(lead, { wide: true }).replace('<div class="card-media card-media-wide">', '').replace(/<\/div>\s*$/, '')}</a>` : ""}
       <div class="hero-lead-col">
         <p class="hero-eyebrow">${leadType} · ${escapeHtml(lead.region || "Pakistan")}</p>
         <h1><a href="${linkFor(lead.url, currentPath)}">${escapeHtml(heroTitle)}</a></h1>

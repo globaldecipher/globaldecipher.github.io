@@ -416,6 +416,24 @@ input:focus-visible {
   gap: 56px;
   align-items: start;
 }
+/* When the lead story has a picture, the hero flips to text-left / image-right
+   so the headline stays where it always was and the picture takes the empty
+   space that used to sit beside it. */
+.hero-has-media .hero-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: center; }
+.hero-media {
+  display: block;
+  overflow: hidden;
+  border-radius: 2px;
+  aspect-ratio: 4 / 3;
+  max-height: 460px;
+  background: var(--line-1, rgba(0, 0, 0, 0.04));
+}
+.hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 600ms var(--ease); }
+.hero-media:hover img { transform: scale(1.03); }
+@media (max-width: 860px) {
+  .hero-has-media .hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero-media { aspect-ratio: 3 / 2; }
+}
 
 .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 10px;
