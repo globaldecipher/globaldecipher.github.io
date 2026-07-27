@@ -212,6 +212,7 @@
         tabBtn("rules", "Learning & Rules"),
         tabBtn("incidents", "Incidents"),
         tabBtn("content", "Articles & Profiles"),
+        tabBtn("sources", "Primary Sources"),
         tabBtn("activity", "Activity")
       ),
       el("div", { class: "topbar-right" }, themeToggle(), maint, el("button", { class: "btn ghost", onclick: logout }, "Log out"))
@@ -268,6 +269,17 @@
     else if (id === "rules") renderAgentRules(view);
     else if (id === "incidents") renderIncidents(view);
     else if (id === "activity") renderActivity(view);
+    else if (id === "sources") {
+      if (!window.TGD_ADMIN_CORPUS) {
+        clear(view);
+        view.append(el("section", { class: "card" },
+          el("div", { class: "section-head" }, el("h3", {}, "Primary Sources")),
+          el("p", { class: "section-sub" }, "The Primary Sources module did not load. Refresh the page and try again.")
+        ));
+        return;
+      }
+      window.TGD_ADMIN_CORPUS.render(view, { api, toast });
+    }
     else renderContent(view);
   }
 

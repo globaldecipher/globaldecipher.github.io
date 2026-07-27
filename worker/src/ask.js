@@ -22,6 +22,7 @@ import {
   rateLimit as enforceRateLimit,
   readJsonLimited
 } from "./security.js";
+import { retrieveCorpusChunks } from "./corpus.js";
 
 const MAX_QUESTION_LEN = 700;
 const MAX_CONTEXT_BYTES = 100_000;
@@ -290,17 +291,45 @@ export async function askDatabase(request, env) {
   const selectedProfile = entities.find((entity) => entity?.id === entityId)?.name
     || entities[0]?.name
     || "Selected TGD profile";
-  const sourceCatalog = allowedSourceIds.length > 0
-    ? allowedSourceIds.join(", ")
+
+  // Retrieve top passages from the primary-source corpus for the current
+  // neighborhood. Never let a slow / missing index stall the answer.
+  const neighborhoodIds = entities.map((e) => e?.id).filter(Boolean);
+  let corpusChunks = [];
+  try {
+    corpusChunks = await Promise.race([
+      retrieveCorpusChunks(env, question, neighborhoodIds, 6),
+      new Promise((resolve) => setTimeout(() => resolve([]), 3500))
+    ]);
+  } catch (_e) {
+    corpusChunks = [];
+  }
+
+  const corpusCitationIds = corpusChunks.map((c) => `corpus:${c.source_id}#c${c.chunk_index}`);
+  const combinedCitations = [...allowedSourceIds, ...corpusCitationIds];
+  const sourceCatalog = combinedCitations.length > 0
+    ? combinedCitations.join(", ")
     : "No source IDs are attached";
+
+  // Format retrieved passages so the model can quote them and cite the exact
+  // chunk. Titles help humans; the bracket token is what Gemini must print.
+  const corpusBlock = corpusChunks.length > 0
+    ? [
+        "",
+        "Primary-source passages (cite as [corpus:<source_id>#c<chunk>]):",
+        ...corpusChunks.map((c) => `- [corpus:${c.source_id}#c${c.chunk_index}] ${c.title || c.source_id}: ${c.snippet}`)
+      ].join("\n")
+    : "";
+
   const system = [
     "You are the source-bound research assistant for The Global Decipher (TGD), a terrorism research database.",
-    "Answer only from the TGD research records below. Never add outside facts or guess.",
-    "Citations may use only an exact ID from ALLOWED SOURCE IDS. Put each source ID in its own square brackets, for example [src-iskp-1].",
+    "Answer only from the TGD research records and primary-source passages below. Never add outside facts or guess.",
+    "Citations may use only an exact ID from ALLOWED SOURCE IDS. Put each source ID in its own square brackets, for example [src-iskp-1] or [corpus:abc123#c4].",
     "Never cite or print entity IDs, relationship target IDs, field names, JSON keys, or other internal identifiers.",
     "Never describe the records as provided data, supplied data, JSON, a provider, a prompt, or a context window.",
     "Do not add a verification note or explain how the answer was generated.",
     "Every supported factual sentence should include one or more allowed source IDs. If a claim has no attached source ID, state that direct source evidence is not attached; do not invent a bracketed citation.",
+    "Prefer citing primary-source passages when they support the claim directly.",
     "If the supplied data cannot answer the question, say exactly what is missing.",
     "Distinguish confirmed facts, reported claims, analytical assessments, and unknowns.",
     "Do not provide operational guidance that could facilitate violence, targeting, weapons construction, recruitment, financing, concealment, or evasion. Redirect such requests to high-level historical or prevention-focused analysis.",
@@ -311,7 +340,8 @@ export async function askDatabase(request, env) {
     `ALLOWED SOURCE IDS: ${sourceCatalog}`,
     "",
     "TGD research records:",
-    contextJson
+    contextJson,
+    corpusBlock
   ].join("\n");
 
   const model = String(env.GEMINI_MODEL || DEFAULT_MODEL);

@@ -88,10 +88,23 @@ database_id = "f73c5100-c9fd-41b3-9e20-d6f1986ad5b4"
 migrations_dir = "migrations"
 
 # Research media plus versioned agent CSV/XLSX/chart packages under
-# agent-exports/<YYYY-MM>/.
+# agent-exports/<YYYY-MM>/. Primary-source corpus files (PDFs/DOCX for the
+# Explorer Ask assistant) live under corpus/<entity_id>/<hash>-<name>.
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "tgd-media"
+
+# Vector index for the primary-source corpus. Chunks are embedded with Workers
+# AI (@cf/baai/bge-base-en-v1.5, 768 dims) and filtered by entity_id at query
+# time so the Ask assistant only retrieves passages from the open profile's
+# corpus.
+[[vectorize]]
+binding = "CORPUS_INDEX"
+index_name = "tgd-corpus"
+
+# Workers AI powers the embedding calls during corpus ingest and ask retrieval.
+[ai]
+binding = "AI"
 
 # Serve the feed and uploaded research media from the production domain.
 # A Workers route takes precedence over Pages for matching paths.

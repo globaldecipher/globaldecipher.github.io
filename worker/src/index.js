@@ -46,6 +46,7 @@ import {
 import { uploadMedia, readMedia, safeMediaHeaders } from "./media.js";
 import { logAudit, listAudit, actorFingerprint } from "./audit.js";
 import { askDatabase } from "./ask.js";
+import { handleCorpusUpload, handleCorpusList, handleCorpusDelete } from "./corpus.js";
 import {
   baseSecurityHeaders,
   clientIdentifier,
@@ -247,6 +248,18 @@ export default {
 
       if (adminPath === "/media" && method === "POST") {
         return json(await uploadMedia(request, env), 201);
+      }
+
+      if (adminPath === "/corpus/upload" && method === "POST") {
+        return handleCorpusUpload(request, env);
+      }
+      if (adminPath === "/corpus" && method === "GET") {
+        return handleCorpusList(request, env);
+      }
+      if (adminPath.startsWith("/corpus/") && method === "DELETE") {
+        const source_id = adminPath.slice("/corpus/".length);
+        if (!source_id || source_id.includes("/")) return json({ error: "Bad source_id" }, 400);
+        return handleCorpusDelete(request, env, source_id);
       }
 
       if (adminPath === "/maintenance" && method === "POST") {

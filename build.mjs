@@ -1904,12 +1904,13 @@ function adminPage() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/assets/admin.css?v=20260706-infographic-date">
+<link rel="stylesheet" href="/assets/admin.css?v=20260727-corpus">
 </head>
 <body>
 <div id="admin-root"></div>
 <script src="/assets/admin-infographic.js?v=20260706-map-polish" defer></script>
-<script src="/assets/admin.js?v=20260727-reports-simple-form" defer></script>
+<script src="/assets/admin-corpus.js?v=20260727-corpus" defer></script>
+<script src="/assets/admin.js?v=20260727-corpus" defer></script>
 </body>
 </html>
 `;
