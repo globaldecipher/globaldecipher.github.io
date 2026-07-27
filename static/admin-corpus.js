@@ -5,9 +5,11 @@
 (function () {
   "use strict";
 
-  const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs";
-  const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs";
-  const MAMMOTH_URL = "https://cdn.jsdelivr.net/npm/mammoth@1.9.0/mammoth.browser.min.js";
+  // Vendored locally at static/vendor/ so the strict CSP (script-src 'self')
+  // and maintenance-mode gate never block the ingest tool.
+  const PDFJS_URL = "/assets/vendor/pdf.min.mjs";
+  const PDFJS_WORKER_URL = "/assets/vendor/pdf.worker.min.mjs";
+  const MAMMOTH_URL = "/assets/vendor/mammoth.browser.min.js";
   const ENTITIES_URL = "/network-graph/data/entities.json";
   const FALLBACK_ENTITIES_URL = "https://theglobaldecipher.com/network-graph/data/entities.json";
 
