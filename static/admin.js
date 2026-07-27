@@ -110,6 +110,49 @@
     return { fm, body: m[2].replace(/^\n+/, "") };
   }
 
+  // Reports use a stripped-down form: one exec-summary textarea and one PDF
+  // link. The article body is composed from those two fields on save so the
+  // site rendering path stays unchanged.
+  const REPORT_LINK_TEXT = "Download the full report (PDF)";
+  const REPORT_TEMPLATE_RE = /^\s*##\s+Executive summary\s*\n+([\s\S]+?)\n+\[[^\]]*\]\(([^)\s]+)\)\s*$/;
+
+  function parseReportBody(md) {
+    const body = String(md || "").trim();
+    if (!body) return { simple: true, execSummary: "", pdfUrl: "" };
+    const m = body.match(REPORT_TEMPLATE_RE);
+    if (m) {
+      const captured = m[1].trim();
+      // Refuse "simple" if the captured exec summary contains another heading,
+      // a Markdown table pipe, or an image — those signal the legacy rich body
+      // and would look wrong crammed into a plain textarea on save.
+      const looksRich = /(^|\n)##\s|(^|\n)\|/.test(captured) || /!\[[^\]]*\]\(/.test(captured);
+      if (!looksRich) return { simple: true, execSummary: captured, pdfUrl: m[2].trim() };
+    }
+    // Legacy or rich report — pull out whatever exec summary text and PDF link
+    // exist so the simple form is at least prefilled if the user chooses to
+    // convert.
+    let execSummary = body;
+    let pdfUrl = "";
+    const pdfLink = body.match(/\[[^\]]*\]\(([^)\s]+\.pdf[^)\s]*)\)/i);
+    if (pdfLink) pdfUrl = pdfLink[1];
+    const execHeading = body.match(/##\s+Executive summary\s*\n+([\s\S]*?)(?=\n##\s|$)/i);
+    if (execHeading) execSummary = execHeading[1].trim();
+    return { simple: false, execSummary, pdfUrl };
+  }
+
+  function buildReportBody(execSummary, pdfUrl) {
+    const summary = String(execSummary || "").trim();
+    const url = String(pdfUrl || "").trim();
+    return `## Executive summary\n\n${summary}\n\n[${REPORT_LINK_TEXT}](${url})\n`;
+  }
+
+  function deriveReportCardSummary(execSummary) {
+    const text = String(execSummary || "").replace(/\s+/g, " ").trim();
+    if (text.length <= 155) return text;
+    const trimmed = text.slice(0, 152).replace(/\s+\S*$/, "");
+    return `${trimmed}…`;
+  }
+
   // ============================ LOGIN ============================
   function renderLogin(msg, kind = "error") {
     clear(root);
@@ -1640,7 +1683,8 @@
       ["ol", "Numbered list", "1. List"],
       ["quote", "Quote", "Quote"],
       ["table", "Insert table", "Table"],
-      ["image", "Upload image", "Image"]
+      ["image", "Upload image", "Image"],
+      ["pdf", "Attach PDF", "PDF"]
     ];
     const fontPicker = el("select", {
       class: "editor-font-picker",
@@ -1667,6 +1711,10 @@
 
   function runEditorAction(container, editor, action) {
     editor.focus();
+    if (action === "pdf") {
+      triggerPdfUpload(container, editor);
+      return;
+    }
     const nativeAction = { ul: "bullet-list", ol: "ordered-list" }[action] || action;
     const nativeButton = container.querySelector(`.toastui-editor-toolbar-icons.${nativeAction}`);
     if (nativeButton && !nativeButton.disabled) {
@@ -1676,6 +1724,41 @@
     // The native button is preferred because it also handles dialogs (links,
     // tables, and uploads). This fallback covers straightforward formatting.
     try { editor.exec(action); } catch {}
+  }
+
+  // Toast UI has no built-in PDF button, so we manage our own hidden input,
+  // upload via /media (which stores the PDF in R2 with content-disposition:
+  // attachment), and drop a download link at the cursor.
+  function triggerPdfUpload(container, editor) {
+    let input = container.querySelector(":scope > .editor-pdf-input");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/pdf,.pdf";
+      input.className = "editor-pdf-input";
+      input.style.display = "none";
+      container.appendChild(input);
+      input.addEventListener("change", async () => {
+        const file = input.files && input.files[0];
+        input.value = "";
+        if (!file) return;
+        try {
+          toast("Uploading PDF…");
+          const uploaded = await uploadMedia(file, file.name);
+          const label = (file.name || "PDF").replace(/\.pdf$/i, "").trim() || "PDF";
+          const linkText = `Download ${label} (PDF)`;
+          try {
+            editor.exec("addLink", { linkText, linkUrl: uploaded.url });
+          } catch {
+            editor.insertText(`[${linkText}](${uploaded.url})`);
+          }
+          toast("PDF uploaded.");
+        } catch (err) {
+          toast("Could not upload PDF: " + err.message, "err");
+        }
+      });
+    }
+    input.click();
   }
 
   function applyEditorFont(container, font) {
@@ -2339,8 +2422,19 @@
     // silent no-op and the imported body never reaches the form.
     let editorReadyResolve;
     const editorReady = new Promise((resolve) => { editorReadyResolve = resolve; });
+
+    // Reports use a stripped-down form (exec summary + PDF link). The full
+    // WYSIWYG editor, Word import, lead image, and Classification section are
+    // skipped, and the article body is composed from those two fields on save.
+    // Legacy rich reports (like the April one) still open in the full editor
+    // so their tables, images, and extra sections are preserved.
+    const isReport = activeFolder === "reports";
+    const reportParsed = isReport ? parseReportBody(body) : null;
+    const reportSimpleMode = isReport && reportParsed.simple;
+    const reportLegacyWarning = false;
+
     let importCard = null;
-    if (activeFolder !== "pages") {
+    if (activeFolder !== "pages" && !reportSimpleMode) {
       importCard = makeImportCard(async ({ markdown, title }) => {
         if (!f.title.value && title) f.title.value = title;
         const stripFirstHeading = markdown.replace(/^#+\s+.+\n+/, "");
@@ -2377,6 +2471,16 @@
         ),
         editorSection("Page body", "")
       );
+    } else if (reportSimpleMode) {
+      f.__reportSimple = true;
+      form = el("div", { class: "form" },
+        section("Identity", "Title, date, and the desk that filed it.",
+          add("title", "Title", { required: true, placeholder: "e.g. Pakistan Monthly Report — January 2026" }),
+          add("date", "Publish date", { type: "date", default: today(), required: true }),
+          add("author", "Author / desk", { default: folder.author, hint: "Defaults to the desk for this section." })
+        ),
+        reportContentSection(f, reportParsed.execSummary, reportParsed.pdfUrl, reportLegacyWarning)
+      );
     } else {
       const initialTags = Array.isArray(fm.tags) ? fm.tags : (typeof fm.tags === "string" && fm.tags ? fm.tags.split(/\s*,\s*/) : []);
       tagChips = makeTagChips(initialTags);
@@ -2408,6 +2512,7 @@
       if (fm.featured) f.featured.checked = true;
     }
 
+    if (isReport) f.__existingFm = fm;
     if (recovered) view.append(recoveryBanner(recovered, { f, tagChips, editorReady, path }));
     if (importCard) view.append(importCard);
     view.append(form);
@@ -2433,8 +2538,14 @@
     // Wire up summary counter (live char/word count with sweet-spot signal).
     if (f.summary) attachSummaryCounter(f.summary);
 
+    // Reports in simple mode have no WYSIWYG editor to mount; release the
+    // import gate immediately so any deferred logic that awaits it can proceed.
+    if (reportSimpleMode) {
+      editorReadyResolve?.();
+    }
+
     // Mount the WYSIWYG editor into the placeholder div after the DOM is in place.
-    const editorMount = document.getElementById("editor-mount");
+    const editorMount = !reportSimpleMode ? document.getElementById("editor-mount") : null;
     if (editorMount) {
       editorMount.innerHTML = '<div class="editor-loading">Loading editor…</div>';
       try {
@@ -2457,6 +2568,13 @@
     // reached yet. Pages have no autosave at all, so the guard matters most
     // there.
     guardUnsavedWork(() => {
+      if (f.__reportSimple) {
+        const summaryNow = (f.__reportSummary?.value || "").trim();
+        const urlNow = (f.__reportPdfUrl?.value || "").trim();
+        const summaryWas = (reportParsed?.execSummary || "").trim();
+        const urlWas = (reportParsed?.pdfUrl || "").trim();
+        return summaryNow !== summaryWas || urlNow !== urlWas;
+      }
       const current = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody?.value || "");
       return current.trim() !== String(body || "").trim();
     });
@@ -2585,7 +2703,11 @@
               }
               if (tagChips && Array.isArray(fmr.tags)) tagChips.setTags(fmr.tags);
               await editorReady;
-              if (window.__tgdEditor) window.__tgdEditor.setMarkdown(recovered.body || "");
+              if (f.__reportSimple) {
+                const parsedRecovered = parseReportBody(recovered.body || "");
+                if (f.__reportSummary) f.__reportSummary.value = parsedRecovered.execSummary || "";
+                if (f.__reportPdfUrl) f.__reportPdfUrl.value = parsedRecovered.pdfUrl || "";
+              } else if (window.__tgdEditor) window.__tgdEditor.setMarkdown(recovered.body || "");
               else if (f.__fallbackBody) f.__fallbackBody.value = recovered.body || "";
               banner.remove();
               toast("Draft restored. Publish when you are ready.");
@@ -2595,6 +2717,68 @@
       )
     );
     return banner;
+  }
+
+  // Simplified body panel for Reports. Two fields: the exec summary text
+  // shown on the article page, and a link to the downloadable PDF. On save the
+  // body Markdown is composed from both, so the site keeps rendering reports
+  // through the usual article path.
+  function reportContentSection(f, execSummary, pdfUrl, warnLegacy) {
+    const summaryField = makeField("Executive summary", {
+      type: "textarea",
+      rows: 10,
+      wide: true,
+      required: true,
+      hint: "Shown on the report page and used for the card preview. Keep it self-contained — this is what readers see before deciding to download the PDF."
+    }, execSummary);
+    f.__reportSummary = summaryField.input;
+
+    const urlField = makeField("PDF link", {
+      type: "text",
+      wide: true,
+      required: true,
+      placeholder: "/media/uploads/…  (paste a URL or click Upload PDF)",
+      hint: "The download link that appears at the bottom of the report page."
+    }, pdfUrl);
+    f.__reportPdfUrl = urlField.input;
+
+    const fileInput = el("input", { type: "file", accept: "application/pdf,.pdf", style: "display:none" });
+    const uploadBtn = el("button", { type: "button", class: "btn ghost small" }, "Upload PDF");
+    const uploadStatus = el("p", { class: "fld-hint" }, "Uploads to R2 and fills the link above. Max 25 MB.");
+    uploadBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = "";
+      if (!file) return;
+      uploadBtn.disabled = true;
+      uploadStatus.textContent = `Uploading ${file.name}…`;
+      try {
+        const uploaded = await uploadMedia(file, file.name);
+        f.__reportPdfUrl.value = uploaded.url;
+        uploadStatus.textContent = `Uploaded ${file.name}. Link filled in above.`;
+        toast("PDF uploaded.");
+      } catch (err) {
+        uploadStatus.textContent = `Upload failed: ${err.message}`;
+        toast("Could not upload PDF: " + err.message, "err");
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    const uploadRow = el("div", { class: "fld wide" }, uploadBtn, fileInput, uploadStatus);
+    const warning = warnLegacy
+      ? el("p", { class: "fld-hint", style: "color: var(--warn, #b45309)" },
+          "This report was saved in the old rich-editor format. Editing here will convert it to the simple exec-summary + PDF layout on save.")
+      : null;
+
+    return section(
+      "Report content",
+      "Just the executive summary and a link to the full PDF.",
+      warning,
+      summaryField.wrap,
+      urlField.wrap,
+      uploadRow
+    );
   }
 
   // Section card that holds the editor mount point.
@@ -2682,13 +2866,38 @@
   async function saveContent({ folder, file, path, sha, f, tagChips }, view, statusOverride) {
     const title = f.title.value.trim();
     if (!title) return toast("Title is required.", "err");
-    const editorBody = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody ? f.__fallbackBody.value : "");
+    let editorBody;
     let fm, filePath;
-    if (folder.key === "pages") {
+    if (f.__reportSimple) {
+      const date = f.date.value || today();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Date must be YYYY-MM-DD.", "err");
+      const execSummary = (f.__reportSummary?.value || "").trim();
+      if (!execSummary) return toast("Executive summary is required.", "err");
+      const pdfUrl = (f.__reportPdfUrl?.value || "").trim();
+      if (!pdfUrl) return toast("Attach or link the report PDF.", "err");
+      editorBody = buildReportBody(execSummary, pdfUrl);
+      const prior = f.__existingFm || {};
+      fm = {
+        ...prior,
+        title, date,
+        author: f.author.value.trim() || folder.author,
+        type: folder.type,
+        summary: deriveReportCardSummary(execSummary),
+        tags: Array.isArray(prior.tags) ? prior.tags : [],
+        access: prior.access || "free",
+        sensitivity: prior.sensitivity || "standard",
+        status: statusOverride || prior.status || "draft",
+        featured: Boolean(prior.featured)
+      };
+      filePath = path || `content/${folder.key}/${date}-${slug(title)}.md`;
+    }
+    else if (folder.key === "pages") {
+      editorBody = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody ? f.__fallbackBody.value : "");
       const pageSlug = (f.slug.value.trim() || slug(title));
       fm = { title, slug: pageSlug, type: "page", eyebrow: f.eyebrow.value.trim(), summary: f.summary.value.trim() };
       filePath = path || `content/pages/${pageSlug}.md`;
     } else {
+      editorBody = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody ? f.__fallbackBody.value : "");
       const date = f.date.value || today();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Date must be YYYY-MM-DD.", "err");
       const summary = f.summary.value.trim();
@@ -2864,7 +3073,9 @@
     const tick = async () => {
       if (disabled) return;
       const title = ctx.f.title?.value?.trim() || "";
-      const body = window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (ctx.f.__fallbackBody?.value || "");
+      const body = ctx.f.__reportSimple
+        ? buildReportBody(ctx.f.__reportSummary?.value || "", ctx.f.__reportPdfUrl?.value || "")
+        : (window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (ctx.f.__fallbackBody?.value || ""));
       // Need a title to derive a slug. No title → nothing to save yet.
       if (!title) {
         if (!savedAt) setAutosaveStatus(null, "Autosave waits for a title");
@@ -2903,28 +3114,49 @@
     const { folder, file, f, tagChips } = ctx;
     const date = f.date?.value || today();
     const tags = tagChips ? tagChips.getTags() : [];
-    const fm = {
-      title, date,
-      author: (f.author?.value || "").trim() || folder.author,
-      author_bio: (f.author_bio?.value || "").trim(),
-      image: (f.image?.value || "").trim(),
-      image_alt: (f.image_alt?.value || "").trim(),
-      type: folder.type,
-      category: (f.category?.value || "").trim(),
-      region: (f.region?.value || "").trim(),
-      summary: (f.summary?.value || "").trim(),
-      tags,
-      access: "free",
-      sensitivity: (f.sensitivity?.value || "").trim() || "standard",
-      status: (f.status?.value === "published" ? "published" : "draft"),
-      featured: Boolean(f.featured?.checked)
-    };
+    let fm;
+    let effectiveBody = body;
+    if (f.__reportSimple) {
+      const execSummary = (f.__reportSummary?.value || "").trim();
+      const pdfUrl = (f.__reportPdfUrl?.value || "").trim();
+      effectiveBody = buildReportBody(execSummary, pdfUrl);
+      const prior = f.__existingFm || {};
+      fm = {
+        ...prior,
+        title, date,
+        author: (f.author?.value || "").trim() || folder.author,
+        type: folder.type,
+        summary: deriveReportCardSummary(execSummary),
+        tags: Array.isArray(prior.tags) ? prior.tags : [],
+        access: prior.access || "free",
+        sensitivity: prior.sensitivity || "standard",
+        status: prior.status || "draft",
+        featured: Boolean(prior.featured)
+      };
+    } else {
+      fm = {
+        title, date,
+        author: (f.author?.value || "").trim() || folder.author,
+        author_bio: (f.author_bio?.value || "").trim(),
+        image: (f.image?.value || "").trim(),
+        image_alt: (f.image_alt?.value || "").trim(),
+        type: folder.type,
+        category: (f.category?.value || "").trim(),
+        region: (f.region?.value || "").trim(),
+        summary: (f.summary?.value || "").trim(),
+        tags,
+        access: "free",
+        sensitivity: (f.sensitivity?.value || "").trim() || "standard",
+        status: (f.status?.value === "published" ? "published" : "draft"),
+        featured: Boolean(f.featured?.checked)
+      };
+    }
     const filePath = (file && file.path) || ctx.path || `content/${folder.key}/${date}-${slug(title)}.md`;
     let sha = ctx.sha;
     if (!sha) {
       try { const existing = await api("/content/file?path=" + encodeURIComponent(filePath)); sha = existing.sha; } catch {}
     }
-    const markdown = buildMarkdown(fm, body);
+    const markdown = buildMarkdown(fm, effectiveBody);
     const saved = await api("/content/file", { method: "PUT", body: { path: filePath, content: markdown, sha, message: `Autosave ${filePath}`, autosave: true } });
     // Update ctx so subsequent autosaves work against the existing row. The
     // worker returns the row's current sha (unchanged when the work was parked
@@ -2945,10 +3177,23 @@
     const title = f.title?.value?.trim() || "Untitled draft";
     const date = f.date?.value || today();
     const author = f.author?.value?.trim() || folder.author;
-    const summary = f.summary?.value?.trim() || "";
     const category = f.category?.value?.trim() || "";
     const tags = tagChips ? tagChips.getTags() : [];
-    const body = window.__tgdEditor ? window.__tgdEditor.getHTML() : "";
+    let summary;
+    let body;
+    if (f.__reportSimple) {
+      const execSummary = (f.__reportSummary?.value || "").trim();
+      const pdfUrl = (f.__reportPdfUrl?.value || "").trim();
+      summary = deriveReportCardSummary(execSummary);
+      const paragraphs = execSummary
+        .split(/\n{2,}/)
+        .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      body = `<h2>Executive summary</h2>${paragraphs}<p><a href="${escapeHtml(pdfUrl)}">Download the full report (PDF)</a></p>`;
+    } else {
+      summary = f.summary?.value?.trim() || "";
+      body = window.__tgdEditor ? window.__tgdEditor.getHTML() : "";
+    }
 
     const tagsHtml = tags.length ? `<div class="preview-tags">${tags.map((t) => `<span>#${escapeHtml(t)}</span>`).join(" ")}</div>` : "";
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)} — preview</title>
