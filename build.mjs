@@ -887,6 +887,11 @@ function usefulAlt(candidate, fallback) {
   return junk ? String(fallback || "").trim() : text;
 }
 
+// Every monthly report gets the same TGD cover unless the desk explicitly
+// overrides it in front matter — the desk stopped uploading per-month covers
+// and asked for one branded fallback so the archive reads as a series.
+const REPORT_DEFAULT_COVER = "/reports/tgd-report-cover.jpg";
+
 function leadImage(item) {
   const explicit = String(item.image || "").trim();
   if (explicit) return { src: explicit, alt: usefulAlt(item.image_alt, item.title) };
@@ -900,6 +905,7 @@ function leadImage(item) {
     const alt = html[0].match(/\balt=["']([^"']*)["']/i);
     return { src: html[1], alt: usefulAlt(alt && alt[1], item.title) };
   }
+  if (item?.type === "reports") return { src: REPORT_DEFAULT_COVER, alt: usefulAlt(null, item.title) };
   return null;
 }
 
