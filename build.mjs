@@ -549,6 +549,24 @@ function formatDate(date) {
   }).format(parsed);
 }
 
+// Monthly reports get uploaded in batches with the same upload date, so the
+// `date` field can't order them. The report title always names its month/year
+// (e.g. "…January 2026"); this pulls that out as a sortable YYYYMM number and
+// falls back to the item date when the title is atypical.
+const REPORT_MONTH_INDEX = new Map([
+  ["january", 1], ["february", 2], ["march", 3], ["april", 4],
+  ["may", 5], ["june", 6], ["july", 7], ["august", 8],
+  ["september", 9], ["october", 10], ["november", 11], ["december", 12]
+]);
+function reportPeriodKey(item) {
+  const title = String(item?.title || "").toLowerCase();
+  const match = title.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})/);
+  if (match) return Number(match[2]) * 100 + REPORT_MONTH_INDEX.get(match[1]);
+  const fromDate = String(item?.date || "").match(/^(\d{4})-(\d{2})/);
+  if (fromDate) return Number(fromDate[1]) * 100 + Number(fromDate[2]);
+  return 0;
+}
+
 function typeLabel(type = "") {
   const labels = {
     news: "News & Analysis",
@@ -888,9 +906,15 @@ function leadImage(item) {
 // Cards render at roughly a third of the container, so a full-size upload is
 // wasted bytes. Cloudflare Images resizing is not enabled on this zone, so the
 // browser is told the display size instead and decoding is deferred.
-function cardImageMarkup(item, { wide = false } = {}) {
+function cardImageMarkup(item, { wide = false, placeholder = false } = {}) {
   const image = leadImage(item);
-  if (!image) return "";
+  if (!image) {
+    if (!placeholder) return "";
+    const label = typeLabel(item.type || "").split(" ")[0] || "TGD";
+    return `<div class="card-media card-media-placeholder${wide ? " card-media-wide" : ""}" aria-hidden="true">
+      <span class="card-media-placeholder-mark">${escapeHtml(label)}</span>
+    </div>`;
+  }
   return `<div class="card-media${wide ? " card-media-wide" : ""}">
       <img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async">
     </div>`;
@@ -908,7 +932,7 @@ function card(item, currentPath = "/", { compact = false } = {}) {
     ? (statusSlug ? `status-${statusSlug}` : "")
     : (categoryAccent ? `accent-${categoryAccent}` : "");
   const searchText = [item.title, item.summary, item.category, item.region, status, tags.join(" ")].join(" ").toLowerCase();
-  const media = cardImageMarkup(item);
+  const media = cardImageMarkup(item, { placeholder: true });
   return `<article class="content-card${accentClass ? ` ${accentClass}` : ""}${media ? " has-media" : ""}" data-search="${escapeHtml(searchText)}" data-type="${escapeHtml(item.type || "")}" data-region="${escapeHtml(item.region || "")}" data-category="${escapeHtml(item.category || "")}" data-status="${escapeHtml(status)}">
     ${media}
     <div class="card-kicker">
@@ -1221,7 +1245,7 @@ function homepage(items) {
         </div>
         <div class="hero-actions">
           <a class="button primary" href="${linkFor(lead.url, currentPath)}">${leadCta} <span class="arrow">→</span></a>
-          <a class="button secondary" href="${linkFor("/profiles/", currentPath)}">Explore profiles</a>
+          <a class="button secondary" href="${linkFor("/network-graph/", currentPath)}">Explore the network</a>
         </div>
       </div>
     </div>
@@ -2395,7 +2419,13 @@ async function main() {
       eyebrow: "Research products",
       summary: "Monthly summaries, trend reviews, and premium research previews for institutional readers.",
       current: "/reports/",
-      items: allContent.filter((item) => item.type === "reports"),
+      // Reports read as a chronological series (Jan → Feb → Mar → …). Monthly
+      // reports are all uploaded around the same date, so the upload date is
+      // useless for ordering — the reporting period pulled from the title is.
+      items: allContent
+        .filter((item) => item.type === "reports")
+        .slice()
+        .sort((a, b) => reportPeriodKey(a) - reportPeriodKey(b) || String(a.date || "").localeCompare(String(b.date || ""))),
       filters: [
         ["Monthly", "Monthly"],
         ["Pakistan", "Pakistan"],

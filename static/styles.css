@@ -850,6 +850,55 @@ input:focus-visible {
 .lead-story:hover .card-media img { transform: scale(1.03); }
 .content-card.has-media { padding-top: 20px; }
 
+/* Placeholder for image-less cards — keeps mixed rows visually aligned. */
+.card-media-placeholder {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--red) 12%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
+    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+  overflow: hidden;
+}
+.card-media-placeholder::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+  opacity: 0.6;
+}
+.card-media-placeholder-mark {
+  position: relative;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.7;
+  padding: 6px 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper) 65%, transparent);
+  backdrop-filter: blur(2px);
+}
+.content-card.accent-opinion .card-media-placeholder,
+.content-card.accent-policy .card-media-placeholder,
+.content-card.accent-research .card-media-placeholder {
+  background:
+    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
+    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+}
+.content-card.accent-reports .card-media-placeholder,
+.content-card.accent-monthly .card-media-placeholder,
+.content-card.accent-counterterrorism .card-media-placeholder {
+  background:
+    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--green) 16%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
+    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+}
+
 /* ============ LEAD STORY ============ */
 .lead-story {
   display: grid;
