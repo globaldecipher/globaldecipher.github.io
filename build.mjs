@@ -911,8 +911,41 @@ function cardImageMarkup(item, { wide = false, placeholder = false } = {}) {
   if (!image) {
     if (!placeholder) return "";
     const label = typeLabel(item.type || "").split(" ")[0] || "TGD";
+    const region = String(item?.region || "").toUpperCase();
     return `<div class="card-media card-media-placeholder${wide ? " card-media-wide" : ""}" aria-hidden="true">
-      <span class="card-media-placeholder-mark">${escapeHtml(label)}</span>
+      <svg class="placeholder-motif" viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <radialGradient id="placeholder-glow" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="currentColor" stop-opacity="0.35"/>
+            <stop offset="55%" stop-color="currentColor" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+          </radialGradient>
+          <pattern id="placeholder-grid" width="18" height="18" patternUnits="userSpaceOnUse">
+            <circle cx="1.4" cy="1.4" r="1.1" fill="currentColor" opacity="0.22"/>
+          </pattern>
+        </defs>
+        <rect width="320" height="220" fill="url(#placeholder-grid)"/>
+        <rect width="320" height="220" fill="url(#placeholder-glow)"/>
+        <g transform="translate(240 60)" opacity="0.85" fill="none" stroke="currentColor" stroke-width="1.2">
+          <circle r="14" opacity="0.35"/>
+          <circle r="28" opacity="0.22"/>
+          <circle r="46" opacity="0.14"/>
+          <circle r="68" opacity="0.08"/>
+        </g>
+        <g transform="translate(240 60)">
+          <circle r="5" fill="currentColor"/>
+        </g>
+        <path d="M0 176 L120 132 L200 158 L320 108" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.35"/>
+        <g fill="currentColor">
+          <circle cx="120" cy="132" r="2.4"/>
+          <circle cx="200" cy="158" r="2.4"/>
+        </g>
+      </svg>
+      <div class="placeholder-content">
+        <span class="placeholder-chip">${escapeHtml(label)}</span>
+        ${region ? `<span class="placeholder-region">${escapeHtml(region)}</span>` : ""}
+      </div>
+      <span class="placeholder-mark" aria-hidden="true">TGD</span>
     </div>`;
   }
   return `<div class="card-media${wide ? " card-media-wide" : ""}">

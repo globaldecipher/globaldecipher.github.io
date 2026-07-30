@@ -850,53 +850,86 @@ input:focus-visible {
 .lead-story:hover .card-media img { transform: scale(1.03); }
 .content-card.has-media { padding-top: 20px; }
 
-/* Placeholder for image-less cards — keeps mixed rows visually aligned. */
+/* Placeholder for image-less cards — an editorial-style cover with a radar
+   motif, keeping mixed-media rows visually consistent without going bland.
+   The cover stays dark in both themes so it reads like a thumbnail (an image
+   wouldn't flip in dark mode either). */
 .card-media-placeholder {
+  --placeholder-accent: #b91c2c;
+  --placeholder-base: #0d1b2a;
   position: relative;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ink);
+  display: block;
+  color: var(--placeholder-accent);
   background:
-    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--red) 12%, transparent), transparent 55%),
-    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
-    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--placeholder-accent) 30%, var(--placeholder-base)) 0%,
+      color-mix(in srgb, var(--placeholder-base) 92%, var(--placeholder-accent)) 100%);
   overflow: hidden;
+  isolation: isolate;
 }
-.card-media-placeholder::before {
+.card-media-placeholder .placeholder-motif {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  color: color-mix(in srgb, #fff 88%, var(--placeholder-accent));
+  z-index: 0;
+}
+.card-media-placeholder::after {
   content: "";
   position: absolute; inset: 0;
-  background-image: radial-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 1px, transparent 1.4px);
-  background-size: 14px 14px;
-  opacity: 0.6;
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.25) 100%);
+  z-index: 1;
+  pointer-events: none;
 }
-.card-media-placeholder-mark {
-  position: relative;
+.card-media-placeholder .placeholder-content {
+  position: absolute;
+  top: 14px; left: 16px; right: 16px;
+  display: flex; align-items: center; gap: 8px;
+  z-index: 2;
+}
+.card-media-placeholder .placeholder-chip {
   font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.28em;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 700;
-  opacity: 0.7;
-  padding: 6px 14px;
-  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  padding: 5px 10px;
+  color: #fff;
+  background: color-mix(in srgb, var(--placeholder-accent) 78%, transparent);
   border-radius: 2px;
-  background: color-mix(in srgb, var(--paper) 65%, transparent);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
+}
+.card-media-placeholder .placeholder-region {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+.card-media-placeholder .placeholder-mark {
+  position: absolute;
+  bottom: 14px; right: 18px;
+  font-family: var(--sans);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.85);
+  z-index: 2;
 }
 .content-card.accent-opinion .card-media-placeholder,
 .content-card.accent-policy .card-media-placeholder,
 .content-card.accent-research .card-media-placeholder {
-  background:
-    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%),
-    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
-    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+  --placeholder-accent: #c8901f;
 }
 .content-card.accent-reports .card-media-placeholder,
 .content-card.accent-monthly .card-media-placeholder,
 .content-card.accent-counterterrorism .card-media-placeholder {
-  background:
-    radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--green) 16%, transparent), transparent 55%),
-    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--ink) 10%, transparent), transparent 60%),
-    linear-gradient(135deg, var(--paper-2) 0%, var(--paper-3) 100%);
+  --placeholder-accent: #1f7a3f;
+}
+.content-card.accent-monitoring .card-media-placeholder,
+.content-card.accent-digital-propaganda .card-media-placeholder,
+.content-card.accent-narratives .card-media-placeholder {
+  --placeholder-accent: #3a4b5c;
 }
 
 /* ============ LEAD STORY ============ */
