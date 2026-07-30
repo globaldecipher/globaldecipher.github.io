@@ -1,5 +1,43 @@
 import { strToU8, zipSync } from "fflate";
-import { pakistanDateFromIso } from "./feed.js";
+import { loadFeed, pakistanDateFromIso } from "./feed.js";
+
+// The KV feed and the D1 incidents table use different field names for the
+// same concepts. Normalising KV rows into the D1 shape lets the export write
+// one code path for both sources.
+function normaliseFeedIncident(row) {
+  if (!row) return null;
+  const split = row.fatality_breakdown || row.fatalities_breakdown || {};
+  return {
+    id: row.id,
+    fingerprint: null,
+    source_tweet_id: row.source_id || null,
+    source_url: row.source_url || row.source || null,
+    source_text: row.summary || null,
+    tweet_created_at: row.tweet_created_at || (row.date ? `${row.date}T00:00:00Z` : null),
+    incident_date: row.date || null,
+    incident_date_source: row.incident_date_source || "manual",
+    country: row.country || "Pakistan",
+    province: row.province,
+    district: row.district,
+    locality: row.locality || null,
+    location_label: row.location_label || null,
+    latitude: row.lat ?? row.latitude ?? null,
+    longitude: row.lng ?? row.longitude ?? null,
+    location_precision: row.location_precision || null,
+    incident_type: row.incident_type || row.category || null,
+    category_name: row.category || null,
+    summary: row.summary || row.title || null,
+    killed: row.fatalities != null ? Number(row.fatalities) : null,
+    killed_forces: split.forces != null ? Number(split.forces) : null,
+    killed_terrorists: split.terrorists != null ? Number(split.terrorists) : null,
+    killed_civilians: split.civilians != null ? Number(split.civilians) : null,
+    injured: row.injuries != null ? Number(row.injuries) : null,
+    actor_or_group: row.actor || null,
+    confidence: row.confidence || null,
+    status: row.status || "published",
+    ingestion_source: row.ingestion_source || "curated"
+  };
+}
 
 const TIME_ZONE = "Asia/Karachi";
 const SOURCE_LABEL = "Source: The Global Decipher incident database";
@@ -366,7 +404,23 @@ export async function generateMonthlyDataPackage(env, month, options = {}) {
       AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) < ?
     ORDER BY COALESCE(incident_date, date(tweet_created_at, '+5 hours')), tweet_created_at, id
   `).bind(bounds.start, bounds.end).all();
-  const rows = result.results || [];
+  const d1Rows = result.results || [];
+  // Manual admin uploads write to the KV feed only, not D1 — so the export
+  // pulls those too, filters to the month, and merges with D1 by id.
+  const feed = await loadFeed(env).catch(() => ({ incidents: [] }));
+  const feedRows = (feed?.incidents || [])
+    .filter((incident) => String(incident?.date || "").startsWith(`${month}-`))
+    .map(normaliseFeedIncident)
+    .filter(Boolean);
+  const seen = new Set(d1Rows.map((row) => row.id));
+  const rows = [
+    ...d1Rows,
+    ...feedRows.filter((row) => row.id && !seen.has(row.id))
+  ].sort((left, right) => {
+    const leftDate = left.incident_date || pakistanDateFromIso(left.tweet_created_at) || "";
+    const rightDate = right.incident_date || pakistanDateFromIso(right.tweet_created_at) || "";
+    return leftDate.localeCompare(rightDate) || String(left.id).localeCompare(String(right.id));
+  });
   const versionRow = await env.CONTENT_DB.prepare(
     "SELECT COALESCE(MAX(version), 0) AS version FROM monthly_exports WHERE report_month = ?"
   ).bind(month).first();
@@ -407,10 +461,15 @@ export async function generateMonthlyDataPackage(env, month, options = {}) {
     ) VALUES (?, ?, ?, ?, ?, 'ready', ?)
   `).bind(month, TIME_ZONE, xlsxKey, csvKey, JSON.stringify(chartMetadata), version).run();
 
+  const published = rows.filter((row) => text(row.status).trim() === "published").length;
+  const lastDayIso = new Date(new Date(`${bounds.end}T00:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10);
   return {
     month,
     version,
     incident_count: rows.length,
+    published_count: published,
+    pending_count: rows.length - published,
+    period: { from: bounds.start, to: lastDayIso },
     include_charts: includeCharts,
     build_ms: Number(buildMs.toFixed(3)),
     xlsx_object_key: xlsxKey,
