@@ -890,7 +890,7 @@ function usefulAlt(candidate, fallback) {
 // Every monthly report gets the same TGD cover unless the desk explicitly
 // overrides it in front matter — the desk stopped uploading per-month covers
 // and asked for one branded fallback so the archive reads as a series.
-const REPORT_DEFAULT_COVER = "/reports/tgd-report-cover.jpg";
+const REPORT_DEFAULT_COVER = "/assets/reports/tgd-report-cover.jpg";
 
 function leadImage(item) {
   const explicit = String(item.image || "").trim();
