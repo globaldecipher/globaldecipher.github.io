@@ -725,6 +725,28 @@
         ));
 
         const monthInput = el("input", { class: "field inline", type: "month", value: previousMonthKey() });
+        const previewLine = el("p", { class: "muted section-sub" }, "Select a month to preview counts.");
+        const loadPreview = async () => {
+          if (!monthInput.value) return;
+          previewLine.textContent = `Checking ${monthInput.value}…`;
+          try {
+            const summary = await api("/agent/monthly-summary?month=" + encodeURIComponent(monthInput.value));
+            const totals = summary.totals || {};
+            const period = summary.period || { from: `${monthInput.value}-01`, to: `${monthInput.value}-??` };
+            const statusBits = Object.entries(summary.by_status || {}).sort(([, a], [, b]) => b - a)
+              .map(([status, count]) => `${status}: ${count}`).join(" · ");
+            previewLine.textContent =
+              `Period ${period.from} → ${period.to}. ` +
+              `${totals.incidents ?? 0} incidents in range · ` +
+              `${totals.published ?? 0} published · ` +
+              `${totals.pending_review ?? 0} not yet published` +
+              (statusBits ? ` (${statusBits}).` : ".");
+          } catch (error) {
+            previewLine.textContent = `Preview failed: ${error.message}`;
+          }
+        };
+        monthInput.addEventListener("change", loadPreview);
+        loadPreview();
         const generate = el("button", {
           class: "btn primary",
           onclick: async () => {
@@ -733,7 +755,8 @@
             generate.textContent = "Generating…";
             try {
               const result = await api("/agent/exports/generate", { method: "POST", body: { month: monthInput.value } });
-              toast(`Created ${monthInput.value} package v${result.version} with ${result.incident_count} incidents.`);
+              toast(`Created ${monthInput.value} package v${result.version} with ${result.incident_count} incidents (published + pending).`);
+              await loadPreview();
               await refresh();
             } catch (error) {
               toast(error.message, "err");
@@ -761,9 +784,10 @@
         mount.append(el("section", { class: "card" },
           el("div", { class: "section-head" },
             el("h3", {}, "Monthly data packages"),
-            el("p", { class: "section-sub" }, "Published incidents only. Every regeneration creates a new version; existing files are never overwritten.")
+            el("p", { class: "section-sub" }, "Every incident in the selected month — published and pending. Each row's status is in the 'Publication status' column. Regeneration creates a new version; existing files are never overwritten.")
           ),
           el("div", { class: "agent-export-controls" }, monthInput, generate),
+          previewLine,
           exportsList
         ));
 

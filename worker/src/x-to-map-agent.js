@@ -2227,11 +2227,12 @@ export async function handleAgentAdmin(request, env, ctx, adminPath) {
     const end = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 10);
     const rows = await env.CONTENT_DB.prepare(`
       SELECT * FROM incidents
-      WHERE status = 'published'
+      WHERE status IN ('published', 'needs_review', 'possible_duplicate')
         AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) >= ?
         AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) < ?
     `).bind(start, end).all();
-    return json(monthlySummary(rows.results || []));
+    const lastDay = new Date(new Date(`${end}T00:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10);
+    return json({ ...monthlySummary(rows.results || []), period: { month, from: start, to: lastDay } });
   }
   return null;
 }

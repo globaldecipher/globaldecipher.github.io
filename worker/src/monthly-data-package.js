@@ -62,13 +62,26 @@ function dailyTrend(rows) {
     .map(([name, incidents]) => ({ name, incidents }));
 }
 
+function countByStatus(rows) {
+  const grouped = new Map();
+  for (const row of rows) {
+    const key = text(row.status).trim() || "unknown";
+    grouped.set(key, (grouped.get(key) || 0) + 1);
+  }
+  return Object.fromEntries(grouped);
+}
+
 export function monthlySummary(rows) {
+  const published = rows.filter((row) => text(row.status).trim() === "published");
   return {
     totals: {
       incidents: rows.length,
+      published: published.length,
+      pending_review: rows.length - published.length,
       killed: rows.reduce((sum, row) => sum + (Number(row.killed) || 0), 0),
       injured: rows.reduce((sum, row) => sum + (Number(row.injured) || 0), 0)
     },
+    by_status: countByStatus(rows),
     provinces: countBy(rows, "province"),
     districts: countBy(rows, "district"),
     incidentTypes: countBy(rows, "incident_type"),
@@ -167,6 +180,11 @@ function breakdownRows(rows) {
 
 export function buildMonthlyWorkbook(rows, month) {
   const summary = monthlySummary(rows);
+  const bounds = monthBounds(month);
+  const lastDay = new Date(new Date(`${bounds.end}T00:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10);
+  const statusLines = Object.entries(summary.by_status)
+    .sort(([, a], [, b]) => b - a)
+    .map(([status, count]) => [`  · ${status}`, count]);
   const incidentRows = [
     [
       "Incident date", "Incident date source", "TGD post date", "Province", "District",
@@ -199,13 +217,19 @@ export function buildMonthlyWorkbook(rows, month) {
       rows: [
         ["Metric", "Value"],
         ["Reporting month", month],
-        ["Total published incidents", summary.totals.incidents],
-        ["Total killed (known figures)", summary.totals.killed],
-        ["Total injured (known figures)", summary.totals.injured],
+        ["Reporting period (from)", bounds.start],
+        ["Reporting period (to, inclusive)", lastDay],
+        ["Total incidents in range", summary.totals.incidents],
+        ["  · Published", summary.totals.published],
+        ["  · Not yet published (needs review / duplicate / rejected)", summary.totals.pending_review],
+        ...statusLines,
+        ["Total killed (known figures, all statuses)", summary.totals.killed],
+        ["Total injured (known figures, all statuses)", summary.totals.injured],
         ["Data source", SOURCE_LABEL],
+        ["Coverage note", "This export includes every incident in the range — published and pending. Filter the 'Publication status' column in the All Incidents sheet to isolate one status."],
         ["Uncertainty note", "Unknown casualty figures remain blank and are not converted to zero."]
       ],
-      widths: [34, 72]
+      widths: [46, 72]
     },
     { name: "Province Breakdown", rows: breakdownRows(summary.provinces), widths: [30, 14, 14, 14] },
     { name: "District Breakdown", rows: breakdownRows(summary.districts), widths: [30, 14, 14, 14] },
@@ -330,10 +354,14 @@ export async function generateMonthlyDataPackage(env, month, options = {}) {
     throw error;
   }
   const bounds = monthBounds(month);
+  // The Monthly Summary sheet breaks results down by status, so this pulls the
+  // full range (published + needs_review + possible_duplicate) rather than only
+  // published rows — a package that only shows the published tail confused the
+  // desk into thinking uploads had failed.
   const result = await env.CONTENT_DB.prepare(`
     SELECT *
     FROM incidents
-    WHERE status = 'published'
+    WHERE status IN ('published', 'needs_review', 'possible_duplicate')
       AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) >= ?
       AND COALESCE(incident_date, date(tweet_created_at, '+5 hours')) < ?
     ORDER BY COALESCE(incident_date, date(tweet_created_at, '+5 hours')), tweet_created_at, id

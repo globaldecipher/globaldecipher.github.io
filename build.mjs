@@ -1973,7 +1973,7 @@ function adminPage() {
 <div id="admin-root"></div>
 <script src="/assets/admin-infographic.js?v=20260706-map-polish" defer></script>
 <script src="/assets/admin-corpus.js?v=20260727-corpus" defer></script>
-<script src="/assets/admin.js?v=20260727-corpus" defer></script>
+<script src="/assets/admin.js?v=20260730-monthly-status" defer></script>
 </body>
 </html>
 `;
