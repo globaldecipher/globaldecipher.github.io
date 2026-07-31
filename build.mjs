@@ -49,7 +49,8 @@ const SITE = {
   email: "contact@theglobaldecipher.com",
   x: "https://x.com/Global_Decipher",
   whatsapp: "https://whatsapp.com/channel/0029Vb6AWm29WtC2xIe0Yo31",
-  substack: "https://theglobaldecipher.substack.com/"
+  substack: "https://theglobaldecipher.substack.com/",
+  googleVerificationFile: "googleda3d28215a677373.html"
 };
 
 // The Monitoring Desk is retired from the public site for now. Its content and
@@ -1808,6 +1809,12 @@ ${entries
     `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`
   );
   fs.writeFileSync(path.join(OUT_DIR, ".nojekyll"), "");
+  if (SITE.googleVerificationFile) {
+    fs.writeFileSync(
+      path.join(OUT_DIR, SITE.googleVerificationFile),
+      `google-site-verification: ${SITE.googleVerificationFile}\n`
+    );
+  }
   writeRssFeed(items);
   fs.writeFileSync(
     path.join(OUT_DIR, "search-index.json"),
