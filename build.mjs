@@ -2426,6 +2426,12 @@ export default {
       const target = new URL(url.pathname + url.search, CANONICAL_ORIGIN);
       return secureResponse(Response.redirect(target, 308), url.pathname);
     }
+    ${SITE.googleVerificationFile ? `if (url.pathname === "/${SITE.googleVerificationFile}") {
+      return new Response("google-site-verification: ${SITE.googleVerificationFile}\\n", {
+        status: 200,
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" }
+      });
+    }` : ""}
     const exempt = EXEMPT.some((re) => re.test(url.pathname));
     if (!exempt && env.MAINTENANCE_KV) {
       try {
