@@ -764,12 +764,91 @@ function icon(name) {
   return icons[name] || "";
 }
 
-function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false }) {
+function isoDateForItem(item) {
+  const raw = (item && item.date) || "";
+  if (!raw) return null;
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00Z` : raw;
+  const parsed = new Date(iso);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function publisherJsonLd() {
+  return {
+    "@type": "Organization",
+    name: SITE.title,
+    url: SITE.url,
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteUrl(SITE.defaultImage)
+    }
+  };
+}
+
+function articleJsonLd(item) {
+  const type = item.type === "news" ? "NewsArticle" : item.type === "reports" ? "Report" : "Article";
+  const published = isoDateForItem(item);
+  const image = absoluteUrl(item.og_image || item.image || SITE.defaultImage);
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": type,
+    headline: item.title,
+    description: item.summary || SITE.description,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": absoluteUrl(item.url)
+    },
+    image: [image],
+    author: {
+      "@type": "Person",
+      name: item.author || "TGD Desk"
+    },
+    publisher: publisherJsonLd()
+  };
+  if (published) {
+    payload.datePublished = published;
+    payload.dateModified = published;
+  }
+  if (Array.isArray(item.tags) && item.tags.length) {
+    payload.keywords = item.tags.join(", ");
+  }
+  if (item.region) {
+    payload.contentLocation = { "@type": "Place", name: item.region };
+  }
+  return payload;
+}
+
+function homepageJsonLd() {
+  return [
+    {
+      "@context": "https://schema.org",
+      ...publisherJsonLd(),
+      description: SITE.description,
+      sameAs: [SITE.x, SITE.substack, SITE.whatsapp].filter(Boolean)
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: SITE.title,
+      url: SITE.url,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE.url}/?q={search_term_string}`,
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ];
+}
+
+function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false, jsonLd = null }) {
   const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
   const assetPrefix = prefixFor(pagePath);
   const pageDescription = description || SITE.description;
   const canonicalUrl = canonicalFor(pagePath);
   const ogImage = absoluteUrl(image || SITE.defaultImage);
+  const jsonLdBlocks = (Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [])
+    .filter(Boolean)
+    .map((payload) => `<script type="application/ld+json">${JSON.stringify(payload).replace(/</g, "\\u003c")}</script>`)
+    .join("");
   const nav = NAV.map(([label, href]) => {
     const active = current === href || (href !== "/" && pagePath.startsWith(href)) ? ' aria-current="page"' : "";
     return `<a${active} href="${linkFor(href, pagePath)}">${label}</a>`;
@@ -806,6 +885,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <script src="${assetPrefix}assets/theme-init.js"></script>
   <link rel="stylesheet" href="${assetPrefix}assets/${STYLES_ASSET}">
   ${extraHead}
+  ${jsonLdBlocks}
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -1341,7 +1421,7 @@ function homepage(items) {
 
   ${pitchBand()}`;
 
-  return shell({ title: SITE.title, description: SITE.description, body, current: "/", pagePath: currentPath });
+  return shell({ title: SITE.title, description: SITE.description, body, current: "/", pagePath: currentPath, jsonLd: homepageJsonLd() });
 }
 
 function sparseListingCta({ title, current, count }) {
@@ -1635,7 +1715,8 @@ function articleTemplate(item, allItems) {
     current: routeForType(item.type),
     pagePath: item.url,
     image: item.og_image || item.image || SITE.defaultImage,
-    ogType: "article"
+    ogType: "article",
+    jsonLd: articleJsonLd(item)
   });
 }
 
@@ -1696,23 +1777,28 @@ ${feedItems.map((item) => `    <item>
 }
 
 function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] }) {
-  const urls = [
-    "/",
-    "/news/",
-    "/opinion/",
-    ...(SHOW_MONITORING ? ["/monitoring/"] : []),
-    "/reports/",
-    "/profiles/",
-    ...items.map((item) => item.url),
-    ...pages.map((page) => page.url),
-    ...hubs.organisations.map((hub) => `/organisations/${hub.slug}/`),
-    ...hubs.regions.map((hub) => `/regions/${hub.slug}/`)
+  const buildStamp = new Date().toISOString();
+  const latestItemStamp = items.reduce((latest, item) => {
+    const stamp = isoDateForItem(item);
+    return stamp && stamp > latest ? stamp : latest;
+  }, buildStamp.slice(0, 10) + "T00:00:00Z");
+  const entries = [
+    { url: "/", lastmod: latestItemStamp },
+    { url: "/news/", lastmod: latestItemStamp },
+    { url: "/opinion/", lastmod: latestItemStamp },
+    ...(SHOW_MONITORING ? [{ url: "/monitoring/", lastmod: latestItemStamp }] : []),
+    { url: "/reports/", lastmod: latestItemStamp },
+    { url: "/profiles/", lastmod: latestItemStamp },
+    ...items.map((item) => ({ url: item.url, lastmod: isoDateForItem(item) || buildStamp })),
+    ...pages.map((page) => ({ url: page.url, lastmod: isoDateForItem(page) || buildStamp })),
+    ...hubs.organisations.map((hub) => ({ url: `/organisations/${hub.slug}/`, lastmod: buildStamp })),
+    ...hubs.regions.map((hub) => ({ url: `/regions/${hub.slug}/`, lastmod: buildStamp }))
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map((url) => `  <url><loc>${SITE.url}${url}</loc></url>`)
+${entries
+  .map(({ url, lastmod }) => `  <url><loc>${SITE.url}${url}</loc><lastmod>${lastmod}</lastmod></url>`)
   .join("\n")}
 </urlset>`;
 
