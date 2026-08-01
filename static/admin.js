@@ -2515,8 +2515,15 @@
           add("date", "Publish date", { type: "date", default: today(), required: true }),
           add("author", "Author / desk", { default: folder.author, hint: "Defaults to the desk for this section." })
         ),
+        section("Cover picture", "The image readers see on the report page and in listings. Leave empty to use the default report cover.",
+          leadImageField(f, fm, () => "")
+        ),
+        section("Homepage placement", "Choose whether this report leads the homepage.",
+          add("featured", "Pin to homepage", { type: "checkbox", wide: true, hint: "When checked, this report replaces the newest one as the lead item on the homepage." })
+        ),
         reportContentSection(f, reportParsed.execSummary, reportParsed.pdfUrl, reportLegacyWarning)
       );
+      if (fm.featured) f.featured.checked = true;
     } else {
       const initialTags = Array.isArray(fm.tags) ? fm.tags : (typeof fm.tags === "string" && fm.tags ? fm.tags.split(/\s*,\s*/) : []);
       tagChips = makeTagChips(initialTags);
@@ -2917,13 +2924,15 @@
         ...prior,
         title, date,
         author: f.author.value.trim() || folder.author,
+        image: (f.image?.value || "").trim(),
+        image_alt: (f.image_alt?.value || "").trim(),
         type: folder.type,
         summary: deriveReportCardSummary(execSummary),
         tags: Array.isArray(prior.tags) ? prior.tags : [],
         access: prior.access || "free",
         sensitivity: prior.sensitivity || "standard",
         status: statusOverride || prior.status || "draft",
-        featured: Boolean(prior.featured)
+        featured: Boolean(f.featured?.checked)
       };
       filePath = path || `content/${folder.key}/${date}-${slug(title)}.md`;
     }
@@ -3161,13 +3170,15 @@
         ...prior,
         title, date,
         author: (f.author?.value || "").trim() || folder.author,
+        image: (f.image?.value || "").trim(),
+        image_alt: (f.image_alt?.value || "").trim(),
         type: folder.type,
         summary: deriveReportCardSummary(execSummary),
         tags: Array.isArray(prior.tags) ? prior.tags : [],
         access: prior.access || "free",
         sensitivity: prior.sensitivity || "standard",
         status: prior.status || "draft",
-        featured: Boolean(prior.featured)
+        featured: Boolean(f.featured?.checked)
       };
     } else {
       fm = {

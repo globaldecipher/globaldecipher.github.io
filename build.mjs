@@ -1301,7 +1301,7 @@ function homepage(items) {
   const currentPath = "/";
   const reports = items.filter((item) => item.type === "reports");
   const profiles = items.filter((item) => item.type === "profiles");
-  const lead = reports[0] || profiles[0] || items[0];
+  const lead = reports.find((item) => item.featured) || reports[0] || profiles[0] || items[0];
   const metrics = lead?.type === "reports" ? extractReportMetrics(lead.body) : [];
   const metricMap = new Map(metrics);
   const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
@@ -2066,7 +2066,7 @@ function adminPage() {
 <div id="admin-root"></div>
 <script src="/assets/admin-infographic.js?v=20260706-map-polish" defer></script>
 <script src="/assets/admin-corpus.js?v=20260727-corpus" defer></script>
-<script src="/assets/admin.js?v=20260730-monthly-status" defer></script>
+<script src="/assets/admin.js?v=20260801-report-cover-pin" defer></script>
 </body>
 </html>
 `;
