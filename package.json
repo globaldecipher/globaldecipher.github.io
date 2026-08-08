@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@toast-ui/editor": "^3.2.2",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "esbuild": "0.28.1",
     "jszip": "^3.10.1",
     "mammoth": "^1.12.0",
