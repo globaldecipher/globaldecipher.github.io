@@ -2402,7 +2402,7 @@ function pagesWorker() {
 const MONITORING_PATH = /^\\/monitoring(\\/|$)/;
 const SESSION_COOKIE = "tgd_monitoring_session";
 const CANONICAL_ORIGIN = "https://theglobaldecipher.com";
-const CSP = "default-src 'self'; base-uri 'self'; object-src 'self'; script-src 'self' '${TRUSTED_INLINE_SCRIPT_HASH}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://tiles.openfreemap.org; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
+const CSP = "default-src 'self'; base-uri 'self'; object-src 'self'; script-src 'self' https://www.googletagmanager.com '${TRUSTED_INLINE_SCRIPT_HASH}' 'sha256-vsaHtlaAQX2eY7ExCku7Rugwp9XNVGCaeQssqNo9vKg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: www.google-analytics.com www.googletagmanager.com; connect-src 'self' https://tiles.openfreemap.org https://www.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://region1.google-analytics.com https://stats.g.doubleclick.net; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https:; worker-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 
 function secureResponse(response, pathname) {
   const headers = new Headers(response.headers);
