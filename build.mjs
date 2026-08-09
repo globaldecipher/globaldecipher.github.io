@@ -1576,6 +1576,39 @@ function wrapNetworkGraphPage(originalHtml) {
 </script>`;
 }
 
+const TEAM_PROFILES = {
+  "aamir-hayat": {
+    name: "Aamir Hayat",
+    jobTitle: "Co-Founder & Editor",
+    sameAs: []
+  },
+  "mudassir-khattak": {
+    name: "Mudassir Khattak",
+    jobTitle: "Co-Founder & Director of News & Reporting",
+    sameAs: []
+  }
+};
+
+function personJsonLdFor(page) {
+  const info = TEAM_PROFILES[page.slug];
+  if (!info) return null;
+  const canonical = absoluteUrl(page.url);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": canonical,
+    name: info.name,
+    jobTitle: info.jobTitle,
+    url: canonical,
+    worksFor: {
+      "@type": "Organization",
+      name: SITE.title,
+      url: SITE.url
+    },
+    ...(info.sameAs.length ? { sameAs: info.sameAs } : {})
+  };
+}
+
 function pageTemplate(page) {
   const isWide = page.wide === true
     || /incident-tracker-shell|network-graph-shell|world-globe-shell/.test(page.html);
@@ -1604,7 +1637,8 @@ function pageTemplate(page) {
     current: page.url,
     pagePath: page.url,
     extraHead: managedPageHead,
-    image: page.og_image || page.image || SITE.defaultImage
+    image: page.og_image || page.image || SITE.defaultImage,
+    jsonLd: personJsonLdFor(page)
   });
 }
 
