@@ -2581,6 +2581,15 @@
     // Wire up summary counter (live char/word count with sweet-spot signal).
     if (f.summary) attachSummaryCounter(f.summary);
 
+    // SEO helper — live green/yellow/red checks. Injected just before the
+    // form actions so writers see a final read on ranking risks before
+    // publishing. Skipped for the simple monthly-report form, which has no
+    // free-form body to score.
+    if (!reportSimpleMode) {
+      const seoPanel = attachSeoHelper({ f, tagChips, activeFolder });
+      form.append(seoPanel);
+    }
+
     // Reports in simple mode have no WYSIWYG editor to mount; release the
     // import gate immediately so any deferred logic that awaits it can proceed.
     if (reportSimpleMode) {
@@ -3008,6 +3017,143 @@
       publicationResult(result, "Deleted. Website rebuild started.");
       renderContent(clearView(view));
     } catch (e) { toast(e.message, "err"); }
+  }
+
+  // ============================ SEO HELPER ============================
+  // Live SEO recommendations shown as green/yellow/red rows so writers can see
+  // ranking risks (thin body, missing summary, spelled-out-year slug, etc.)
+  // before hitting Publish. Focus keyword is optional — if set, we check it
+  // appears in the places Google weighs heaviest: title, summary, body, H2.
+  function attachSeoHelper({ f, tagChips, activeFolder }) {
+    const isPage = activeFolder === "pages";
+    const panel = el("section", { class: "card seo-helper" },
+      el("div", { class: "section-head" },
+        el("h3", {}, "SEO check"),
+        el("p", { class: "section-sub" }, "Live recommendations to help this page show up on Google. Green = good, yellow = worth improving, red = fix before publishing.")
+      ),
+      el("div", { class: "fields" },
+        el("div", { class: "fld wide" },
+          el("label", { class: "fld-label" },
+            el("span", {}, "Focus keyword"),
+            el("span", { class: "opt" }, "Optional")
+          ),
+          el("input", { type: "text", class: "field seo-focus-input", placeholder: "e.g. TTP attacks Pakistan July 2026" }),
+          el("p", { class: "fld-hint" }, "The main phrase people would type into Google to find this page. If you set one, the checks below look for it in the right places.")
+        ),
+        el("ul", { class: "seo-checks" })
+      )
+    );
+
+    const focusInput = panel.querySelector(".seo-focus-input");
+    const checksList = panel.querySelector(".seo-checks");
+    const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const getBody = () => (window.__tgdEditor ? window.__tgdEditor.getMarkdown() : (f.__fallbackBody?.value || ""));
+
+    function runChecks() {
+      const focus = (focusInput.value || "").toLowerCase().trim();
+      const title = (f.title?.value || "").trim();
+      const summary = (f.summary?.value || "").trim();
+      const slug = (f.slug?.value || "").trim();
+      const body = getBody();
+      const bodyLower = body.toLowerCase();
+      const wordCount = (body.match(/\b[\p{L}\p{N}]+\b/gu) || []).length;
+      const h2Count = (body.match(/^##\s+.+/gm) || []).length;
+      const tagCount = tagChips ? (tagChips.getTags?.() || []).length : 0;
+      const hasImage = !!(f.image?.value);
+
+      const checks = [];
+
+      // Title
+      if (!title) checks.push(["bad", "Add a title — it is the strongest ranking signal."]);
+      else if (title.length < 25) checks.push(["warn", `Title is short (${title.length} chars). 30–60 is the sweet spot for Google.`]);
+      else if (title.length > 65) checks.push(["warn", `Title is long (${title.length} chars). Google may cut it off around 60.`]);
+      else checks.push(["good", `Title length is good (${title.length} chars).`]);
+
+      // Summary / meta description
+      if (f.summary) {
+        if (!summary) checks.push(["bad", "Add a summary — Google uses it as the search-result snippet under your title."]);
+        else if (summary.length < 100) checks.push(["warn", `Summary is short (${summary.length} chars). Aim for 120–160.`]);
+        else if (summary.length > 175) checks.push(["warn", `Summary is long (${summary.length} chars). Google truncates around 155.`]);
+        else checks.push(["good", `Summary length is good (${summary.length} chars).`]);
+      }
+
+      // Slug
+      if (slug) {
+        if (slug.length > 75) checks.push(["warn", `URL slug is long (${slug.length} chars). Shorter, keyword-rich URLs rank better.`]);
+        else if (/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|zero|one-two|two-zero)\b/i.test(slug)) {
+          checks.push(["bad", "URL slug has spelled-out numbers (e.g. 'twenty-twenty-six'). Use digits: '2026'."]);
+        } else {
+          checks.push(["good", "URL slug looks clean."]);
+        }
+      }
+
+      // Body length
+      if (isPage) {
+        if (wordCount < 100) checks.push(["warn", `Body is thin (${wordCount} words). Aim for 200+.`]);
+        else checks.push(["good", `Body length is good (${wordCount} words).`]);
+      } else {
+        if (wordCount < 300) checks.push(["warn", `Body is short (${wordCount} words). News and analysis rank better at 500+.`]);
+        else checks.push(["good", `Body length is good (${wordCount} words).`]);
+      }
+
+      // H2 headings
+      if (h2Count === 0 && wordCount > 100) {
+        checks.push(["warn", "No section headings (##). Break up the body with H2s — Google uses them to understand structure."]);
+      } else if (h2Count > 0) {
+        checks.push(["good", `Has ${h2Count} section heading${h2Count === 1 ? "" : "s"}.`]);
+      }
+
+      // Cover image (articles only)
+      if (!isPage) {
+        if (hasImage) checks.push(["good", "Cover image is set."]);
+        else checks.push(["warn", "No cover image — sets the social preview and homepage card."]);
+      }
+
+      // Tags (articles only)
+      if (!isPage && tagChips) {
+        if (tagCount === 0) checks.push(["warn", "No tags — they help Google understand topics and power related-article links."]);
+        else if (tagCount < 3) checks.push(["warn", `Only ${tagCount} tag${tagCount === 1 ? "" : "s"}. Aim for 3–6.`]);
+        else checks.push(["good", `${tagCount} tags — good.`]);
+      }
+
+      // Focus keyword usage
+      if (focus) {
+        const inTitle = title.toLowerCase().includes(focus);
+        const inSummary = summary.toLowerCase().includes(focus);
+        const inBody = bodyLower.includes(focus);
+        const inH2 = new RegExp(`^##\\s+.*${escapeRe(focus)}`, "im").test(body);
+        checks.push([inTitle ? "good" : "bad", inTitle ? "Focus keyword is in the title." : `Focus keyword "${focus}" is missing from the title.`]);
+        checks.push([inSummary ? "good" : "warn", inSummary ? "Focus keyword is in the summary." : `Focus keyword "${focus}" is missing from the summary.`]);
+        checks.push([inBody ? "good" : "bad", inBody ? "Focus keyword appears in the body." : `Focus keyword "${focus}" is not in the body.`]);
+        checks.push([inH2 ? "good" : "warn", inH2 ? "Focus keyword is in a section heading." : `Focus keyword "${focus}" is not in any section heading (##).`]);
+      } else {
+        checks.push(["warn", "No focus keyword set — pick one phrase people would search to find this page and paste it above."]);
+      }
+
+      clear(checksList);
+      for (const [level, text] of checks) {
+        const icon = level === "good" ? "✓" : level === "warn" ? "!" : "✕";
+        checksList.append(el("li", { class: `seo-check is-${level}` },
+          el("span", { class: "seo-icon" }, icon),
+          el("span", { class: "seo-text" }, text)
+        ));
+      }
+    }
+
+    focusInput.addEventListener("input", runChecks);
+    if (f.title) f.title.addEventListener("input", runChecks);
+    if (f.summary) f.summary.addEventListener("input", runChecks);
+    if (f.slug) f.slug.addEventListener("input", runChecks);
+    if (f.image) f.image.addEventListener("input", runChecks);
+    // Body lives in the WYSIWYG editor — poll every 2s so writers see updates
+    // without wiring into every keystroke of a third-party editor.
+    const bodyPoll = setInterval(() => {
+      if (!document.body.contains(panel)) { clearInterval(bodyPoll); return; }
+      runChecks();
+    }, 2000);
+
+    runChecks();
+    return panel;
   }
 
   // ============================ SUMMARY COUNTER ============================
