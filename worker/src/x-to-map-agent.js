@@ -1207,7 +1207,7 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
   ].filter(Boolean);
   const id = existingId || crypto.randomUUID();
   const category = categoryName(decision.category, allowedCategories);
-  await env.CONTENT_DB.batch([
+  const statements = [
     env.CONTENT_DB.prepare(`
       INSERT INTO incidents(
         id, fingerprint, source_tweet_id, source_url, source_text, tweet_created_at,
@@ -1290,7 +1290,18 @@ async function insertIncident(env, post, decision, extraction, allowedCategories
       decision.source_tweet_id,
       extraction.post_classification === "UPDATE_OR_CORRECTION" ? "update" : "primary"
     )
-  ]);
+  ];
+  // Same batch as the incident write so the safety-net flag lands even if the
+  // Worker is terminated before syncPublishedFeed runs. The next cron sees the
+  // flag and rebuilds the KV feed.
+  if (status === "published") {
+    statements.push(env.CONTENT_DB.prepare(`
+      INSERT INTO sync_state(key, value, updated_at)
+      VALUES ('feed_resync_required', 'true', datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = 'true', updated_at = datetime('now')
+    `));
+  }
+  await env.CONTENT_DB.batch(statements);
   return { id, status };
 }
 
