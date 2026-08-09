@@ -885,6 +885,13 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
   <script src="${assetPrefix}assets/theme-init.js"></script>
   <link rel="stylesheet" href="${assetPrefix}assets/${STYLES_ASSET}">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZBZ5Y32RNG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-ZBZ5Y32RNG');
+  </script>
   ${extraHead}
   ${jsonLdBlocks}
 </head>
