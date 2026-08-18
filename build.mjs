@@ -604,8 +604,11 @@ function formatDate(date) {
   const parsed = new Date(`${date}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return date;
   // Urdu and Pashto readers get their own month names and digits; the ISO date
-  // in the JSON-LD and the sitemap stays machine-readable either way.
-  return new Intl.DateTimeFormat(LOCALE.code, {
+  // in the JSON-LD and the sitemap stays machine-readable either way. The
+  // calendar is pinned to Gregorian because Pashto otherwise defaults to the
+  // Afghan solar calendar, which would date a Pakistani security brief in a
+  // different year from the English and Urdu versions of the same article.
+  return new Intl.DateTimeFormat(`${LOCALE.code}-u-ca-gregory`, {
     month: "short",
     day: "numeric",
     year: "numeric",

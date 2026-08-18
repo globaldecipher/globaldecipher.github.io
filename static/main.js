@@ -56,7 +56,10 @@
     const today = new Date();
     // The Urdu and Pashto trees set <html lang>, so the masthead date follows
     // the edition the reader is actually on rather than staying in English.
-    const dateLocale = document.documentElement.lang === "en" ? "en-US" : (document.documentElement.lang || "en-US");
+    // Gregorian is pinned for the same reason as the article dates in build.mjs:
+    // Pashto would otherwise render the masthead in the Afghan solar calendar.
+    const htmlLang = document.documentElement.lang || "en";
+    const dateLocale = htmlLang === "en" ? "en-US" : `${htmlLang}-u-ca-gregory`;
     dateSlot.textContent = today.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     dateSlot.setAttribute("aria-hidden", "false");
   }
