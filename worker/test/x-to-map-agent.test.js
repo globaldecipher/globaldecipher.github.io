@@ -524,7 +524,7 @@ test("monthly calculations use only supplied published rows and retain uncertain
     status: "published"
   }];
   const summary = monthlySummary(rows);
-  assert.deepEqual(summary.totals, { incidents: 1, killed: 0, injured: 2 });
+  assert.deepEqual(summary.totals, { incidents: 1, published: 1, pending_review: 0, killed: 0, injured: 2 });
   assert.match(buildMonthlyCsv(rows), /unknown/);
 });
 
