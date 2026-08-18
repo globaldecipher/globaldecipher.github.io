@@ -54,7 +54,10 @@
   const dateSlot = document.querySelector(".header-date");
   if (dateSlot) {
     const today = new Date();
-    dateSlot.textContent = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    // The Urdu and Pashto trees set <html lang>, so the masthead date follows
+    // the edition the reader is actually on rather than staying in English.
+    const dateLocale = document.documentElement.lang === "en" ? "en-US" : (document.documentElement.lang || "en-US");
+    dateSlot.textContent = today.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     dateSlot.setAttribute("aria-hidden", "false");
   }
 

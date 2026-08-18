@@ -7,7 +7,8 @@
 //     POST   /api/ingest/incidents   machine token — issue-form incident ingest
 //     GET    /api/agent/x/callback   state-protected X OAuth callback
 //     GET    /api/maintenance        public — { on: bool }
-//     GET    /api/content/dump?folder= public — bulk fetch all rows in a collection (used by build)
+//     GET    /api/content/dump?folder=[&lang=ur|ps] public — bulk fetch all rows in a
+//                                    collection, optionally in its Urdu or Pashto edition (used by build)
 //     POST   /api/monitoring/checkout public — create Safepay checkout
 //     GET    /api/monitoring/return   public — activate paid Monitoring access
 //     GET    /api/monitoring/me       public — read Monitoring session state
@@ -66,6 +67,14 @@ import {
   handleMonitoringReturn
 } from "./paywall.js";
 import {
+  applyTranslations,
+  isTranslatedLang,
+  translateItem,
+  translateMissing,
+  translationStatus,
+  TRANSLATED_LANGS
+} from "./translate.js";
+import {
   handleAgentAdmin,
   handleAgentPublicRequest,
   publicIncidentFeed,
@@ -112,6 +121,12 @@ function parseTitle(content) {
   if (!m) return null;
   return m[1].trim().replace(/^"|"$/g, "").replace(/^'|'$/g, "");
 }
+// "content/news/2026-08-18-slug.md" -> { collection: "news", slug: "2026-08-18-slug" }
+function contentTarget(filePath) {
+  const match = /^content\/([^/]+)\/(.+)\.md$/.exec(String(filePath || ""));
+  return match ? { collection: match[1], slug: match[2] } : null;
+}
+
 function parseStatus(content) {
   const fm = frontMatter(content);
   const m = fm.match(/^status:\s*(.+)$/m);
@@ -170,7 +185,17 @@ export default {
             return json({ error: "Unauthorized" }, 401);
           }
         }
-        return json({ items: await dumpCollection(env, folder) });
+        const rows = await dumpCollection(env, folder);
+        // The Urdu and Pashto editions are served from the same dump so the
+        // build fetches one collection per language and never has to know that
+        // translation exists. Anything not yet translated comes back in English
+        // and is simply left out of that language's tree.
+        const lang = url.searchParams.get("lang") || "";
+        if (lang && lang !== "en") {
+          if (!isTranslatedLang(lang)) return json({ error: `Unsupported language: ${lang}` }, 400);
+          return json({ lang, items: await applyTranslations(env, folder, lang, rows) });
+        }
+        return json({ items: rows });
       }
 
       // ---- Monitoring Desk paywall (public payment/session endpoints) ----
@@ -224,6 +249,26 @@ export default {
       }
       if (adminPath === "/rebuild" && method === "POST") {
         return json(await triggerRebuild(env));
+      }
+
+      // ---- Urdu / Pashto editions ----
+      if (adminPath === "/translate" && method === "GET") {
+        return json(await translationStatus(env));
+      }
+      // Deliberately batched rather than "translate everything": a caller loops
+      // until `done`, so no single request runs long enough to be cut off
+      // halfway through an article.
+      if (adminPath === "/translate" && method === "POST") {
+        const body = await readJson(request);
+        const limit = Math.min(Math.max(Number.parseInt(body?.limit, 10) || 4, 1), 12);
+        const langs = Array.isArray(body?.langs) && body.langs.length
+          ? body.langs.filter((lang) => isTranslatedLang(lang))
+          : TRANSLATED_LANGS;
+        const result = await translateMissing(env, { limit, langs });
+        // Only bother Pages once the backlog is clear, so a long backfill costs
+        // one rebuild instead of one per batch.
+        const deployment = result.translated > 0 && result.done ? await triggerRebuild(env) : null;
+        return json({ ...result, deployment });
       }
 
       if (adminPath === "/analytics/monthly" && method === "GET") {
@@ -336,6 +381,25 @@ export default {
         let deployment = null;
         if (!isAutosave && (status === "published" || beforeStatus === "published")) {
           deployment = await triggerRebuild(env);
+          // English readers get the change on this build. Translating takes
+          // long enough that holding the editor's save for it would feel
+          // broken, so it runs after the response and asks for a second build
+          // only if it actually produced something.
+          const target = contentTarget(body.path);
+          if (target && status === "published") {
+            ctx.waitUntil((async () => {
+              try {
+                const result = await translateItem(env, target.collection, target.slug);
+                if (result.translated > 0) await triggerRebuild(env);
+              } catch (error) {
+                console.error(JSON.stringify({
+                  message: "post-publish translation failed",
+                  path: body.path,
+                  error: String(error?.message || error)
+                }));
+              }
+            })());
+          }
         }
         const actor = await actorFingerprint(bearerToken(request));
         ctx.waitUntil(logAudit(env, {
@@ -466,5 +530,25 @@ async function runScheduledTasks(env) {
       message: "monthly data package automation failed",
       error: error.message
     }));
+  }
+  await sweepTranslations(env);
+}
+
+// The cron fires every minute for the X poller; translation only needs a slow
+// backstop. This catches anything the post-publish hook missed — a Gemini
+// outage, an article edited straight in D1 — without a human remembering to run
+// a backfill.
+async function sweepTranslations(env) {
+  if (env.TRANSLATE_SWEEP_ENABLED === "false") return;
+  if (!env.GEMINI_API_KEY) return;
+  if (new Date().getUTCMinutes() % 15 !== 0) return;
+  try {
+    const result = await translateMissing(env, { limit: 2 });
+    if (result.translated > 0) {
+      console.log(JSON.stringify({ message: "translation sweep", ...result }));
+      if (result.done) await triggerRebuild(env);
+    }
+  } catch (error) {
+    console.error(JSON.stringify({ message: "translation sweep failed", error: String(error?.message || error) }));
   }
 }

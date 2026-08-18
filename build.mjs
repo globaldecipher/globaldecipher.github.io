@@ -3,6 +3,14 @@ import path from "node:path";
 import crypto from "node:crypto";
 import sanitizeHtml from "sanitize-html";
 import { buildSync } from "esbuild";
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  RTL_FONT_HREF,
+  TRANSLATED_LOCALES,
+  localeFor,
+  localePath
+} from "./build-i18n.mjs";
 
 const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "content");
@@ -58,15 +66,62 @@ const SITE = {
 // whole category back.
 const SHOW_MONITORING = false;
 
-const NAV = [
-  ["News", "/news/"],
-  ["Opinion", "/opinion/"],
-  ...(SHOW_MONITORING ? [["Monitoring", "/monitoring/"]] : []),
-  ["Incident Map", "/incident-map/"],
-  ["Network Graph", "/network-graph/"],
-  ["Reports", "/reports/"],
-  ["Contact", "/contact/"]
-];
+// ---------------------------------------------------------------------------
+// Language editions
+// ---------------------------------------------------------------------------
+//
+// The site is generated once per language. Everything below reads the language
+// currently being written from LOCALE, so the page templates stayed as they
+// were: `writePage("/news/")` lands in site/news/ for English and site/ur/news/
+// for Urdu, and `linkFor` keeps every internal link inside its own tree.
+
+let LOCALE = DEFAULT_LOCALE;
+
+// Interface copy for the language being built. Falls back to English for any
+// string a locale has not translated yet, so a missing key degrades to readable
+// rather than to "undefined" on a live page.
+function t(key) {
+  const value = LOCALE.strings[key];
+  return value === undefined ? (DEFAULT_LOCALE.strings[key] ?? key) : value;
+}
+
+function localized(urlPath) {
+  return localePath(urlPath, LOCALE);
+}
+
+// Which unprefixed paths actually exist in each language, filled in before any
+// page is written. An article with no Urdu translation is absent from the Urdu
+// tree, and must therefore not be advertised in an hreflang tag pointing at a
+// 404 — Search Console reports those as errors and can drop the whole cluster.
+const LOCALE_PAGES = new Map(Object.keys(LOCALES).map((code) => [code, new Set()]));
+
+function registerLocalePages(code, paths) {
+  const set = LOCALE_PAGES.get(code);
+  if (!set) return;
+  for (const urlPath of paths) set.add(urlPath);
+}
+
+function alternatesFor(urlPath) {
+  return Object.values(LOCALES)
+    .filter((locale) => LOCALE_PAGES.get(locale.code)?.has(urlPath))
+    .map((locale) => ({ locale, href: `${SITE.url}${localePath(urlPath, locale)}` }));
+}
+
+function navItems() {
+  return [
+    [t("navNews"), "/news/"],
+    [t("navOpinion"), "/opinion/"],
+    ...(SHOW_MONITORING ? [[t("navMonitoring"), "/monitoring/"]] : []),
+    // The incident map and the network graph are interactive apps whose own
+    // labels are English-only, so the language trees link back to the English
+    // build of both rather than shipping a half-translated tool.
+    ...(LOCALE.code === "en"
+      ? [[t("navIncidentMap"), "/incident-map/"], [t("navNetworkGraph"), "/network-graph/"]]
+      : []),
+    [t("navReports"), "/reports/"],
+    [t("navContact"), "/contact/"]
+  ];
+}
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -466,8 +521,10 @@ function refreshManagedAssetUrls(value = "") {
 // A deploy must not fail because the content API blinked. Transient network
 // errors and 5xx responses are retried with a widening delay; a 4xx is a real
 // answer and is returned immediately.
-async function fetchCollection(collection, headers, attempts = 4) {
-  const url = `${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`;
+async function fetchCollection(collection, headers, attempts = 4, lang = "en") {
+  const url = lang === "en"
+    ? `${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}`
+    : `${CONTENT_API}/content/dump?folder=${encodeURIComponent(collection)}&lang=${encodeURIComponent(lang)}`;
   let lastError = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -486,7 +543,10 @@ async function fetchCollection(collection, headers, attempts = 4) {
   throw new Error(`Failed to fetch ${collection} from ${CONTENT_API} after ${attempts} attempts: ${lastError?.message || "unknown error"}`);
 }
 
-async function readCollection(collection) {
+// `lang` other than "en" asks the API for that language's edition. Anything not
+// translated yet comes back flagged and is dropped here, so a language tree only
+// ever contains pages that are genuinely in that language.
+async function readCollection(collection, lang = "en") {
   const headers = {
     accept: "application/json",
     "user-agent": "TGD-Site-Builder/1.0"
@@ -494,7 +554,7 @@ async function readCollection(collection) {
   if (collection === "monitoring" && CONTENT_DUMP_TOKEN) {
     headers.authorization = `Bearer ${CONTENT_DUMP_TOKEN}`;
   }
-  const res = await fetchCollection(collection, headers);
+  const res = await fetchCollection(collection, headers, 4, lang);
   const allowPartialBuild = process.env.ALLOW_PARTIAL_CONTENT_BUILD === "1" || process.env.CI !== "true";
   if ([401, 403].includes(res.status) && !CONTENT_DUMP_TOKEN && allowPartialBuild) {
     console.warn(`Skipping protected ${collection} content in partial build (CONTENT_DUMP_TOKEN is not set).`);
@@ -504,6 +564,7 @@ async function readCollection(collection) {
   const { items } = await res.json();
   return (items || [])
     .filter((row) => collection === "pages" || row.status === "published")
+    .filter((row) => lang === "en" || row.translated === true)
     .map((row) => {
       const slug = slugify(row.slug);
       if (!slug) throw new Error(`Invalid slug for ${collection} row: ${row.slug}`);
@@ -542,7 +603,9 @@ function formatDate(date) {
   if (!date) return "";
   const parsed = new Date(`${date}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return date;
-  return new Intl.DateTimeFormat("en", {
+  // Urdu and Pashto readers get their own month names and digits; the ISO date
+  // in the JSON-LD and the sitemap stays machine-readable either way.
+  return new Intl.DateTimeFormat(LOCALE.code, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -570,12 +633,12 @@ function reportPeriodKey(item) {
 
 function typeLabel(type = "") {
   const labels = {
-    news: "News & Analysis",
-    opinion: "Opinion",
-    monitoring: "Monitoring Desk",
-    reports: "Report",
-    profiles: "Profile",
-    page: "Page"
+    news: t("typeNews"),
+    opinion: t("typeOpinion"),
+    monitoring: t("typeMonitoring"),
+    reports: t("typeReports"),
+    profiles: t("typeProfiles"),
+    page: t("typePage")
   };
   return labels[type] || type;
 }
@@ -705,11 +768,18 @@ function prefixFor(urlPath) {
   return "../".repeat(depthFor(urlPath));
 }
 
+// Links stay inside the language tree they were written in, except where that
+// page does not exist there — an untranslated article, the two interactive
+// apps, the tag hubs, the admin panel. Those cross back to English rather than
+// point at a directory the build never wrote, so no language tree can contain a
+// dead internal link.
 function linkFor(url, currentPath = "/") {
   if (/^https?:\/\//.test(url) || url.startsWith("mailto:")) return url;
-  const prefix = prefixFor(currentPath);
-  if (url === "/") return `${prefix}index.html`;
-  return `${prefix}${url.replace(/^\/|\/$/g, "")}/index.html`;
+  const inLocale = LOCALE.code === "en" || LOCALE_PAGES.get(LOCALE.code)?.has(url);
+  const to = localePath(url, inLocale ? LOCALE : DEFAULT_LOCALE);
+  const prefix = prefixFor(localized(currentPath));
+  if (to === "/") return `${prefix}index.html`;
+  return `${prefix}${to.replace(/^\/|\/$/g, "")}/index.html`;
 }
 
 function absoluteUrl(url = "/") {
@@ -719,8 +789,7 @@ function absoluteUrl(url = "/") {
 }
 
 function canonicalFor(pagePath = "/") {
-  if (pagePath === "/") return `${SITE.url}/`;
-  return absoluteUrl(pagePath);
+  return `${SITE.url}${localized(pagePath === "/" ? "/" : pagePath)}`;
 }
 
 function escapeXml(value = "") {
@@ -733,10 +802,10 @@ function escapeXml(value = "") {
 }
 
 function accessLabel(item) {
-  if (item.access === "paid") return '<span class="badge badge-premium">Paid access</span>';
-  if (item.access === "premium-preview") return '<span class="badge badge-premium">Premium preview</span>';
-  if (item.sensitivity === "research-sensitive") return '<span class="badge badge-research">Public source</span>';
-  return '<span class="badge badge-free">Free</span>';
+  if (item.access === "paid") return `<span class="badge badge-premium">${escapeHtml(t("badgePaid"))}</span>`;
+  if (item.access === "premium-preview") return `<span class="badge badge-premium">${escapeHtml(t("badgePremium"))}</span>`;
+  if (item.sensitivity === "research-sensitive") return `<span class="badge badge-research">${escapeHtml(t("badgeResearch"))}</span>`;
+  return `<span class="badge badge-free">${escapeHtml(t("badgeFree"))}</span>`;
 }
 
 function brandMark(prefix = "", variant = "header") {
@@ -796,8 +865,9 @@ function articleJsonLd(item) {
     description: item.summary || SITE.description,
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": absoluteUrl(item.url)
+      "@id": canonicalFor(item.url)
     },
+    inLanguage: LOCALE.htmlLang,
     image: [image],
     author: {
       "@type": "Person",
@@ -840,24 +910,61 @@ function homepageJsonLd() {
   ];
 }
 
+// A link that deliberately crosses out of the language tree being built — used
+// only by the switcher, where the whole point is to leave it.
+function localeHref(targetLocale, urlPath, currentPath) {
+  const prefix = prefixFor(localized(currentPath));
+  const to = localePath(urlPath, targetLocale);
+  if (to === "/") return `${prefix}index.html`;
+  return `${prefix}${to.replace(/^\/|\/$/g, "")}/index.html`;
+}
+
+// Every language is offered on every page. Where this exact article exists in
+// the other language the switch keeps the reader on it; where it does not, the
+// switch drops them on that language's front page rather than a dead link.
+function languageSwitcher(pagePath, alternates) {
+  const available = new Set(alternates.map((entry) => entry.locale.code));
+  const options = Object.values(LOCALES).map((locale) => {
+    const href = localeHref(locale, available.has(locale.code) ? pagePath : "/", pagePath);
+    const isCurrent = locale.code === LOCALE.code;
+    return `<a class="lang-option${isCurrent ? " is-current" : ""}" lang="${locale.htmlLang}" hreflang="${locale.htmlLang}" href="${href}"${isCurrent ? ' aria-current="true"' : ""}>${escapeHtml(locale.label)}</a>`;
+  }).join("");
+  return `<nav class="lang-switch" aria-label="${escapeHtml(t("languageLabel"))}">${options}</nav>`;
+}
+
 function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false, jsonLd = null }) {
   const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
-  const assetPrefix = prefixFor(pagePath);
-  const pageDescription = description || SITE.description;
+  // Assets are written once at the site root and shared by every language, so
+  // the "../" depth is counted from the localized path, not the bare one.
+  const assetPrefix = prefixFor(localized(pagePath));
+  const pageDescription = description || t("siteDescription");
   const canonicalUrl = canonicalFor(pagePath);
   const ogImage = absoluteUrl(image || SITE.defaultImage);
   const jsonLdBlocks = (Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [])
     .filter(Boolean)
     .map((payload) => `<script type="application/ld+json">${JSON.stringify(payload).replace(/</g, "\\u003c")}</script>`)
     .join("");
-  const nav = NAV.map(([label, href]) => {
+  const nav = navItems().map(([label, href]) => {
     const active = current === href || (href !== "/" && pagePath.startsWith(href)) ? ' aria-current="page"' : "";
-    return `<a${active} href="${linkFor(href, pagePath)}">${label}</a>`;
+    return `<a${active} href="${linkFor(href, pagePath)}">${escapeHtml(label)}</a>`;
   }).join("");
   const year = new Date().getUTCFullYear();
 
+  // hreflang is what actually earns the Urdu and Pashto editions their own
+  // search listings: it tells Google these are the same article in another
+  // language rather than duplicate pages competing with one another.
+  const alternates = noindex ? [] : alternatesFor(pagePath);
+  const alternateTags = alternates.length > 1
+    ? alternates
+      .map(({ locale, href }) => `<link rel="alternate" hreflang="${locale.htmlLang}" href="${escapeHtml(href)}">`)
+      .join("\n  ")
+      + `\n  <link rel="alternate" hreflang="x-default" href="${escapeHtml(alternates.find((entry) => entry.locale.code === "en")?.href || canonicalUrl)}">`
+    : "";
+  const switcher = languageSwitcher(pagePath, alternates);
+  const rtlFont = LOCALE.dir === "rtl" ? `<link rel="stylesheet" href="${RTL_FONT_HREF}">` : "";
+
   return `<!doctype html>
-<html lang="en">
+<html lang="${LOCALE.htmlLang}" dir="${LOCALE.dir}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -866,6 +973,8 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   ${noindex ? '<meta name="robots" content="noindex, follow">' : ""}
   <meta name="theme-color" content="#fafaf7" id="theme-color-meta">
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  ${alternateTags}
+  <meta property="og:locale" content="${LOCALE.htmlLang}">
   <meta property="og:title" content="${escapeHtml(pageTitle)}">
   <meta property="og:description" content="${escapeHtml(pageDescription)}">
   <meta property="og:type" content="${escapeHtml(ogType)}">
@@ -883,6 +992,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..900;1,8..60,400..900&display=swap">
+  ${rtlFont}
   <script src="${assetPrefix}assets/theme-init.js"></script>
   <link rel="stylesheet" href="${assetPrefix}assets/${STYLES_ASSET}">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZBZ5Y32RNG"></script>
@@ -896,28 +1006,29 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   ${jsonLdBlocks}
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <a class="skip-link" href="#main">${escapeHtml(t("skipToContent"))}</a>
   <header class="site-header site-header-centered">
     <div class="container header-stack">
       <div class="header-utility">
-        <button class="theme-toggle" type="button" aria-label="Switch color theme" data-theme-toggle>
+        ${switcher}
+        <button class="theme-toggle" type="button" aria-label="${escapeHtml(t("themeToggleLabel"))}" data-theme-toggle>
           <span class="theme-icon theme-sun" aria-hidden="true">${icon("sun")}</span>
           <span class="theme-icon theme-moon" aria-hidden="true">${icon("moon")}</span>
         </button>
-        <button class="search-btn" type="button" aria-label="Search" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
-        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span></button>
+        <button class="search-btn" type="button" aria-label="${escapeHtml(t("searchLabel"))}" aria-expanded="false" aria-controls="site-search" data-search-toggle>${icon("search")}</button>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="${escapeHtml(t("menuLabel"))}"><span></span></button>
       </div>
-      <a class="brand brand-center" href="${linkFor("/", pagePath)}" aria-label="${SITE.title} home">
+      <a class="brand brand-center" href="${linkFor("/", pagePath)}" aria-label="${SITE.title} ${escapeHtml(t("homeAria"))}">
         ${brandMark(assetPrefix)}
       </a>
       <div class="header-date" aria-hidden="true"></div>
-      <nav class="site-nav site-nav-centered" id="site-nav" aria-label="Primary navigation">${nav}</nav>
+      <nav class="site-nav site-nav-centered" id="site-nav" aria-label="${escapeHtml(t("navPrimaryLabel"))}">${nav}</nav>
     </div>
-    <section class="site-search-panel" id="site-search" data-site-search data-search-index="${assetPrefix}search-index.json" hidden>
+    <section class="site-search-panel" id="site-search" data-site-search data-search-index="${assetPrefix}${LOCALE.code === "en" ? "" : `${LOCALE.code}/`}search-index.json" hidden>
       <div class="container site-search-inner">
         <label>
-          <span>Search TGD</span>
-          <input type="search" data-site-search-input placeholder="Search reports, profiles, regions, groups, or themes" autocomplete="off">
+          <span>${escapeHtml(t("headerSearchLabel"))}</span>
+          <input type="search" data-site-search-input placeholder="${escapeHtml(t("headerSearchPlaceholder"))}" autocomplete="off">
         </label>
         <div class="site-search-results" data-site-search-results aria-live="polite"></div>
       </div>
@@ -928,30 +1039,30 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
     <div class="container footer-grid">
       <div>
         <a class="footer-brand" href="${linkFor("/", pagePath)}">${brandMark(assetPrefix, "footer")}</a>
-        <p>${SITE.description}</p>
+        <p>${escapeHtml(t("siteDescription"))}</p>
       </div>
       <div>
-        <h2>Channels</h2>
-        <a href="${SITE.x}" target="_blank" rel="noopener">X / Twitter</a>
-        <a href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp Channel</a>
-        <a href="${SITE.substack}" target="_blank" rel="noopener">Substack</a>
+        <h2>${escapeHtml(t("footerChannels"))}</h2>
+        <a href="${SITE.x}" target="_blank" rel="noopener">${escapeHtml(t("footerX"))}</a>
+        <a href="${SITE.whatsapp}" target="_blank" rel="noopener">${escapeHtml(t("footerWhatsapp"))}</a>
+        <a href="${SITE.substack}" target="_blank" rel="noopener">${escapeHtml(t("footerSubstack"))}</a>
       </div>
       <div>
-        <h2>Editorial</h2>
-        <a href="${linkFor("/methodology/", pagePath)}">Methodology</a>
-        <a href="${linkFor("/corrections-policy/", pagePath)}">Corrections</a>
-        <a href="${linkFor("/privacy-policy/", pagePath)}">Privacy</a>
+        <h2>${escapeHtml(t("footerEditorial"))}</h2>
+        <a href="${linkFor("/methodology/", pagePath)}">${escapeHtml(t("footerMethodology"))}</a>
+        <a href="${linkFor("/corrections-policy/", pagePath)}">${escapeHtml(t("footerCorrections"))}</a>
+        <a href="${linkFor("/privacy-policy/", pagePath)}">${escapeHtml(t("footerPrivacy"))}</a>
       </div>
       <div>
-        <h2>Pitch &amp; Contact</h2>
+        <h2>${escapeHtml(t("footerPitch"))}</h2>
         <a href="mailto:${SITE.email}">${SITE.email}</a>
-        <a href="${linkFor("/contact/", pagePath)}">Contact desk</a>
-        <a href="${linkFor("/about/", pagePath)}">About TGD</a>
+        <a href="${linkFor("/contact/", pagePath)}">${escapeHtml(t("footerContact"))}</a>
+        <a href="${linkFor("/about/", pagePath)}">${escapeHtml(t("footerAbout"))}</a>
       </div>
     </div>
     <div class="container footer-bottom">
-      <span>© ${year} The Global Decipher · Independent research</span>
-      <span>Public-interest reporting · No propaganda amplification</span>
+      <span>© ${year} ${escapeHtml(t("footerRights"))}</span>
+      <span>${escapeHtml(t("footerNote"))}</span>
     </div>
   </footer>
   <script src="${assetPrefix}assets/${MAIN_ASSET}" defer></script>
@@ -1094,11 +1205,11 @@ function filterToolbar(types = []) {
     .join("");
   return `<div class="content-toolbar" data-content-tools>
     <label>
-      <span>Search</span>
-      <input type="search" data-search-input placeholder="Search by region, actor, theme, or report">
+      <span>${escapeHtml(t("searchLabel"))}</span>
+      <input type="search" data-search-input placeholder="${escapeHtml(t("searchPlaceholder"))}">
     </label>
     <div class="filter-buttons" data-filter-buttons>
-      <button type="button" data-filter="all" class="active">All</button>
+      <button type="button" data-filter="all" class="active">${escapeHtml(t("searchAll"))}</button>
       ${buttons}
     </div>
   </div>`;
@@ -1436,13 +1547,13 @@ function sparseListingCta({ title, current, count }) {
   if (count >= 2 || current === "/profiles/") return "";
   return `<aside class="listing-cta">
     <div>
-      <span>Editorial desk</span>
-      <strong>${escapeHtml(title)} is being built out.</strong>
-      <p>New briefings will appear here as the desk publishes. Follow the WhatsApp channel or pitch the desk with relevant public-source material.</p>
+      <span>${escapeHtml(t("ctaEyebrow"))}</span>
+      <strong>${escapeHtml(t("ctaHeadline").replace("{title}", title))}</strong>
+      <p>${escapeHtml(t("ctaBody"))}</p>
     </div>
     <div class="listing-cta-actions">
-      <a class="button primary" href="${SITE.whatsapp}" target="_blank" rel="noopener">WhatsApp channel</a>
-      <a class="button secondary" href="${linkFor("/contact/", current)}">Pitch the desk</a>
+      <a class="button primary" href="${SITE.whatsapp}" target="_blank" rel="noopener">${escapeHtml(t("ctaWhatsapp"))}</a>
+      <a class="button secondary" href="${linkFor("/contact/", current)}">${escapeHtml(t("ctaPitch"))}</a>
     </div>
   </aside>`;
 }
@@ -1490,7 +1601,7 @@ function listingPage({ title, eyebrow, summary, current, items, filters }) {
     <div class="container">
       ${hasItems && items.length > 3 ? filterToolbar(filters) : ""}
       ${hasItems ? renderList() : `<div class="listing-grid layout-grid" data-content-list></div>`}
-      <p class="empty-state" data-empty-state${hasItems ? " hidden" : ""}>${hasItems ? "No matching briefings found." : "No published items yet. New uploads will appear here."}</p>
+      <p class="empty-state" data-empty-state${hasItems ? " hidden" : ""}>${escapeHtml(hasItems ? t("emptyFiltered") : t("emptyNone"))}</p>
       ${sparseListingCta({ title, current, count: items.length })}
     </div>
   </section>`;
@@ -1660,49 +1771,49 @@ function articleSidebar(item) {
 
   const metricBlock = metrics.length
     ? `<div class="article-side-panel">
-        <h2>At a glance</h2>
+        <h2>${escapeHtml(t("sidebarGlance"))}</h2>
         <dl class="side-stats">${metrics.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
       </div>`
     : "";
 
   const factBlock = facts.length
     ? `<div class="article-side-panel">
-        <h2>Profile facts</h2>
+        <h2>${escapeHtml(t("sidebarFacts"))}</h2>
         <dl class="side-facts">${facts.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>
       </div>`
     : "";
 
   const tocBlock = headings.length
     ? `<div class="article-side-panel">
-        <h2>On this page</h2>
-        <nav class="article-toc" aria-label="Article sections">${headings.map((heading) => `<a href="#${heading.id}">${escapeHtml(heading.title)}</a>`).join("")}</nav>
+        <h2>${escapeHtml(t("sidebarToc"))}</h2>
+        <nav class="article-toc" aria-label="${escapeHtml(t("sidebarTocLabel"))}">${headings.map((heading) => `<a href="#${heading.id}">${escapeHtml(heading.title)}</a>`).join("")}</nav>
       </div>`
     : "";
 
   const pdfBlock = pdfs.length
     ? `<div class="article-side-panel">
-        <h2>Files</h2>
-        ${pdfs.map((pdf) => `<a class="file-link" href="${escapeHtml(pdf.href)}">${escapeHtml(pdf.label || "Download PDF")}</a>`).join("")}
+        <h2>${escapeHtml(t("sidebarFiles"))}</h2>
+        ${pdfs.map((pdf) => `<a class="file-link" href="${escapeHtml(pdf.href)}">${escapeHtml(pdf.label || t("downloadPdf"))}</a>`).join("")}
       </div>`
     : "";
 
   const tagBlock = tags.length
     ? `<div class="article-side-panel">
-        <h2>Tags</h2>
+        <h2>${escapeHtml(t("sidebarTags"))}</h2>
         <div class="side-tags">${tags.map((tag) => tagChip(tag, item.url)).join("")}</div>
       </div>`
     : "";
 
   const researchBlock = item.type === "profiles"
     ? `<div class="article-side-panel">
-        <h2>Research note</h2>
-        <p>Public-source profile. TGD excludes operational guidance and treats uncertain current-status claims separately.</p>
+        <h2>${escapeHtml(t("sidebarResearchNote"))}</h2>
+        <p>${escapeHtml(t("sidebarResearchBody"))}</p>
       </div>`
     : "";
 
   const shareBlock = `<div class="article-side-panel share-panel">
-        <h2>Share</h2>
-        <button type="button" class="copy-link" data-copy-link="${escapeHtml(absoluteUrl(item.url))}">Copy link</button>
+        <h2>${escapeHtml(t("sidebarShare"))}</h2>
+        <button type="button" class="copy-link" data-copy-link="${escapeHtml(canonicalFor(item.url))}">${escapeHtml(t("sidebarCopyLink"))}</button>
       </div>`;
 
   const blocks = [shareBlock, metricBlock, factBlock, tocBlock, pdfBlock, tagBlock, researchBlock].filter(Boolean).join("");
@@ -1716,27 +1827,38 @@ function articleTemplate(item, allItems) {
   const premiumCta =
     item.access === "premium-preview"
       ? `<aside class="premium-cta">
-          <h2>Request full access</h2>
-          <p>This is a public preview. Full Monitoring Desk notes and premium reports are handled manually for subscribers and institutional clients.</p>
-          <a class="button primary" href="${linkFor("/contact/", item.url)}">Contact TGD</a>
+          <h2>${escapeHtml(t("premiumTitle"))}</h2>
+          <p>${escapeHtml(t("premiumBody"))}</p>
+          <a class="button primary" href="${linkFor("/contact/", item.url)}">${escapeHtml(t("premiumCta"))}</a>
         </aside>`
       : "";
+  // Readers are told plainly that they are reading a machine translation, and
+  // are given a one-click route to the English original that carries the
+  // desk's actual wording. Leaving that unsaid on security reporting would be
+  // the wrong call editorially, whatever it costs in polish.
+  const translationNotice = LOCALE.code === "en"
+    ? ""
+    : `<aside class="translation-notice">
+        <strong>${escapeHtml(t("translationNoticeTitle"))}</strong>
+        <p>${escapeHtml(t("translationNotice"))}</p>
+        <a href="${localeHref(DEFAULT_LOCALE, item.url, item.url)}" hreflang="en" lang="en">${escapeHtml(t("readInEnglish"))}</a>
+      </aside>`;
   const body = `<section class="article-hero">
     <div class="container article-head">
-      <p class="eyebrow">${escapeHtml(typeLabel(item.type))} · ${escapeHtml(item.region || "Global")}</p>
+      <p class="eyebrow">${escapeHtml(typeLabel(item.type))} · ${escapeHtml(item.region || t("regionGlobal"))}</p>
       <h1>${escapeHtml(item.title)}</h1>
       <p>${escapeHtml(item.summary || "")}</p>
       <div class="article-meta">
-        <span class="byline">By ${escapeHtml(item.author || "TGD Desk")}</span>
+        <span class="byline">${escapeHtml(t("byline"))} ${escapeHtml(item.author || t("deskName"))}</span>
         <span>${escapeHtml(formatDate(item.date))}</span>
-        <span>${escapeHtml(item.region || "Global")}</span>
+        <span>${escapeHtml(item.region || t("regionGlobal"))}</span>
         ${accessLabel(item)}
       </div>
     </div>
   </section>
   <section class="article-band">
     <div class="container article-shell">
-      <article class="article-body">${item.html}${authorNote(item)}</article>
+      <article class="article-body">${translationNotice}${item.html}${authorNote(item)}</article>
       ${articleSidebar(item)}
       ${premiumCta}
     </div>
@@ -1744,8 +1866,8 @@ function articleTemplate(item, allItems) {
   ${related.length ? `<section class="band" data-reveal>
     <div class="container split-heading">
       <div>
-        <p class="eyebrow">Related reading</p>
-        <h2>Continue research</h2>
+        <p class="eyebrow">${escapeHtml(t("relatedEyebrow"))}</p>
+        <h2>${escapeHtml(t("relatedTitle"))}</h2>
       </div>
     </div>
     <div class="container card-grid">${related.map((candidate) => card(candidate, item.url, { compact: true })).join("")}</div>
@@ -1763,7 +1885,8 @@ function articleTemplate(item, allItems) {
 }
 
 function writePage(urlPath, html) {
-  const clean = urlPath === "/" ? "" : urlPath.replace(/^\/|\/$/g, "");
+  const target = localized(urlPath);
+  const clean = target === "/" ? "" : target.replace(/^\/|\/$/g, "");
   const dir = path.join(OUT_DIR, clean);
   ensureDir(dir);
   fs.writeFileSync(path.join(dir, "index.html"), html);
@@ -1777,15 +1900,15 @@ function notFoundPage() {
   const body = `<section class="section-hero not-found-hero">
     <div class="container">
       <p class="eyebrow">404</p>
-      <h1>This page is not in the archive.</h1>
-      <p>The link may have moved, or the briefing may not have been published yet.</p>
+      <h1>${escapeHtml(t("notFoundHeadline"))}</h1>
+      <p>${escapeHtml(t("notFoundBody"))}</p>
       <div class="not-found-actions">
-        <a class="button primary" href="index.html">Return home</a>
-        <a class="button secondary" href="contact/index.html">Contact the desk</a>
+        <a class="button primary" href="index.html">${escapeHtml(t("notFoundHome"))}</a>
+        <a class="button secondary" href="contact/index.html">${escapeHtml(t("notFoundContact"))}</a>
       </div>
     </div>
   </section>`;
-  return shell({ title: "Page not found", description: "The requested TGD page could not be found.", body, pagePath: "/404.html", noindex: true });
+  return shell({ title: t("notFoundTitle"), description: t("notFoundBody"), body, pagePath: "/404.html", noindex: true });
 }
 
 function writeRssFeed(items) {
@@ -1818,7 +1941,7 @@ ${feedItems.map((item) => `    <item>
   fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), xml);
 }
 
-function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] }) {
+function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] }, localeTrees = new Map()) {
   const buildStamp = new Date().toISOString();
   const latestItemStamp = items.reduce((latest, item) => {
     const stamp = isoDateForItem(item);
@@ -1837,10 +1960,29 @@ function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] 
     ...hubs.regions.map((hub) => ({ url: `/regions/${hub.slug}/`, lastmod: buildStamp }))
   ];
 
+  // Each language's URLs are listed in the one sitemap, and every entry carries
+  // the full alternate set — including a self-reference, which the protocol
+  // requires and which Google treats as a validity check on the whole group.
+  for (const [code, tree] of localeTrees) {
+    const locale = localeFor(code);
+    for (const { url, lastmod } of tree.entries) {
+      entries.push({ url: localePath(url, locale), lastmod, alternates: alternatesFor(url) });
+    }
+  }
+  for (const entry of entries) {
+    if (entry.alternates) continue;
+    const alternates = alternatesFor(entry.url);
+    if (alternates.length > 1) entry.alternates = alternates;
+  }
+
+  const alternateMarkup = (alternates = []) => alternates
+    .map(({ locale, href }) => `\n    <xhtml:link rel="alternate" hreflang="${locale.htmlLang}" href="${escapeXml(href)}"/>`)
+    .join("");
+
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${entries
-  .map(({ url, lastmod }) => `  <url><loc>${SITE.url}${url}</loc><lastmod>${lastmod}</lastmod></url>`)
+  .map(({ url, lastmod, alternates }) => `  <url><loc>${SITE.url}${url}</loc><lastmod>${lastmod}</lastmod>${alternateMarkup(alternates)}</url>`)
   .join("\n")}
 </urlset>`;
 
@@ -1857,8 +1999,19 @@ ${entries
     );
   }
   writeRssFeed(items);
+  writeSearchIndex(OUT_DIR, items, pages);
+  // Searching the Urdu site returns Urdu headlines. The URLs stay unprefixed
+  // because main.js derives the tree from the index file's own location.
+  for (const [code, tree] of localeTrees) {
+    const dir = path.join(OUT_DIR, code);
+    ensureDir(dir);
+    writeSearchIndex(dir, tree.items, tree.pages);
+  }
+}
+
+function writeSearchIndex(dir, items, pages) {
   fs.writeFileSync(
-    path.join(OUT_DIR, "search-index.json"),
+    path.join(dir, "search-index.json"),
     JSON.stringify(
       [...items, ...pages].map(({ title, summary, type, region, category, tags, url, date, access }) => ({
         title,
@@ -2501,6 +2654,102 @@ export default {
 `;
 }
 
+// Everything one language edition needs, fetched from the API's translated
+// dump. The two interactive apps are left out: their interface labels live in
+// English inside their own JavaScript, so a translated shell around them would
+// promise a language the tool does not actually speak.
+const APP_PAGE_SLUGS = new Set(["network-graph", "incident-map"]);
+
+async function readLocaleTree(code) {
+  const [news, opinion, reports, profiles, allPages] = await Promise.all([
+    readCollection("news", code),
+    readCollection("opinion", code),
+    readCollection("reports", code),
+    readCollection("profiles", code),
+    readCollection("pages", code)
+  ]);
+  const items = [...news, ...opinion, ...reports, ...profiles];
+  const pages = allPages.filter((page) => !APP_PAGE_SLUGS.has(page.slug));
+
+  const buildStamp = new Date().toISOString();
+  const latestItemStamp = items.reduce(
+    (latest, item) => {
+      const stamp = isoDateForItem(item);
+      return stamp && stamp > latest ? stamp : latest;
+    },
+    `${buildStamp.slice(0, 10)}T00:00:00Z`
+  );
+  const listingPaths = ["/", "/news/", "/opinion/", "/reports/", "/profiles/"];
+
+  return {
+    code,
+    items,
+    pages,
+    news,
+    opinion,
+    reports,
+    profiles,
+    paths: [...listingPaths, ...items.map((item) => item.url), ...pages.map((page) => page.url)],
+    entries: [
+      ...listingPaths.map((url) => ({ url, lastmod: latestItemStamp })),
+      ...items.map((item) => ({ url: item.url, lastmod: isoDateForItem(item) || buildStamp })),
+      ...pages.map((page) => ({ url: page.url, lastmod: isoDateForItem(page) || buildStamp }))
+    ]
+  };
+}
+
+// The language front page is a straight reverse-chronological listing rather
+// than the English homepage's promotional bands: those bands are built from
+// English marketing copy and interactive widgets, and a reader arriving in Urdu
+// is better served by the coverage itself.
+function writeLocaleTree(tree) {
+  writePage("/", listingPage({
+    title: t("homeTitle"),
+    eyebrow: t("homeEyebrow"),
+    summary: t("homeSummary"),
+    current: "/",
+    items: tree.items,
+    filters: []
+  }));
+  writePage("/news/", listingPage({
+    title: t("newsTitle"),
+    eyebrow: t("newsEyebrow"),
+    summary: t("newsSummary"),
+    current: "/news/",
+    items: tree.news,
+    filters: []
+  }));
+  writePage("/opinion/", listingPage({
+    title: t("opinionTitle"),
+    eyebrow: t("opinionEyebrow"),
+    summary: t("opinionSummary"),
+    current: "/opinion/",
+    items: tree.opinion,
+    filters: []
+  }));
+  writePage("/reports/", listingPage({
+    title: t("reportsTitle"),
+    eyebrow: t("reportsEyebrow"),
+    summary: t("reportsSummary"),
+    current: "/reports/",
+    items: tree.reports
+      .slice()
+      .sort((a, b) => reportPeriodKey(a) - reportPeriodKey(b) || String(a.date || "").localeCompare(String(b.date || ""))),
+    filters: []
+  }));
+  writePage("/profiles/", listingPage({
+    title: t("profilesTitle"),
+    eyebrow: t("profilesEyebrow"),
+    summary: t("profilesSummary"),
+    current: "/profiles/",
+    items: tree.profiles,
+    filters: []
+  }));
+
+  for (const item of tree.items) writePage(item.url, articleTemplate(item, tree.items));
+  for (const page of tree.pages) writePage(page.url, pageTemplate(page));
+}
+
 async function main() {
   rmDir(OUT_DIR);
   ensureDir(OUT_DIR);
@@ -2542,6 +2791,25 @@ async function main() {
   HUB_REGION_SLUGS.clear();
   for (const hub of hubs.organisations) HUB_ORG_SLUGS.add(hub.slug);
   for (const hub of hubs.regions) HUB_REGION_SLUGS.add(hub.slug);
+
+  // Every language is fetched and registered before a single page is written,
+  // because the English pages carry hreflang tags pointing at the Urdu and
+  // Pashto versions and cannot know about them otherwise.
+  const localeTrees = new Map();
+  for (const code of TRANSLATED_LOCALES) {
+    const tree = await readLocaleTree(code);
+    if (!tree.items.length && !tree.pages.length) {
+      console.warn(`No ${code} translations available yet — skipping the /${code}/ tree.`);
+      continue;
+    }
+    localeTrees.set(code, tree);
+    registerLocalePages(code, tree.paths);
+  }
+  registerLocalePages("en", [
+    "/", "/news/", "/opinion/", "/reports/", "/profiles/",
+    ...allContent.map((item) => item.url),
+    ...pages.map((page) => page.url)
+  ]);
 
   writePage("/", homepage(allContent));
   writePage(
@@ -2653,8 +2921,20 @@ async function main() {
   ensureDir(path.join(OUT_DIR, "assets", "data"));
   fs.writeFileSync(path.join(OUT_DIR, "assets", "data", "hubs.json"), JSON.stringify(hubsManifest, null, 2));
 
+  // ---- Urdu and Pashto editions -------------------------------------------
+  //
+  // The language trees are written from the same templates as the English one.
+  // Anything the desk has not had translated yet simply is not there: a
+  // half-English Urdu page would be worse than no Urdu page, and the hreflang
+  // tags stay honest either way.
+  for (const [code, tree] of localeTrees) {
+    LOCALE = localeFor(code);
+    writeLocaleTree(tree);
+  }
+  LOCALE = DEFAULT_LOCALE;
+
   writeRootFile("404.html", notFoundPage());
-  writeStaticFiles(allContent, pages, hubs);
+  writeStaticFiles(allContent, pages, hubs, localeTrees);
 
   // Admin panel, maintenance page, and the Pages maintenance gate.
   writePage("/admin/", adminPage());
@@ -2663,7 +2943,13 @@ async function main() {
   writeRootFile("_worker.js", pagesWorker());
 
   const hubCount = hubs.organisations.length + hubs.regions.length;
-  console.log(`Built ${allContent.length + pages.length + hubCount + 7} pages into ${path.relative(ROOT, OUT_DIR)} (${hubCount} hub pages)`);
+  const localeSummary = [...localeTrees.values()]
+    .map((tree) => `${tree.code}: ${tree.items.length + tree.pages.length + 5}`)
+    .join(", ");
+  console.log(
+    `Built ${allContent.length + pages.length + hubCount + 7} English pages into ${path.relative(ROOT, OUT_DIR)} `
+    + `(${hubCount} hub pages)${localeSummary ? ` · translated editions — ${localeSummary}` : " · no translated editions yet"}`
+  );
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
