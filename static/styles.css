@@ -3475,3 +3475,22 @@ html[lang="ps"] .section-hero h1 { font-size: clamp(1.6rem, 3.2vw, 2.4rem); }
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* === SEO Crawler Fallback === */
+/* Ensure content is visible for search engine crawlers that don't execute scroll JS */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  [data-reveal],
+  .js-reveal [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Fallback: ensure reveal content is accessible via noscript */
+html:not(.js-reveal) [data-reveal],
+html:not(.js-reveal) .reveal {
+  opacity: 1 !important;
+  transform: none !important;
+}

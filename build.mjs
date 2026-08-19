@@ -891,6 +891,87 @@ function articleJsonLd(item) {
   return payload;
 }
 
+// SEO: BreadcrumbList schema for article and content subpages
+function breadcrumbJsonLd(item) {
+  const sectionLabel = typeLabel(item.type);
+  const sectionRoute = routeForType(item.type);
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: SITE.title,
+        item: SITE.url + "/"
+      },
+      ...(sectionRoute !== "/" ? [{
+        "@type": "ListItem",
+        position: 2,
+        name: sectionLabel,
+        item: SITE.url + sectionRoute
+      }] : []),
+      {
+        "@type": "ListItem",
+        position: sectionRoute !== "/" ? 3 : 2,
+        name: item.title
+      }
+    ]
+  };
+}
+
+// SEO: BreadcrumbList schema for static pages (about, contact, etc.)
+function pageBreadcrumbJsonLd(page) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: SITE.title,
+        item: SITE.url + "/"
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: page.title
+      }
+    ]
+  };
+}
+
+// SEO: AboutPage JSON-LD schema
+function aboutPageJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "About TGD",
+    url: SITE.url + "/about/",
+    description: SITE.description,
+    mainEntity: publisherJsonLd()
+  };
+}
+
+// SEO: ContactPage JSON-LD schema
+function contactPageJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: "Contact",
+    url: SITE.url + "/contact/",
+    description: `Get in touch with ${SITE.title}`,
+    mainEntity: {
+      ...publisherJsonLd(),
+      contactPoint: {
+        "@type": "ContactPoint",
+        email: SITE.email || `contact@theglobaldecipher.com`,
+        contactType: "editorial"
+      }
+    }
+  };
+}
+
 function homepageJsonLd() {
   return [
     {
@@ -936,7 +1017,7 @@ function languageSwitcher(pagePath, alternates) {
 }
 
 function shell({ title, description, body, current = "", pagePath = "/", extraHead = "", image = SITE.defaultImage, ogType = "website", noindex = false, jsonLd = null }) {
-  const pageTitle = title === SITE.title ? title : `${title} | ${SITE.title}`;
+  const pageTitle = title === SITE.title ? `${SITE.title} — Terrorism & Security Risk Analysis` : `${title} | ${SITE.title}`;
   // Assets are written once at the site root and shared by every language, so
   // the "../" depth is counted from the localized path, not the bare one.
   const assetPrefix = prefixFor(localized(pagePath));
@@ -991,6 +1072,7 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
   <meta name="twitter:description" content="${escapeHtml(pageDescription)}">
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="icon" href="${assetPrefix}assets/${MARK_ASSET}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="${assetPrefix}assets/brand/tgd-logo-header-420-v2.png">
   <link rel="alternate" type="application/rss+xml" title="${escapeHtml(SITE.title)} RSS" href="${SITE.url}/rss.xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1752,7 +1834,9 @@ function pageTemplate(page) {
     pagePath: page.url,
     extraHead: managedPageHead,
     image: page.og_image || page.image || SITE.defaultImage,
-    jsonLd: personJsonLdFor(page)
+    jsonLd: page.slug === "about" ? [aboutPageJsonLd(), pageBreadcrumbJsonLd(page)]
+         : page.slug === "contact" ? [contactPageJsonLd(), pageBreadcrumbJsonLd(page)]
+         : [personJsonLdFor(page), pageBreadcrumbJsonLd(page)].filter(Boolean)
   });
 }
 
@@ -1883,7 +1967,7 @@ function articleTemplate(item, allItems) {
     pagePath: item.url,
     image: item.og_image || item.image || SITE.defaultImage,
     ogType: "article",
-    jsonLd: articleJsonLd(item)
+    jsonLd: [articleJsonLd(item), breadcrumbJsonLd(item)]
   });
 }
 
@@ -1941,7 +2025,7 @@ ${feedItems.map((item) => `    <item>
 </rss>
 `;
   fs.writeFileSync(path.join(OUT_DIR, "rss.xml"), xml);
-  fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), xml);
+  fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), xml.replace(`${SITE.url}/rss.xml`, `${SITE.url}/feed.xml`));
 }
 
 function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] }, localeTrees = new Map()) {
@@ -1985,7 +2069,7 @@ function writeStaticFiles(items, pages, hubs = { organisations: [], regions: [] 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${entries
-  .map(({ url, lastmod, alternates }) => `  <url><loc>${SITE.url}${url}</loc><lastmod>${lastmod}</lastmod>${alternateMarkup(alternates)}</url>`)
+  .map(({ url, lastmod, alternates }) => `  <url><loc>${SITE.url}${url}</loc><lastmod>${lastmod}</lastmod><changefreq>${url === "/" ? "daily" : "weekly"}</changefreq><priority>${url === "/" ? "1.0" : url.split("/").filter(Boolean).length <= 1 ? "0.8" : "0.6"}</priority>${alternateMarkup(alternates)}</url>`)
   .join("\n")}
 </urlset>`;
 
