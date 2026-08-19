@@ -1243,9 +1243,8 @@ function cardImageMarkup(item, { wide = false, placeholder = false } = {}) {
     </div>`;
 }
 
-function card(item, currentPath = "/", { compact = false } = {}) {
+function card(item, currentPath = "/") {
   const tags = Array.isArray(item.tags) ? item.tags : [];
-  const tagMarkup = tags.slice(0, 3).map((tag) => tagChip(tag, currentPath)).join("");
   const status = item.type === "profiles" ? profileStatus(item) : "";
   const statusSlug = status ? slugify(status) : "";
   const categoryAccent = item.type !== "profiles"
@@ -1270,7 +1269,6 @@ function card(item, currentPath = "/", { compact = false } = {}) {
         ? `<span class="status-chip status-${statusSlug}">${escapeHtml(status)}</span>`
         : `<span>${escapeHtml(item.region || item.category || "")}</span>`}
     </div>
-    ${compact ? "" : `<div class="tag-row">${tagMarkup}</div>`}
   </article>`;
 }
 
@@ -1663,7 +1661,6 @@ function leadStory(item, currentPath) {
         <span>${escapeHtml(formatDate(item.date))}</span>
         <span>${escapeHtml(item.region || item.category || "")}</span>
       </div>
-      <div class="tag-row">${tags.slice(0, 3).map((tag) => tagChip(tag, currentPath)).join("")}</div>
     </div>
   </article>`;
 }
