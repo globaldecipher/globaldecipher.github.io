@@ -1851,7 +1851,6 @@ function articleSidebar(item) {
   const pdfs = extractPdfLinks(item.body);
   const metrics = item.type === "reports" ? extractReportMetrics(item.body).slice(0, 4) : [];
   const facts = item.type === "profiles" ? profileFacts(item) : [];
-  const tags = Array.isArray(item.tags) ? item.tags : [];
 
   const metricBlock = metrics.length
     ? `<div class="article-side-panel">
@@ -1881,13 +1880,6 @@ function articleSidebar(item) {
       </div>`
     : "";
 
-  const tagBlock = tags.length
-    ? `<div class="article-side-panel">
-        <h2>${escapeHtml(t("sidebarTags"))}</h2>
-        <div class="side-tags">${tags.map((tag) => tagChip(tag, item.url)).join("")}</div>
-      </div>`
-    : "";
-
   const researchBlock = item.type === "profiles"
     ? `<div class="article-side-panel">
         <h2>${escapeHtml(t("sidebarResearchNote"))}</h2>
@@ -1900,7 +1892,7 @@ function articleSidebar(item) {
         <button type="button" class="copy-link" data-copy-link="${escapeHtml(canonicalFor(item.url))}">${escapeHtml(t("sidebarCopyLink"))}</button>
       </div>`;
 
-  const blocks = [shareBlock, metricBlock, factBlock, tocBlock, pdfBlock, tagBlock, researchBlock].filter(Boolean).join("");
+  const blocks = [shareBlock, metricBlock, factBlock, tocBlock, pdfBlock, researchBlock].filter(Boolean).join("");
   return blocks ? `<aside class="article-sidebar">${blocks}</aside>` : "";
 }
 
