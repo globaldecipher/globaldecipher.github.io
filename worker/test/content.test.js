@@ -136,6 +136,32 @@ test("a deliberate save clears any parked draft", async () => {
   assert.ok(env.statements.some((s) => /draft_content = NULL/.test(s.sql)));
 });
 
+test("publishing a featured item clears every other homepage flag", async () => {
+  const env = publishedEnv();
+  await putFile(
+    env,
+    "content/opinion/example.md",
+    "---\ntitle: \"Homepage lead\"\nstatus: \"published\"\nfeatured: true\n---\n\nFinished body",
+    "live-version"
+  );
+
+  const exclusive = env.statements.find((s) => /SET featured = CASE WHEN/.test(s.sql));
+  assert.ok(exclusive, "expected the published feature to replace every older homepage lead");
+  assert.deepEqual(exclusive.args, ["opinion", "example", "opinion", "example"]);
+});
+
+test("saving a featured draft does not displace the published homepage lead", async () => {
+  const env = publishedEnv({ status: "draft", published_at: null });
+  await putFile(
+    env,
+    "content/opinion/example.md",
+    "---\ntitle: \"Not live yet\"\nstatus: \"draft\"\nfeatured: true\n---\n\nWork in progress",
+    "live-version"
+  );
+
+  assert.equal(env.statements.some((s) => /SET featured = CASE WHEN/.test(s.sql)), false);
+});
+
 test("an ordinary save still succeeds before migration 0007 is applied", async () => {
   const env = publishedEnv();
   const base = env.CONTENT_DB.prepare.bind(env.CONTENT_DB);

@@ -1502,14 +1502,19 @@ function homepage(items) {
   const currentPath = "/";
   const reports = items.filter((item) => item.type === "reports");
   const profiles = items.filter((item) => item.type === "profiles");
-  const lead = reports.find((item) => item.featured) || reports[0] || profiles[0] || items[0];
+  // "Feature on homepage" is available for every editorial collection, so the
+  // hero must honour the flag across every content type. The content store keeps
+  // this flag exclusive; finding it before the report fallback also makes older
+  // rows created before that rule behave as expected once the newest item is
+  // featured.
+  const lead = items.find((item) => item.featured) || reports[0] || profiles[0] || items[0];
   const metrics = lead?.type === "reports" ? extractReportMetrics(lead.body) : [];
   const metricMap = new Map(metrics);
   const profileRegions = new Set(profiles.map((item) => item.region).filter(Boolean));
   const briefings = items.filter((item) => ["news", "opinion", "monitoring"].includes(item.type));
   const leadType = lead?.type === "reports" ? "Lead report" : lead?.type === "profiles" ? "Profile" : "Lead briefing";
   const leadCta = lead?.type === "reports" ? "Read report" : lead?.type === "profiles" ? "Read profile" : "Read briefing";
-  const heroTitle = lead?.hero_title || (lead?.type === "reports"
+  const heroTitle = lead?.hero_title || (lead?.featured || lead?.type === "reports"
     ? lead.title
     : "Militant actor profiles and security research in one place");
   const reportPeriod = lead?.date
@@ -2850,7 +2855,7 @@ async function main() {
     ...(SHOW_MONITORING ? monitoring : []),
     ...reports,
     ...profiles
-  ];
+  ].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 
   // A database or API fault that answers 200 with nothing would otherwise
   // deploy an empty site over the real one. An entirely empty result is never

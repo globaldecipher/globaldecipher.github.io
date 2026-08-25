@@ -136,6 +136,20 @@ async function clearParkedDraft(env, collection, slug) {
   }
 }
 
+// A homepage can only have one lead. Apply this after the requested row has
+// been saved so concurrent feature requests resolve naturally: the last
+// completed publish wins and every older flag is cleared in the same statement.
+// Drafts never displace the live lead.
+async function makeFeaturedExclusive(env, collection, slug, status, featured) {
+  if (status !== "published" || featured !== true) return;
+  await env.CONTENT_DB
+    .prepare(`UPDATE content
+      SET featured = CASE WHEN collection = ? AND slug = ? THEN 1 ELSE 0 END
+      WHERE featured = 1 OR (collection = ? AND slug = ?)`)
+    .bind(collection, slug, collection, slug)
+    .run();
+}
+
 export async function discardDraft(env, filePath) {
   const { collection, slug } = parsePath(filePath);
   await clearParkedDraft(env, collection, slug);
@@ -286,6 +300,7 @@ export async function putFile(env, filePath, content, expectedSha = null, option
       )
       .run();
   }
+  await makeFeaturedExclusive(env, collection, slug, status, fm.featured === true);
   return { path: filePath, sha: now };
 }
 
