@@ -582,6 +582,7 @@ export async function completeXOAuth(request, env) {
   if (!/^\d{1,20}$/.test(userId)) throw new AgentError("X did not return a valid account ID.", 502);
   await stateSet(env, "x_user_id", userId);
   await stateSet(env, "x_username", username);
+  await stateDelete(env, "oauth_consecutive_failures");
 
   // Seed the live cursor, then queue a bounded same-day import. This prevents
   // posts made earlier in the Pakistan calendar day from disappearing during
@@ -1770,6 +1771,24 @@ export async function runXToMapAgent(env, options = {}) {
   } catch (error) {
     await metricIncrement(env, "errors", 1);
     await stateSet(env, "last_error", clean(error?.message || error, 1000));
+    const isOAuthDead = error?.status === 400
+      && /oauth failed/i.test(error?.message);
+    if (isOAuthDead) {
+      const oauthFailures = (Number(await stateGet(env, "oauth_consecutive_failures", "0")) || 0) + 1;
+      await stateSet(env, "oauth_consecutive_failures", oauthFailures);
+      if (oauthFailures >= 5) {
+        await stateSet(env, "agent_enabled", "false");
+        await logAgent(
+          env,
+          "agent_auto_paused",
+          `Agent auto-paused after ${oauthFailures} consecutive OAuth failures. Reconnect @Global_Decipher in the admin panel to resume.`,
+          { consecutive_failures: oauthFailures },
+          "error"
+        );
+      }
+    } else {
+      await stateDelete(env, "oauth_consecutive_failures");
+    }
     await logAgent(env, "cron_failed", error?.message || String(error), {
       started_at: startedAt,
       status: error?.status || 500
