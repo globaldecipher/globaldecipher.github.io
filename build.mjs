@@ -66,6 +66,11 @@ const SITE = {
 // whole category back.
 const SHOW_MONITORING = false;
 
+// Retired institutional pages stay suppressed even if an old D1 row or
+// translation survives. This keeps them out of page generation, hreflang,
+// search indexes, and the sitemap.
+const RETIRED_PAGE_SLUGS = new Set(["about"]);
+
 // ---------------------------------------------------------------------------
 // Language editions
 // ---------------------------------------------------------------------------
@@ -596,6 +601,7 @@ async function readCollection(collection, lang = "en") {
         url: collection === "pages" ? `/${slug}/` : `/${collection}/${slug}/`
       };
     })
+    .filter((item) => collection !== "pages" || !RETIRED_PAGE_SLUGS.has(item.slug))
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 }
 
@@ -941,18 +947,6 @@ function pageBreadcrumbJsonLd(page) {
   };
 }
 
-// SEO: AboutPage JSON-LD schema
-function aboutPageJsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "AboutPage",
-    name: "About TGD",
-    url: SITE.url + "/about/",
-    description: SITE.description,
-    mainEntity: publisherJsonLd()
-  };
-}
-
 // SEO: ContactPage JSON-LD schema
 function contactPageJsonLd() {
   return {
@@ -1142,7 +1136,6 @@ function shell({ title, description, body, current = "", pagePath = "/", extraHe
         <h2>${escapeHtml(t("footerPitch"))}</h2>
         <a href="mailto:${SITE.email}">${SITE.email}</a>
         <a href="${linkFor("/contact/", pagePath)}">${escapeHtml(t("footerContact"))}</a>
-        <a href="${linkFor("/about/", pagePath)}">${escapeHtml(t("footerAbout"))}</a>
       </div>
     </div>
     <div class="container footer-bottom">
@@ -1836,8 +1829,7 @@ function pageTemplate(page) {
     pagePath: page.url,
     extraHead: managedPageHead,
     image: page.og_image || page.image || SITE.defaultImage,
-    jsonLd: page.slug === "about" ? [aboutPageJsonLd(), pageBreadcrumbJsonLd(page)]
-         : page.slug === "contact" ? [contactPageJsonLd(), pageBreadcrumbJsonLd(page)]
+    jsonLd: page.slug === "contact" ? [contactPageJsonLd(), pageBreadcrumbJsonLd(page)]
          : [personJsonLdFor(page), pageBreadcrumbJsonLd(page)].filter(Boolean)
   });
 }
